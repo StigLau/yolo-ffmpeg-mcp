@@ -6,8 +6,8 @@ class SecurityConfig:
     # Allowed file extensions
     ALLOWED_EXTENSIONS = {'.mp3', '.mp4', '.wav', '.flac', '.m4a', '.avi', '.mkv', '.mov', '.webm', '.ogg'}
     
-    # Maximum file size (100MB)
-    MAX_FILE_SIZE = 100 * 1024 * 1024
+    # Maximum file size (500MB)
+    MAX_FILE_SIZE = 500 * 1024 * 1024
     
     # Process timeout (5 minutes)
     PROCESS_TIMEOUT = 300

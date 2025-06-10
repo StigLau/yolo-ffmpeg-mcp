@@ -107,7 +107,7 @@ async def process_file(
     input_file_id: str,
     operation: str,
     output_extension: str = "mp4",
-    **params
+    params: str = ""
 ) -> ProcessResult:
     """Process a file using FFMPEG with specified operation"""
     
@@ -133,11 +133,30 @@ async def process_file(
         )
     
     try:
+        # Parse params string into dict
+        parsed_params = {}
+        if params:
+            for param in params.split():
+                if '=' in param:
+                    key, value = param.split('=', 1)
+                    # If the value looks like a file ID, resolve it to a path
+                    if value.startswith('file_') and key in ['audio_file', 'second_video']:
+                        file_path = file_manager.resolve_id(value)
+                        if file_path and file_path.exists():
+                            parsed_params[key] = str(file_path)
+                        else:
+                            return ProcessResult(
+                                success=False,
+                                message=f"File ID '{value}' not found"
+                            )
+                    else:
+                        parsed_params[key] = value
+        
         # Create output file
         output_file_id, output_path = file_manager.create_temp_file(output_extension)
         
         # Build and execute command
-        command = ffmpeg.build_command(operation, input_path, output_path, **params)
+        command = ffmpeg.build_command(operation, input_path, output_path, **parsed_params)
         result = await ffmpeg.execute_command(command, SecurityConfig.PROCESS_TIMEOUT)
         
         if result["success"]:

@@ -30,6 +30,18 @@ class FFMPEGWrapper:
         "to_mp3": {
             "args": ["-c:a", "libmp3lame", "-b:a", "192k"],
             "description": "Convert to MP3 format"
+        },
+        "replace_audio": {
+            "args": ["-i", "{audio_file}", "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-shortest"],
+            "description": "Replace video audio with another audio file (requires audio_file)"
+        },
+        "trim_and_replace_audio": {
+            "args": ["-ss", "{start}", "-t", "{duration}", "-i", "{audio_file}", "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-shortest"],
+            "description": "Trim video and replace audio (requires start, duration, audio_file)"
+        },
+        "concatenate_simple": {
+            "args": ["-i", "{second_video}", "-filter_complex", "[0:v][1:v]concat=n=2:v=1:a=0[outv];[0:a][1:a]concat=n=2:v=0:a=1[outa]", "-map", "[outv]", "-map", "[outa]", "-c:v", "libx264", "-c:a", "aac"],
+            "description": "Simple concatenate two videos (requires second_video)"
         }
     }
 
