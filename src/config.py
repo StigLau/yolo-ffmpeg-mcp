@@ -1,0 +1,37 @@
+from pathlib import Path
+import os
+
+
+class SecurityConfig:
+    # Allowed file extensions
+    ALLOWED_EXTENSIONS = {'.mp3', '.mp4', '.wav', '.flac', '.m4a', '.avi', '.mkv', '.mov', '.webm', '.ogg'}
+    
+    # Maximum file size (100MB)
+    MAX_FILE_SIZE = 100 * 1024 * 1024
+    
+    # Process timeout (5 minutes)
+    PROCESS_TIMEOUT = 300
+    
+    # Resource limits
+    MEMORY_LIMIT = "512M"
+    CPU_LIMIT = "1.0"
+    
+    # Directory configuration
+    SOURCE_DIR = Path(os.getenv("FFMPEG_SOURCE_DIR", "/tmp/music/source"))
+    TEMP_DIR = Path(os.getenv("FFMPEG_TEMP_DIR", "/tmp/music/temp"))
+    
+    # FFMPEG binary path
+    FFMPEG_PATH = os.getenv("FFMPEG_PATH", "ffmpeg")
+    
+    @classmethod
+    def validate_file_size(cls, file_path: Path) -> bool:
+        """Check if file size is within limits"""
+        try:
+            return file_path.stat().st_size <= cls.MAX_FILE_SIZE
+        except Exception:
+            return False
+            
+    @classmethod
+    def validate_extension(cls, file_path: Path) -> bool:
+        """Check if file extension is allowed"""
+        return file_path.suffix.lower() in cls.ALLOWED_EXTENSIONS
