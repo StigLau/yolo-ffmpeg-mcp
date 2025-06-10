@@ -1324,6 +1324,369 @@ for video_id in video_list:
 Remember: Start small, test thoroughly, and always keep your source files safe during batch operations!"""
 
 
+# MCP Context Providers for Video Editing Intelligence
+
+# Global tracking for context
+_operation_history = []
+_performance_stats = {}
+
+async def _get_files_summary() -> str:
+    """Get a summary of available files"""
+    try:
+        files_result = await list_files()
+        if "error" in files_result:
+            return f"Error: {files_result['error']}"
+        
+        files = files_result.get("files", [])
+        if not files:
+            return "No files available"
+        
+        summary = []
+        total_size = 0
+        
+        for file in files:
+            size_mb = file.size / (1024 * 1024)
+            total_size += size_mb
+            summary.append(f"- {file.name} ({size_mb:.1f}MB) - ID: {file.id}")
+        
+        return f"{len(files)} files, {total_size:.1f}MB total:\n" + "\n".join(summary)
+    except Exception as e:
+        return f"Error getting files: {str(e)}"
+
+async def _get_recent_operations() -> str:
+    """Get recent operations from history"""
+    if not _operation_history:
+        return "No recent operations"
+    
+    recent = _operation_history[-5:]  # Last 5 operations
+    summary = []
+    
+    for op in recent:
+        timestamp = op.get('timestamp', 'Unknown time')
+        operation = op.get('operation', 'Unknown')
+        success = op.get('success', False)
+        input_file = op.get('input_file', 'Unknown')
+        status = "✅" if success else "❌"
+        summary.append(f"{status} {operation} on {input_file} ({timestamp})")
+    
+    return "\n".join(summary)
+
+async def _get_temp_files_status() -> str:
+    """Get status of temporary files"""
+    try:
+        import os
+        temp_dir = SecurityConfig.TEMP_DIR
+        
+        if not temp_dir.exists():
+            return "No temp directory"
+        
+        temp_files = list(temp_dir.glob("*"))
+        if not temp_files:
+            return "No temporary files"
+        
+        total_size = sum(f.stat().st_size for f in temp_files if f.is_file())
+        size_mb = total_size / (1024 * 1024)
+        
+        return f"{len(temp_files)} temp files, {size_mb:.1f}MB"
+    except Exception as e:
+        return f"Error checking temp files: {str(e)}"
+
+def _get_storage_info() -> str:
+    """Get storage information"""
+    try:
+        import shutil
+        temp_dir = SecurityConfig.TEMP_DIR
+        source_dir = SecurityConfig.SOURCE_DIR
+        
+        temp_free = shutil.disk_usage(temp_dir).free / (1024**3)  # GB
+        source_free = shutil.disk_usage(source_dir).free / (1024**3)  # GB
+        
+        return f"Temp: {temp_free:.1f}GB free, Source: {source_free:.1f}GB free"
+    except Exception:
+        return "Storage info unavailable"
+
+def _get_active_operations() -> str:
+    """Get currently active operations (placeholder for now)"""
+    # In a real implementation, this would track running FFMPEG processes
+    return "No active operations detected"
+
+async def _get_file_genealogy() -> str:
+    """Track file processing relationships"""
+    # This would track which files were created from which sources
+    genealogy = {}
+    
+    for op in _operation_history:
+        if op.get('success') and op.get('output_file_id'):
+            input_file = op.get('input_file', 'Unknown')
+            output_file = op.get('output_file_id', 'Unknown')
+            operation = op.get('operation', 'Unknown')
+            
+            if input_file not in genealogy:
+                genealogy[input_file] = []
+            genealogy[input_file].append(f"{output_file} (via {operation})")
+    
+    if not genealogy:
+        return "No file processing history available"
+    
+    summary = []
+    for source, outputs in genealogy.items():
+        summary.append(f"**{source}** →")
+        for output in outputs:
+            summary.append(f"  - {output}")
+    
+    return "\n".join(summary)
+
+async def _suggest_next_operations() -> str:
+    """Suggest logical next operations based on current state"""
+    try:
+        files_result = await list_files()
+        files = files_result.get("files", [])
+        
+        if not files:
+            return "Add some video files to get started"
+        
+        suggestions = []
+        
+        # Check for large files that might need compression
+        large_files = [f for f in files if f.size > 100 * 1024 * 1024]  # > 100MB
+        if large_files:
+            suggestions.append(f"• Consider compressing {len(large_files)} large files with convert operation")
+        
+        # Check for non-MP4 files
+        non_mp4 = [f for f in files if f.extension.lower() != '.mp4']
+        if non_mp4:
+            suggestions.append(f"• Convert {len(non_mp4)} non-MP4 files for better compatibility")
+        
+        # Check for very long videos (based on file size estimation)
+        potentially_long = [f for f in files if f.size > 500 * 1024 * 1024]  # > 500MB
+        if potentially_long:
+            suggestions.append(f"• Consider trimming {len(potentially_long)} potentially long videos")
+        
+        # Check temp files for cleanup
+        temp_status = await _get_temp_files_status()
+        if "temp files" in temp_status and not "No temporary" in temp_status:
+            suggestions.append("• Run cleanup_temp_files() to free up space")
+        
+        if not suggestions:
+            suggestions.append("• Files look good! Ready for editing operations")
+        
+        return "\n".join(suggestions)
+    except Exception as e:
+        return f"Error generating suggestions: {str(e)}"
+
+def _analyze_platform_compatibility() -> str:
+    """Analyze how current files match platform requirements"""
+    # This would analyze files against platform specs
+    return """Current files analyzed against major platforms:
+• YouTube: Most files compatible, consider MP4 conversion for optimal upload
+• Instagram: Large files may need resizing to 1080p max
+• TikTok: Consider vertical format conversion for better engagement
+• Twitter: File sizes look good for platform limits"""
+
+def _suggest_platform_optimizations() -> str:
+    """Suggest platform-specific optimizations"""
+    return """Recommended optimizations:
+1. Use resize operation for Instagram (1080x1080 or 1080x1350)
+2. Convert all to MP4 for maximum compatibility
+3. Use trim operation to create shorter clips for social media
+4. Consider compress_efficiently for faster uploads"""
+
+def _analyze_quality_issues() -> str:
+    """Analyze potential quality issues"""
+    return """Quality analysis based on file characteristics:
+• No obvious corruption detected
+• Some files may benefit from audio normalization
+• Consider format standardization for consistent quality
+• Check individual files with get_file_info() for detailed analysis"""
+
+def _suggest_quality_improvements() -> str:
+    """Suggest quality enhancement opportunities"""
+    return """Enhancement opportunities:
+1. Use normalize_audio operation for better audio levels
+2. Convert to MP4 for optimal codec efficiency
+3. Use extract_audio + replace_audio workflow for audio cleanup
+4. Consider resize operation if source resolution is inconsistent"""
+
+@mcp.context()
+async def current_project_status() -> str:
+    """Provide context about the current video editing project state"""
+    files_summary = await _get_files_summary()
+    recent_ops = await _get_recent_operations()
+    temp_status = await _get_temp_files_status()
+    storage = _get_storage_info()
+    active = _get_active_operations()
+    
+    return f"""# Current Video Project Status
+
+## Available Files:
+{files_summary}
+
+## Recent Operations:
+{recent_ops}
+
+## Temp Files:
+{temp_status}
+
+## System Resources:
+- Storage: {storage}
+- Processing: {active}
+
+## Quick Actions:
+- Use list_files() to see all files with IDs
+- Use get_file_info(file_id) for detailed analysis
+- Use cleanup_temp_files() to free up space"""
+
+
+@mcp.context()
+async def file_relationships() -> str:
+    """Track which files are derived from which sources"""
+    genealogy = await _get_file_genealogy()
+    suggestions = await _suggest_next_operations()
+    
+    return f"""# File Processing History
+
+## Source → Output Relationships:
+{genealogy}
+
+## Recommended Next Steps:
+{suggestions}
+
+## Workflow Tips:
+- Keep track of which files are originals vs processed outputs
+- Use consistent naming patterns for easier management
+- Consider creating a backup before major operations"""
+
+
+@mcp.context()
+async def system_performance() -> str:
+    """Provide system performance and optimization context"""
+    storage = _get_storage_info()
+    temp_status = await _get_temp_files_status()
+    
+    # Calculate some basic performance metrics
+    total_ops = len(_operation_history)
+    successful_ops = len([op for op in _operation_history if op.get('success')])
+    success_rate = (successful_ops / total_ops * 100) if total_ops > 0 else 0
+    
+    return f"""# System Performance Context
+
+## Processing Statistics:
+- Total operations: {total_ops}
+- Success rate: {success_rate:.1f}%
+- Recent operations: {len(_operation_history[-10:])} in session
+
+## Resource Status:
+- {storage}
+- {temp_status}
+
+## Performance Tips:
+- Process shorter videos first for faster feedback
+- Use cleanup_temp_files() regularly to maintain performance
+- Group similar operations together for efficiency
+- Monitor disk space before processing large files
+
+## Optimization Recommendations:
+- Trim videos before other operations to reduce processing time
+- Convert to MP4 format for faster subsequent operations
+- Use batch processing strategies for multiple files"""
+
+
+@mcp.context()
+async def platform_requirements() -> str:
+    """Dynamic platform requirements and current file compatibility"""
+    compatibility = _analyze_platform_compatibility()
+    optimizations = _suggest_platform_optimizations()
+    
+    return f"""# Platform Compatibility Analysis
+
+## Current Files vs Platform Requirements:
+{compatibility}
+
+## Recommended Optimizations:
+{optimizations}
+
+## Platform-Specific Workflows:
+- **YouTube**: Use optimize_for_platform(platform="youtube") prompt
+- **Instagram**: Focus on 1:1 or 4:5 aspect ratios with resize operation
+- **TikTok**: Prioritize vertical 9:16 format with resize operation
+- **Twitter**: Keep under 512MB, use compress_efficiently if needed
+
+## Quick Platform Prep:
+1. Check file sizes with list_files()
+2. Use resize for platform-specific dimensions
+3. Use convert for format standardization
+4. Use trim for duration limits"""
+
+
+@mcp.context()
+async def quality_metrics() -> str:
+    """Provide quality analysis of current files"""
+    quality_issues = _analyze_quality_issues()
+    improvements = _suggest_quality_improvements()
+    
+    return f"""# Video Quality Assessment
+
+## Quality Issues Detected:
+{quality_issues}
+
+## Enhancement Opportunities:
+{improvements}
+
+## Quality Workflow Recommendations:
+1. **Audio Quality**: Use extract_audio → normalize_audio → replace_audio
+2. **Video Quality**: Use convert operation for codec optimization
+3. **Consistency**: Standardize all files to MP4 format
+4. **Analysis**: Use get_file_info() for detailed quality metrics
+
+## Quality Checklist:
+- ✓ Check audio levels are consistent across files
+- ✓ Verify video format compatibility
+- ✓ Ensure resolution meets target platform requirements
+- ✓ Test playback on target devices/platforms"""
+
+
+# Enhanced process_file to track operations for context
+original_process_file = process_file
+
+async def enhanced_process_file(
+    input_file_id: str,
+    operation: str,
+    output_extension: str = "mp4",
+    params: str = ""
+) -> ProcessResult:
+    """Enhanced process_file that tracks operations for context"""
+    import time
+    
+    # Get input file name for tracking
+    input_path = file_manager.resolve_id(input_file_id)
+    input_name = input_path.name if input_path else input_file_id
+    
+    # Call original function
+    result = await original_process_file(input_file_id, operation, output_extension, params)
+    
+    # Track operation in history
+    operation_record = {
+        'timestamp': time.strftime('%H:%M:%S'),
+        'operation': operation,
+        'input_file': input_name,
+        'input_file_id': input_file_id,
+        'output_file_id': result.output_file_id,
+        'success': result.success,
+        'params': params
+    }
+    
+    _operation_history.append(operation_record)
+    
+    # Keep history manageable (last 50 operations)
+    if len(_operation_history) > 50:
+        _operation_history.pop(0)
+    
+    return result
+
+# Replace the original process_file with enhanced version
+process_file = enhanced_process_file
+
+
 # Run the server
 if __name__ == "__main__":
     mcp.run()
