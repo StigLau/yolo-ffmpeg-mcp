@@ -1,4 +1,4 @@
-# FFMPEG MCP Server - READY FOR USE ✅
+Ok # FFMPEG MCP Server - READY FOR USE ✅
 
 ## Project Status: COMPLETE AND FUNCTIONAL
 This is a fully working FFMPEG MCP server with comprehensive testing completed. All 6 tools are functional and tested with real video processing.
@@ -91,3 +91,11 @@ tests/
 4. Check `/tmp/music/temp/` for output files
 
 **This MCP server is production-ready and fully tested with real FFMPEG operations.**
+
+## Developer Communication Preferences
+- **Concise responses**: Minimize token usage, answer directly
+- **Discuss before implementing**: For changes >10 LOC, discuss first
+- **Minimal comments**: Only on function definitions when needed
+- **Senior developer context**: Deep technical knowledge assumed
+- **Cost-conscious**: Optimize for efficiency and brevity
+- **YOLO commands**: When prefixed with "YOLO", implement changes directly without discussion
