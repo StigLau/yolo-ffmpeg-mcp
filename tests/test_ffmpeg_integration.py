@@ -176,8 +176,7 @@ class TestFFMPEGIntegration:
             input_file_id=test_video.id,
             operation="trim",
             output_extension="mp4",
-            start="0",
-            duration="5"
+            params="start=0 duration=5"
         )
         
         print(f"Trim video result: {result}")
