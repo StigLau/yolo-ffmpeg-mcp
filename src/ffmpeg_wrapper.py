@@ -41,7 +41,11 @@ class FFMPEGWrapper:
         },
         "concatenate_simple": {
             "args": ["-i", "{second_video}", "-filter_complex", "[0:v][1:v]concat=n=2:v=1:a=0[outv];[0:a][1:a]concat=n=2:v=0:a=1[outa]", "-map", "[outv]", "-map", "[outa]", "-c:v", "libx264", "-c:a", "aac"],
-            "description": "Simple concatenate two videos (requires second_video)"
+            "description": "Smart concatenate two videos with automatic resolution/audio handling (requires second_video)"
+        },
+        "image_to_video": {
+            "args": ["-loop", "1", "-t", "{duration}", "-r", "25", "-c:v", "libx264", "-pix_fmt", "yuv420p"],
+            "description": "Convert image to video clip (requires duration in seconds)"
         }
     }
 
@@ -81,6 +85,100 @@ class FFMPEGWrapper:
         
         return command
         
+    async def has_audio_stream(self, file_path: Path, file_manager=None, file_id: str = None) -> bool:
+        """Check if a video file has an audio stream (with caching)"""
+        info = await self.get_file_info(file_path, file_manager, file_id)
+        if not info.get("success"):
+            return False
+            
+        # Use cached video properties if available
+        video_props = info.get("video_properties", {})
+        if video_props:
+            return video_props.get("has_audio", False)
+            
+        # Fallback to streams analysis
+        streams = info.get("info", {}).get("streams", [])
+        return any(stream.get("codec_type") == "audio" for stream in streams)
+    
+    async def get_video_resolution(self, file_path: Path, file_manager=None, file_id: str = None) -> tuple:
+        """Get video resolution as (width, height) (with caching)"""
+        info = await self.get_file_info(file_path, file_manager, file_id)
+        if not info.get("success"):
+            return None
+            
+        # Use cached video properties if available
+        video_props = info.get("video_properties", {})
+        if video_props and video_props.get("resolution"):
+            resolution_str = video_props["resolution"]
+            try:
+                width, height = map(int, resolution_str.split('x'))
+                return (width, height)
+            except (ValueError, AttributeError):
+                pass
+                
+        # Fallback to streams analysis
+        streams = info.get("info", {}).get("streams", [])
+        for stream in streams:
+            if stream.get("codec_type") == "video":
+                width = stream.get("width")
+                height = stream.get("height")
+                if width and height:
+                    return (width, height)
+        return None
+
+    async def build_smart_concat_command(self, input_path: Path, second_video_path: Path, output_path: Path, file_manager=None) -> List[str]:
+        """Build concatenation command that handles videos with different properties"""
+        # Check audio streams
+        has_audio_1 = await self.has_audio_stream(input_path)
+        has_audio_2 = await self.has_audio_stream(second_video_path)
+        
+        # Check video resolutions
+        res1 = await self.get_video_resolution(input_path)
+        res2 = await self.get_video_resolution(second_video_path)
+        
+        # Determine if we need to scale videos to match
+        need_scaling = res1 != res2 and res1 is not None and res2 is not None
+        
+        if need_scaling:
+            # Use the resolution of the first video as target
+            target_width, target_height = res1
+            
+            if has_audio_1 and has_audio_2:
+                # Both have audio, scale second video to match first and fix SAR
+                filter_complex = f"[0:v]scale={target_width}:{target_height},setsar=1:1[v0norm];[1:v]scale={target_width}:{target_height},setsar=1:1[v1norm];[v0norm][v1norm]concat=n=2:v=1:a=0[outv];[0:a][1:a]concat=n=2:v=0:a=1[outa]"
+                maps = ["-map", "[outv]", "-map", "[outa]"]
+                codecs = ["-c:v", "libx264", "-c:a", "aac"]
+            else:
+                # No audio or mixed audio - video only with scaling and SAR fix
+                filter_complex = f"[0:v]scale={target_width}:{target_height},setsar=1:1[v0norm];[1:v]scale={target_width}:{target_height},setsar=1:1[v1norm];[v0norm][v1norm]concat=n=2:v=1:a=0[outv]"
+                maps = ["-map", "[outv]"]
+                codecs = ["-c:v", "libx264"]
+        else:
+            # Same resolution but normalize SAR to avoid issues
+            if has_audio_1 and has_audio_2:
+                # Both have audio - normalize SAR and concatenate
+                filter_complex = "[0:v]setsar=1:1[v0norm];[1:v]setsar=1:1[v1norm];[v0norm][v1norm]concat=n=2:v=1:a=0[outv];[0:a][1:a]concat=n=2:v=0:a=1[outa]"
+                maps = ["-map", "[outv]", "-map", "[outa]"]
+                codecs = ["-c:v", "libx264", "-c:a", "aac"]
+            else:
+                # No audio or mixed audio - normalize SAR and video-only concatenation
+                filter_complex = "[0:v]setsar=1:1[v0norm];[1:v]setsar=1:1[v1norm];[v0norm][v1norm]concat=n=2:v=1:a=0[outv]"
+                maps = ["-map", "[outv]"]
+                codecs = ["-c:v", "libx264"]
+        
+        command = [
+            self.ffmpeg_path,
+            "-i", str(input_path),
+            "-i", str(second_video_path),
+            "-filter_complex", filter_complex,
+            *maps,
+            *codecs,
+            str(output_path),
+            "-y"
+        ]
+        
+        return command
+
     async def execute_command(self, command: List[str], timeout: int = 300) -> Dict[str, Any]:
         """Execute FFMPEG command with timeout"""
         try:
@@ -123,8 +221,14 @@ class FFMPEGWrapper:
             for name, config in self.ALLOWED_OPERATIONS.items()
         }
         
-    async def get_file_info(self, file_path: Path) -> Dict[str, Any]:
-        """Get file information using ffprobe"""
+    async def get_file_info(self, file_path: Path, file_manager=None, file_id: str = None) -> Dict[str, Any]:
+        """Get file information using ffprobe with caching support"""
+        
+        # Try cache first if file_manager and file_id provided
+        if file_manager and file_id:
+            cached = file_manager.get_cached_properties(file_id)
+            if cached:
+                return cached
         ffprobe_path = self.ffmpeg_path.replace('ffmpeg', 'ffprobe')
         
         command = [
@@ -147,11 +251,20 @@ class FFMPEGWrapper:
             
             if process.returncode == 0:
                 import json
-                info = json.loads(stdout.decode('utf-8'))
-                return {
+                raw_info = json.loads(stdout.decode('utf-8'))
+                
+                # Extract music video relevant properties
+                result = {
                     "success": True,
-                    "info": info
+                    "info": raw_info,
+                    "video_properties": self._extract_video_properties(raw_info)
                 }
+                
+                # Cache the result if possible
+                if file_manager and file_id:
+                    file_manager.cache_file_properties(file_id, result)
+                
+                return result
             else:
                 return {
                     "success": False,
@@ -163,3 +276,44 @@ class FFMPEGWrapper:
                 "success": False,
                 "error": str(e)
             }
+            
+    def _extract_video_properties(self, ffprobe_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract video-specific properties for music video workflows"""
+        properties = {
+            "has_video": False,
+            "has_audio": False,
+            "resolution": None,
+            "duration": None,
+            "framerate": None,
+            "codec": None,
+            "sar": None  # Sample Aspect Ratio
+        }
+        
+        try:
+            streams = ffprobe_info.get("streams", [])
+            format_info = ffprobe_info.get("format", {})
+            
+            # Extract duration
+            if "duration" in format_info:
+                properties["duration"] = float(format_info["duration"])
+            
+            # Analyze streams
+            for stream in streams:
+                if stream.get("codec_type") == "video":
+                    properties["has_video"] = True
+                    properties["resolution"] = f"{stream.get('width', 0)}x{stream.get('height', 0)}"
+                    properties["codec"] = stream.get("codec_name")
+                    properties["sar"] = stream.get("sample_aspect_ratio", "1:1")
+                    
+                    # Extract framerate
+                    if "r_frame_rate" in stream:
+                        properties["framerate"] = stream["r_frame_rate"]
+                        
+                elif stream.get("codec_type") == "audio":
+                    properties["has_audio"] = True
+                    
+        except Exception:
+            # If extraction fails, return basic properties
+            pass
+            
+        return properties

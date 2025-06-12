@@ -4,7 +4,14 @@ import os
 
 class SecurityConfig:
     # Allowed file extensions
-    ALLOWED_EXTENSIONS = {'.mp3', '.mp4', '.wav', '.flac', '.m4a', '.avi', '.mkv', '.mov', '.webm', '.ogg'}
+    ALLOWED_EXTENSIONS = {
+        # Video formats
+        '.mp4', '.avi', '.mkv', '.mov', '.webm', '.wmv', '.flv', '.m4v',
+        # Audio formats  
+        '.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma',
+        # Image formats
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.tif', '.webp'
+    }
     
     # Maximum file size (500MB)
     MAX_FILE_SIZE = 500 * 1024 * 1024

@@ -39,9 +39,13 @@ class ProcessResult(BaseModel):
 
 
 @mcp.tool()
-async def list_files() -> Dict[str, List[FileInfo]]:
-    """List available source files"""
+async def list_files() -> Dict[str, Any]:
+    """List available source files with smart suggestions and quick actions"""
     files = []
+    suggestions = []
+    video_files = []
+    audio_files = []
+    image_files = []
     
     try:
         source_dir = SecurityConfig.SOURCE_DIR
@@ -52,19 +56,57 @@ async def list_files() -> Dict[str, List[FileInfo]]:
             if file_path.is_file() and SecurityConfig.validate_extension(file_path):
                 try:
                     file_id = file_manager.register_file(file_path)
-                    files.append(FileInfo(
+                    file_info = FileInfo(
                         id=file_id,
                         name=file_path.name,
                         size=file_path.stat().st_size,
                         extension=file_path.suffix.lower()
-                    ))
+                    )
+                    files.append(file_info)
+                    
+                    # Categorize files and generate suggestions
+                    if file_path.suffix.lower() in ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.flv', '.m4v']:
+                        video_files.append(file_info)
+                        suggestions.append(f"📹 {file_path.name} ready for video editing operations")
+                    elif file_path.suffix.lower() in ['.mp3', '.flac', '.wav', '.m4a', '.ogg', '.aac', '.wma']:
+                        audio_files.append(file_info)
+                        suggestions.append(f"🎵 Use {file_path.name} as background music with: replace_audio operation, params='audio_file={file_id}'")
+                    elif file_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.tif', '.webp']:
+                        image_files.append(file_info)
+                        suggestions.append(f"🖼️ Convert {file_path.name} to video: image_to_video operation, params='duration=2' (or any duration in seconds)")
                 except Exception:
                     continue
                     
-    except Exception as e:
-        return {"error": f"Failed to list files: {str(e)}", "files": []}
+        # Generate workflow suggestions
+        quick_actions = []
+        if len(video_files) >= 2:
+            quick_actions.append("🎬 Create montage: 1) trim multiple videos 2) concatenate_simple 3) replace_audio with music")
+        if len(video_files) >= 1 and len(audio_files) >= 1:
+            quick_actions.append("🎵 Add background music: use replace_audio operation with any audio file")
+        if len(video_files) >= 1:
+            quick_actions.append("✂️ Extract highlights: use trim operation to get best moments")
+        if len(image_files) >= 1:
+            quick_actions.append("🖼️ Create image videos: use image_to_video to convert images to video clips")
+        if len(image_files) >= 1 and len(video_files) >= 1:
+            quick_actions.append("🎞️ Mixed media montage: convert images to video clips, then concatenate with videos")
         
-    return {"files": files}
+        if not suggestions:
+            suggestions.append("✅ All files look ready for processing!")
+            
+    except Exception as e:
+        return {"error": f"Failed to list files: {str(e)}", "files": [], "suggestions": [], "quick_actions": []}
+        
+    return {
+        "files": files,
+        "suggestions": suggestions,
+        "quick_actions": quick_actions,
+        "stats": {
+            "total_files": len(files),
+            "videos": len(video_files), 
+            "audio": len(audio_files),
+            "images": len(image_files)
+        }
+    }
 
 
 @mcp.tool()
@@ -86,8 +128,8 @@ async def get_file_info(file_id: str) -> Dict[str, Any]:
         "extension": file_path.suffix.lower()
     }
     
-    # Get detailed media info using ffprobe
-    media_info = await ffmpeg.get_file_info(file_path)
+    # Get detailed media info using ffprobe with caching
+    media_info = await ffmpeg.get_file_info(file_path, file_manager, file_id)
     
     return {
         "basic_info": basic_info,
@@ -133,6 +175,16 @@ async def process_file(
         )
     
     try:
+        # Validate operation requirements
+        required_params = {
+            'trim': ['start', 'duration'],
+            'resize': ['width', 'height'],
+            'replace_audio': ['audio_file'],
+            'concatenate_simple': ['second_video'],
+            'trim_and_replace_audio': ['start', 'duration', 'audio_file'],
+            'image_to_video': ['duration']
+        }
+        
         # Parse params string into dict
         parsed_params = {}
         if params:
@@ -152,11 +204,33 @@ async def process_file(
                     else:
                         parsed_params[key] = value
         
+        # Check for required parameters
+        if operation in required_params:
+            missing = [p for p in required_params[operation] if p not in parsed_params]
+            if missing:
+                examples = {
+                    'trim': 'start=10 duration=15',
+                    'resize': 'width=1280 height=720', 
+                    'replace_audio': 'audio_file=file_12345678',
+                    'concatenate_simple': 'second_video=file_87654321',
+                    'trim_and_replace_audio': 'start=10 duration=15 audio_file=file_12345678',
+                    'image_to_video': 'duration=2'
+                }
+                return ProcessResult(
+                    success=False,
+                    message=f"Missing required parameters: {missing}. Example: {examples.get(operation, '')}"
+                )
+        
         # Create output file
         output_file_id, output_path = file_manager.create_temp_file(output_extension)
         
         # Build and execute command
-        command = ffmpeg.build_command(operation, input_path, output_path, **parsed_params)
+        if operation == 'concatenate_simple':
+            # Use smart concatenation that handles videos with/without audio
+            second_video_path = Path(parsed_params['second_video'])
+            command = await ffmpeg.build_smart_concat_command(input_path, second_video_path, output_path, file_manager)
+        else:
+            command = ffmpeg.build_command(operation, input_path, output_path, **parsed_params)
         result = await ffmpeg.execute_command(command, SecurityConfig.PROCESS_TIMEOUT)
         
         if result["success"]:
@@ -1324,14 +1398,22 @@ for video_id in video_list:
 Remember: Start small, test thoroughly, and always keep your source files safe during batch operations!"""
 
 
-# MCP Context Providers for Video Editing Intelligence
+# CONTEXT SYSTEM - DISABLED (FastMCP doesn't support @mcp.context())
+# These functions were originally designed as MCP context providers to give
+# intelligent suggestions and workflow guidance. They can be reactivated as:
+# 1. @mcp.prompt() functions for explicit context queries
+# 2. Helper functions integrated into existing tool responses  
+# 3. Part of enhanced tool outputs with contextual suggestions
+# 
+# Consider re-enabling these for better user experience when using
+# a full MCP implementation that supports context providers.
 
-# Global tracking for context
+# Global tracking for context intelligence
 _operation_history = []
 _performance_stats = {}
 
 async def _get_files_summary() -> str:
-    """Get a summary of available files"""
+    """Get a summary of available files - CONTEXT HELPER"""
     try:
         files_result = await list_files()
         if "error" in files_result:
@@ -1354,7 +1436,7 @@ async def _get_files_summary() -> str:
         return f"Error getting files: {str(e)}"
 
 async def _get_recent_operations() -> str:
-    """Get recent operations from history"""
+    """Get recent operations from history - CONTEXT HELPER"""
     if not _operation_history:
         return "No recent operations"
     
@@ -1372,7 +1454,7 @@ async def _get_recent_operations() -> str:
     return "\n".join(summary)
 
 async def _get_temp_files_status() -> str:
-    """Get status of temporary files"""
+    """Get status of temporary files - CONTEXT HELPER"""
     try:
         import os
         temp_dir = SecurityConfig.TEMP_DIR
@@ -1392,7 +1474,7 @@ async def _get_temp_files_status() -> str:
         return f"Error checking temp files: {str(e)}"
 
 def _get_storage_info() -> str:
-    """Get storage information"""
+    """Get storage information - CONTEXT HELPER"""
     try:
         import shutil
         temp_dir = SecurityConfig.TEMP_DIR
@@ -1406,12 +1488,12 @@ def _get_storage_info() -> str:
         return "Storage info unavailable"
 
 def _get_active_operations() -> str:
-    """Get currently active operations (placeholder for now)"""
+    """Get currently active operations - CONTEXT HELPER (placeholder for now)"""
     # In a real implementation, this would track running FFMPEG processes
     return "No active operations detected"
 
 async def _get_file_genealogy() -> str:
-    """Track file processing relationships"""
+    """Track file processing relationships - CONTEXT HELPER"""
     # This would track which files were created from which sources
     genealogy = {}
     
@@ -1437,7 +1519,7 @@ async def _get_file_genealogy() -> str:
     return "\n".join(summary)
 
 async def _suggest_next_operations() -> str:
-    """Suggest logical next operations based on current state"""
+    """Suggest logical next operations based on current state - CONTEXT HELPER"""
     try:
         files_result = await list_files()
         files = files_result.get("files", [])
@@ -1475,7 +1557,7 @@ async def _suggest_next_operations() -> str:
         return f"Error generating suggestions: {str(e)}"
 
 def _analyze_platform_compatibility() -> str:
-    """Analyze how current files match platform requirements"""
+    """Analyze how current files match platform requirements - CONTEXT HELPER"""
     # This would analyze files against platform specs
     return """Current files analyzed against major platforms:
 • YouTube: Most files compatible, consider MP4 conversion for optimal upload
@@ -1484,7 +1566,7 @@ def _analyze_platform_compatibility() -> str:
 • Twitter: File sizes look good for platform limits"""
 
 def _suggest_platform_optimizations() -> str:
-    """Suggest platform-specific optimizations"""
+    """Suggest platform-specific optimizations - CONTEXT HELPER"""
     return """Recommended optimizations:
 1. Use resize operation for Instagram (1080x1080 or 1080x1350)
 2. Convert all to MP4 for maximum compatibility
@@ -1492,7 +1574,7 @@ def _suggest_platform_optimizations() -> str:
 4. Consider compress_efficiently for faster uploads"""
 
 def _analyze_quality_issues() -> str:
-    """Analyze potential quality issues"""
+    """Analyze potential quality issues - CONTEXT HELPER"""
     return """Quality analysis based on file characteristics:
 • No obvious corruption detected
 • Some files may benefit from audio normalization
@@ -1500,191 +1582,12 @@ def _analyze_quality_issues() -> str:
 • Check individual files with get_file_info() for detailed analysis"""
 
 def _suggest_quality_improvements() -> str:
-    """Suggest quality enhancement opportunities"""
+    """Suggest quality enhancement opportunities - CONTEXT HELPER"""
     return """Enhancement opportunities:
 1. Use normalize_audio operation for better audio levels
 2. Convert to MP4 for optimal codec efficiency
 3. Use extract_audio + replace_audio workflow for audio cleanup
 4. Consider resize operation if source resolution is inconsistent"""
-
-@mcp.context()
-async def current_project_status() -> str:
-    """Provide context about the current video editing project state"""
-    files_summary = await _get_files_summary()
-    recent_ops = await _get_recent_operations()
-    temp_status = await _get_temp_files_status()
-    storage = _get_storage_info()
-    active = _get_active_operations()
-    
-    return f"""# Current Video Project Status
-
-## Available Files:
-{files_summary}
-
-## Recent Operations:
-{recent_ops}
-
-## Temp Files:
-{temp_status}
-
-## System Resources:
-- Storage: {storage}
-- Processing: {active}
-
-## Quick Actions:
-- Use list_files() to see all files with IDs
-- Use get_file_info(file_id) for detailed analysis
-- Use cleanup_temp_files() to free up space"""
-
-
-@mcp.context()
-async def file_relationships() -> str:
-    """Track which files are derived from which sources"""
-    genealogy = await _get_file_genealogy()
-    suggestions = await _suggest_next_operations()
-    
-    return f"""# File Processing History
-
-## Source → Output Relationships:
-{genealogy}
-
-## Recommended Next Steps:
-{suggestions}
-
-## Workflow Tips:
-- Keep track of which files are originals vs processed outputs
-- Use consistent naming patterns for easier management
-- Consider creating a backup before major operations"""
-
-
-@mcp.context()
-async def system_performance() -> str:
-    """Provide system performance and optimization context"""
-    storage = _get_storage_info()
-    temp_status = await _get_temp_files_status()
-    
-    # Calculate some basic performance metrics
-    total_ops = len(_operation_history)
-    successful_ops = len([op for op in _operation_history if op.get('success')])
-    success_rate = (successful_ops / total_ops * 100) if total_ops > 0 else 0
-    
-    return f"""# System Performance Context
-
-## Processing Statistics:
-- Total operations: {total_ops}
-- Success rate: {success_rate:.1f}%
-- Recent operations: {len(_operation_history[-10:])} in session
-
-## Resource Status:
-- {storage}
-- {temp_status}
-
-## Performance Tips:
-- Process shorter videos first for faster feedback
-- Use cleanup_temp_files() regularly to maintain performance
-- Group similar operations together for efficiency
-- Monitor disk space before processing large files
-
-## Optimization Recommendations:
-- Trim videos before other operations to reduce processing time
-- Convert to MP4 format for faster subsequent operations
-- Use batch processing strategies for multiple files"""
-
-
-@mcp.context()
-async def platform_requirements() -> str:
-    """Dynamic platform requirements and current file compatibility"""
-    compatibility = _analyze_platform_compatibility()
-    optimizations = _suggest_platform_optimizations()
-    
-    return f"""# Platform Compatibility Analysis
-
-## Current Files vs Platform Requirements:
-{compatibility}
-
-## Recommended Optimizations:
-{optimizations}
-
-## Platform-Specific Workflows:
-- **YouTube**: Use optimize_for_platform(platform="youtube") prompt
-- **Instagram**: Focus on 1:1 or 4:5 aspect ratios with resize operation
-- **TikTok**: Prioritize vertical 9:16 format with resize operation
-- **Twitter**: Keep under 512MB, use compress_efficiently if needed
-
-## Quick Platform Prep:
-1. Check file sizes with list_files()
-2. Use resize for platform-specific dimensions
-3. Use convert for format standardization
-4. Use trim for duration limits"""
-
-
-@mcp.context()
-async def quality_metrics() -> str:
-    """Provide quality analysis of current files"""
-    quality_issues = _analyze_quality_issues()
-    improvements = _suggest_quality_improvements()
-    
-    return f"""# Video Quality Assessment
-
-## Quality Issues Detected:
-{quality_issues}
-
-## Enhancement Opportunities:
-{improvements}
-
-## Quality Workflow Recommendations:
-1. **Audio Quality**: Use extract_audio → normalize_audio → replace_audio
-2. **Video Quality**: Use convert operation for codec optimization
-3. **Consistency**: Standardize all files to MP4 format
-4. **Analysis**: Use get_file_info() for detailed quality metrics
-
-## Quality Checklist:
-- ✓ Check audio levels are consistent across files
-- ✓ Verify video format compatibility
-- ✓ Ensure resolution meets target platform requirements
-- ✓ Test playback on target devices/platforms"""
-
-
-# Enhanced process_file to track operations for context
-original_process_file = process_file
-
-async def enhanced_process_file(
-    input_file_id: str,
-    operation: str,
-    output_extension: str = "mp4",
-    params: str = ""
-) -> ProcessResult:
-    """Enhanced process_file that tracks operations for context"""
-    import time
-    
-    # Get input file name for tracking
-    input_path = file_manager.resolve_id(input_file_id)
-    input_name = input_path.name if input_path else input_file_id
-    
-    # Call original function
-    result = await original_process_file(input_file_id, operation, output_extension, params)
-    
-    # Track operation in history
-    operation_record = {
-        'timestamp': time.strftime('%H:%M:%S'),
-        'operation': operation,
-        'input_file': input_name,
-        'input_file_id': input_file_id,
-        'output_file_id': result.output_file_id,
-        'success': result.success,
-        'params': params
-    }
-    
-    _operation_history.append(operation_record)
-    
-    # Keep history manageable (last 50 operations)
-    if len(_operation_history) > 50:
-        _operation_history.pop(0)
-    
-    return result
-
-# Replace the original process_file with enhanced version
-process_file = enhanced_process_file
 
 
 # Run the server

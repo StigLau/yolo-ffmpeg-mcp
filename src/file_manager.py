@@ -1,12 +1,16 @@
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 import uuid
 import os
+import time
 
 
 class FileManager:
     def __init__(self):
         self.file_map: Dict[str, Path] = {}
+        self.property_cache: Dict[str, Dict[str, Any]] = {}
+        self.cache_timestamps: Dict[str, float] = {}
+        self.cache_ttl = 300  # 5 minutes cache TTL
         self.source_dir = Path("/tmp/music/source")
         self.temp_dir = Path("/tmp/music/temp")
         
@@ -71,12 +75,39 @@ class FileManager:
         allowed_extensions = {'.mp3', '.mp4', '.wav', '.flac', '.m4a', '.avi', '.mkv', '.mov', '.webm'}
         return file_path.suffix.lower() in allowed_extensions
         
+    def cache_file_properties(self, file_id: str, properties: Dict[str, Any]):
+        """Cache video properties for a file"""
+        self.property_cache[file_id] = properties
+        self.cache_timestamps[file_id] = time.time()
+        
+    def get_cached_properties(self, file_id: str) -> Optional[Dict[str, Any]]:
+        """Get cached properties if still valid"""
+        if file_id not in self.property_cache:
+            return None
+            
+        # Check if cache is still valid
+        cache_time = self.cache_timestamps.get(file_id, 0)
+        if time.time() - cache_time > self.cache_ttl:
+            # Cache expired, remove it
+            self.property_cache.pop(file_id, None)
+            self.cache_timestamps.pop(file_id, None)
+            return None
+            
+        return self.property_cache[file_id]
+        
+    def invalidate_cache(self, file_id: str):
+        """Remove cached properties for a file"""
+        self.property_cache.pop(file_id, None)
+        self.cache_timestamps.pop(file_id, None)
+        
     def cleanup_temp_files(self):
-        """Remove all temporary files"""
+        """Remove all temporary files and their cache entries"""
         for file_id, path in list(self.file_map.items()):
             if path.parent == self.temp_dir:
                 try:
                     path.unlink(missing_ok=True)
                     del self.file_map[file_id]
+                    # Also clean up cache entries
+                    self.invalidate_cache(file_id)
                 except Exception:
                     pass
