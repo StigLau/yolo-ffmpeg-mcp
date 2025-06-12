@@ -6,6 +6,9 @@ This is an intelligent FFMPEG MCP server with AI-powered content understanding. 
 ### 🎬 MUSIC VIDEO CREATION PROVEN ✅
 Successfully created complete music video using intelligent scene detection, automatic screenshot generation, and smart concatenation workflows. The system can autonomously identify best scenes, combine clips, and add audio tracks.
 
+### 🎵 BEAT-SYNCHRONIZED KOMPOSITION SYSTEM ✅
+Implemented advanced komposition JSON processing for beat-synchronized music videos. Supports precise BPM timing, video stretching, and multi-segment workflows with 120 BPM = 8 seconds per 16 beats formula.
+
 ## Quick Start
 ```bash
 # Start the MCP server
@@ -21,6 +24,7 @@ python run_tests.py
 uv run pytest tests/test_ffmpeg_integration.py -v -s                    # Unit tests
 uv run python tests/test_end_to_end_music_video.py                     # Full workflow test
 uv run python tests/test_intelligent_content_analysis.py               # Content analysis test
+uv run pytest tests/test_komposition_music_video.py -v -s              # Komposition system test
 ```
 
 ## MCP Server Configuration for Claude Code
@@ -54,6 +58,9 @@ uv run python tests/test_intelligent_content_analysis.py               # Content
 10. **list_generated_files()** - List all processed files in temp directory with metadata 
 11. **batch_process(operations)** - Execute multi-step workflows with atomic transaction support
 
+### Beat-Synchronized Music Video Tools 🎵
+12. **process_komposition_file(komposition_path)** - Create beat-synchronized music videos from komposition JSON
+
 ## Test Results Summary
 - **✅ File Management**: Secure ID-based file references working
 - **✅ MP3 Conversion**: Successfully converted test video to MP3 (86KB output)
@@ -65,6 +72,8 @@ uv run python tests/test_intelligent_content_analysis.py               # Content
 - **✅ Performance Optimization**: Video property caching delivers 3000x faster repeated analysis
 - **✅ Intelligent Content Analysis**: AI-powered scene detection with 21 scenes identified automatically
 - **✅ Smart Editing Suggestions**: Object recognition and content-aware trimming recommendations
+- **✅ Beat-Synchronized Videos**: Komposition JSON processing with precise BPM timing (120 BPM = 8s per 16 beats)
+- **✅ Video Stretching**: FFmpeg setpts/atempo filters for perfect beat synchronization
 
 ## Available FFMPEG Operations
 - **convert** - Convert video/audio format
@@ -73,6 +82,10 @@ uv run python tests/test_intelligent_content_analysis.py               # Content
 - **resize** - Resize video (requires: width, height)
 - **normalize_audio** - Normalize audio levels
 - **to_mp3** - Convert to MP3 format (192k bitrate)
+- **replace_audio** - Replace video audio with another audio file
+- **concatenate_simple** - Smart concatenate two videos with automatic resolution/audio handling
+- **image_to_video** - Convert image to video clip (requires duration in seconds)
+- **reverse** - Reverse video and audio playback
 
 ## File Management and Visual Content
 - **Source directory**: `/tmp/music/source/` (contains test videos)
@@ -101,16 +114,20 @@ uv run python tests/test_intelligent_content_analysis.py               # Content
 ## Project Structure
 ```
 src/
-├── server.py           # Main MCP server with 11 production tools
-├── file_manager.py     # Secure file ID mapping
-├── ffmpeg_wrapper.py   # Safe FFMPEG command building
-├── content_analyzer.py # AI-powered video content analysis
-└── config.py          # Security configuration
+├── server.py             # Main MCP server with 12 production tools
+├── file_manager.py       # Secure file ID mapping
+├── ffmpeg_wrapper.py     # Safe FFMPEG command building with image_to_video fix
+├── content_analyzer.py   # AI-powered video content analysis
+├── komposition_processor.py # Beat-synchronized music video processor
+└── config.py            # Security configuration
 
 tests/
 ├── test_ffmpeg_integration.py              # Unit tests
 ├── test_end_to_end_music_video.py         # Full workflow test
 ├── test_intelligent_content_analysis.py   # Content analysis test
+├── test_komposition_music_video.py        # Komposition system validation
+├── data/
+│   └── YOLO_Komposition_Music_Video.json  # Reference komposition JSON
 └── files/                                 # Test videos and audio
 ```
 
@@ -152,6 +169,9 @@ tests/
 1. **Generated File Tracking**: `list_generated_files()` - tracks all temp outputs with metadata ✅
 2. **Batch Processing API**: `batch_process(operations)` - atomic multi-step workflows with chaining ✅
 3. **Video Rotation Fix**: Smart orientation handling in concatenation - prevents 90° rotation issues ✅
+4. **Komposition JSON Processing**: Beat-synchronized music video creation with precise timing ✅
+5. **Image-to-Video Fix**: Fixed duration parameter handling in image_to_video operation ✅
+6. **File Resolution System**: Fixed komposition processor file ID resolution ✅
 
 #### 🚨 Remaining Future Enhancements  
 1. **Image Integration**: Missing tools to insert images between video clips
@@ -173,6 +193,8 @@ create_video_preset(name, operations)    # Save common workflows as presets
 - **Operation Chaining**: Users naturally want to chain operations - needs first-class support
 - **Visual Feedback**: Screenshots dramatically improve content selection accuracy
 - **Video Orientation**: Mixed portrait/landscape videos require smart orientation normalization to prevent rotation artifacts
+- **Beat Timing System**: 120 BPM formula (16 beats = 8 seconds) enables precise music video synchronization
+- **Pre-Input Args**: FFmpeg operations requiring arguments before -i input need special parameter handling
 
 ## Developer Communication Preferences
 - **Concise responses**: Minimize token usage, answer directly

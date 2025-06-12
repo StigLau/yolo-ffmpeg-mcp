@@ -44,7 +44,8 @@ class FFMPEGWrapper:
             "description": "Smart concatenate two videos with automatic resolution/audio handling (requires second_video)"
         },
         "image_to_video": {
-            "args": ["-loop", "1", "-t", "{duration}", "-r", "25", "-c:v", "libx264", "-pix_fmt", "yuv420p"],
+            "args": ["-r", "25", "-c:v", "libx264", "-pix_fmt", "yuv420p"],
+            "pre_input_args": ["-loop", "1", "-t", "{duration}"],
             "description": "Convert image to video clip (requires duration in seconds)"
         },
         "reverse": {
@@ -63,8 +64,9 @@ class FFMPEGWrapper:
             
         operation_config = self.ALLOWED_OPERATIONS[operation]
         args = operation_config["args"].copy()
+        pre_input_args = operation_config.get("pre_input_args", []).copy()
         
-        # Replace parameter placeholders
+        # Replace parameter placeholders in main args
         for i, arg in enumerate(args):
             if isinstance(arg, str) and "{" in arg:
                 for param_name, param_value in params.items():
@@ -72,15 +74,25 @@ class FFMPEGWrapper:
                     if placeholder in arg:
                         args[i] = arg.replace(placeholder, str(param_value))
         
-        # Validate that all placeholders were replaced
-        for arg in args:
+        # Replace parameter placeholders in pre-input args
+        for i, arg in enumerate(pre_input_args):
+            if isinstance(arg, str) and "{" in arg:
+                for param_name, param_value in params.items():
+                    placeholder = f"{{{param_name}}}"
+                    if placeholder in arg:
+                        pre_input_args[i] = arg.replace(placeholder, str(param_value))
+        
+        # Validate that all placeholders were replaced in both arg lists
+        all_args = args + pre_input_args
+        for arg in all_args:
             if isinstance(arg, str) and re.search(r'\{[^}]+\}', arg):
                 missing_params = re.findall(r'\{([^}]+)\}', arg)
                 raise ValueError(f"Missing required parameters: {missing_params}")
         
-        # Build complete command
+        # Build complete command with pre-input args before -i
         command = [
             self.ffmpeg_path,
+            *pre_input_args,
             "-i", str(input_path),
             *args,
             str(output_path),

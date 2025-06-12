@@ -1,0 +1,95 @@
+{
+  "id": "YOLO_Music_Video_Creation",
+  "type": "Komposition",
+  "bpm": 120,
+  "config": {
+    "width": 1280,
+    "height": 720,
+    "framerate": 24,
+    "extension": "mp4"
+  },
+  "beatpattern": {
+    "frombeat": 0,
+    "tobeat": 64,
+    "masterbpm": 120
+  },
+  "segments": [
+    {
+      "id": "Scene 1: Dagny Baybay Opening",
+      "sourceid": "dagny_scene_1",
+      "start": 0,
+      "duration": 16,
+      "end": 16,
+      "source_timing": {
+        "original_start": 0,
+        "original_duration": 10
+      },
+      "stretch_factor": 0.8
+    },
+    {
+      "id": "Scene 2: Previous Video Action",
+      "sourceid": "previous_video_scene",
+      "start": 16,
+      "duration": 16,
+      "end": 32,
+      "source_timing": {
+        "original_start": 5,
+        "original_duration": 12
+      },
+      "stretch_factor": 0.67
+    },
+    {
+      "id": "Scene 3: Boat Image Transition",
+      "sourceid": "boat_image",
+      "start": 32,
+      "duration": 16,
+      "end": 48,
+      "source_timing": {
+        "static_duration": 8
+      },
+      "stretch_factor": 1.0
+    },
+    {
+      "id": "Scene 4: Dagny Baybay Finale",
+      "sourceid": "dagny_scene_2",
+      "start": 48,
+      "duration": 16,
+      "end": 64,
+      "source_timing": {
+        "original_start": 10,
+        "original_duration": 10
+      },
+      "stretch_factor": 0.8
+    }
+  ],
+  "sources": [
+    {
+      "id": "subnautic_audio",
+      "url": "file://Subnautic Measures.flac",
+      "startingOffset": 0,
+      "extension": "flac",
+      "mediatype": "audio"
+    },
+    {
+      "id": "dagny_video",
+      "url": "file://Dagny-Baybay.mp4",
+      "startingOffset": 0,
+      "extension": "mp4",
+      "mediatype": "video"
+    },
+    {
+      "id": "previous_video",
+      "url": "file://JJVtt947FfI_136.mp4",
+      "startingOffset": 0,
+      "extension": "mp4",
+      "mediatype": "video"
+    },
+    {
+      "id": "boat_image",
+      "url": "file://Boat having a sad day.jpeg",
+      "startingOffset": 0,
+      "extension": "jpeg",
+      "mediatype": "image"
+    }
+  ]
+}

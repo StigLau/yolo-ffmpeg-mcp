@@ -11,11 +11,13 @@ try:
     from .ffmpeg_wrapper import FFMPEGWrapper
     from .config import SecurityConfig
     from .content_analyzer import VideoContentAnalyzer
+    from .komposition_processor import KompositionProcessor
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
     from config import SecurityConfig
     from content_analyzer import VideoContentAnalyzer
+    from komposition_processor import KompositionProcessor
 
 
 # Initialize MCP server
@@ -25,6 +27,7 @@ mcp = FastMCP("ffmpeg-mcp")
 file_manager = FileManager()
 ffmpeg = FFMPEGWrapper(SecurityConfig.FFMPEG_PATH)
 content_analyzer = VideoContentAnalyzer()
+komposition_processor = KompositionProcessor(file_manager, ffmpeg)
 
 
 class FileInfo(BaseModel):
@@ -1847,6 +1850,65 @@ def _suggest_quality_improvements() -> str:
 2. Convert to MP4 for optimal codec efficiency
 3. Use extract_audio + replace_audio workflow for audio cleanup
 4. Consider resize operation if source resolution is inconsistent"""
+
+
+@mcp.tool()
+async def process_komposition_file(komposition_path: str) -> Dict[str, Any]:
+    """Process a komposition JSON file to create beat-synchronized music video
+    
+    Args:
+        komposition_path: Path to komposition JSON file (relative to project root)
+    
+    Returns:
+        Result with output file ID and composition details
+    """
+    try:
+        # Load komposition from file
+        full_path = Path(komposition_path)
+        if not full_path.is_absolute():
+            # Make relative to project root
+            project_root = Path(__file__).parent.parent
+            full_path = project_root / komposition_path
+        
+        if not full_path.exists():
+            return {
+                "success": False,
+                "error": f"Komposition file not found: {komposition_path}"
+            }
+        
+        # Load and process komposition
+        komposition_data = await komposition_processor.load_komposition(str(full_path))
+        result = await komposition_processor.process_komposition(komposition_data)
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False, 
+            "error": f"Failed to process komposition: {str(e)}"
+        }
+
+
+async def process_file_internal(input_file_id: str, operation: str, output_extension: str, params: str = "") -> str:
+    """Internal helper for komposition processor to use MCP operations"""
+    try:
+        # Parse params string into dict
+        param_dict = {}
+        if params:
+            for param in params.split():
+                if "=" in param:
+                    key, value = param.split("=", 1)
+                    param_dict[key] = value
+        
+        result = await process_file(input_file_id, operation, output_extension, params)
+        
+        if result["success"]:
+            return result["output_file_id"]
+        else:
+            raise Exception(f"Operation failed: {result.get('message', 'Unknown error')}")
+            
+    except Exception as e:
+        raise Exception(f"Internal process_file failed: {str(e)}")
 
 
 # Run the server
