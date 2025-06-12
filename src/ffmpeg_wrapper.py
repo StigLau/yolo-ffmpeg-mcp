@@ -140,8 +140,24 @@ class FFMPEGWrapper:
         need_scaling = res1 != res2 and res1 is not None and res2 is not None
         
         if need_scaling:
-            # Use the resolution of the first video as target
-            target_width, target_height = res1
+            # Smart orientation handling: choose consistent orientation
+            w1, h1 = res1
+            w2, h2 = res2
+            
+            # Detect orientations
+            is_portrait_1 = h1 > w1
+            is_portrait_2 = h2 > w2
+            
+            # If orientations differ, normalize to landscape (wider format for music videos)
+            if is_portrait_1 != is_portrait_2:
+                # Choose landscape orientation for consistency
+                if is_portrait_1:
+                    target_width, target_height = max(w1, h1), min(w1, h1)  # Landscape from portrait
+                else:
+                    target_width, target_height = w1, h1  # Keep landscape
+            else:
+                # Same orientation, use first video resolution
+                target_width, target_height = res1
             
             if has_audio_1 and has_audio_2:
                 # Both have audio, scale second video to match first and fix SAR

@@ -12,6 +12,7 @@ intelligent editing operations based on scene structure and visual content.
 
 import json
 import asyncio
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import tempfile
@@ -31,6 +32,10 @@ class VideoContentAnalyzer:
     def __init__(self):
         self.metadata_dir = Path("/tmp/music/metadata")
         self.metadata_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize screenshots directory
+        self.screenshots_dir = SecurityConfig.SCREENSHOTS_DIR
+        self.screenshots_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize OpenCV object detectors
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
@@ -135,6 +140,11 @@ class VideoContentAnalyzer:
         
         enhanced_scenes = []
         
+        # Create sourceRef directory for screenshots
+        source_ref = video_path.stem  # filename without extension
+        screenshots_source_dir = self.screenshots_dir / source_ref
+        screenshots_source_dir.mkdir(parents=True, exist_ok=True)
+        
         # Open video for frame extraction
         cap = cv2.VideoCapture(str(video_path))
         fps = cap.get(cv2.CAP_PROP_FPS)
@@ -156,7 +166,8 @@ class VideoContentAnalyzer:
                     "duration": duration,
                     "mid_time": mid_time,
                     "objects": [],
-                    "characteristics": []
+                    "characteristics": [],
+                    "screenshot_url": None
                 }
                 
                 if ret and frame is not None:
@@ -166,6 +177,10 @@ class VideoContentAnalyzer:
                     
                     scene_data["objects"] = objects
                     scene_data["characteristics"] = characteristics
+                    
+                    # Generate screenshot from scene start
+                    screenshot_url = await self._generate_scene_screenshot(video_path, start_time, source_ref, i)
+                    scene_data["screenshot_url"] = screenshot_url
                 else:
                     print(f"    Warning: Could not extract keyframe for scene {i}")
                 
@@ -428,3 +443,73 @@ class VideoContentAnalyzer:
             })
         
         return suggestions
+    
+    async def _generate_scene_screenshot(self, video_path: Path, start_time: float, source_ref: str, scene_id: int) -> Optional[str]:
+        """Generate screenshot from scene start using FFMPEG"""
+        try:
+            # Create filename for screenshot
+            screenshot_filename = f"scene_{scene_id:03d}_{start_time:.2f}s.jpg"
+            screenshot_path = self.screenshots_dir / source_ref / screenshot_filename
+            
+            # FFMPEG command to extract frame at specific time
+            cmd = [
+                SecurityConfig.FFMPEG_PATH,
+                "-i", str(video_path),
+                "-ss", str(start_time),  # Seek to start time
+                "-vframes", "1",         # Extract only 1 frame
+                "-q:v", "2",            # High quality
+                "-y",                   # Overwrite existing
+                str(screenshot_path)
+            ]
+            
+            # Execute FFMPEG command
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(),
+                timeout=SecurityConfig.PROCESS_TIMEOUT
+            )
+            
+            if process.returncode == 0 and screenshot_path.exists():
+                # Generate URL for screenshot
+                screenshot_url = f"{SecurityConfig.SCREENSHOTS_BASE_URL}/{source_ref}/{screenshot_filename}"
+                print(f"    Generated screenshot: {screenshot_url}")
+                return screenshot_url
+            else:
+                print(f"    Failed to generate screenshot for scene {scene_id}: {stderr.decode()}")
+                return None
+                
+        except Exception as e:
+            print(f"    Error generating screenshot for scene {scene_id}: {e}")
+            return None
+    
+    async def get_scene_screenshots(self, file_id: str) -> Dict[str, Any]:
+        """Get all scene screenshots for a video file"""
+        analysis = await self.get_cached_analysis(file_id)
+        
+        if not analysis or "scenes" not in analysis:
+            return {"success": False, "error": "No analysis found for this file"}
+            
+        screenshots = []
+        for scene in analysis["scenes"]:
+            if scene.get("screenshot_url"):
+                screenshots.append({
+                    "scene_id": scene["scene_id"],
+                    "start": scene["start"],
+                    "end": scene["end"],
+                    "duration": scene["duration"],
+                    "screenshot_url": scene["screenshot_url"],
+                    "objects": scene.get("objects", []),
+                    "characteristics": scene.get("characteristics", [])
+                })
+        
+        return {
+            "success": True,
+            "file_info": analysis.get("file_info", {}),
+            "total_scenes": len(screenshots),
+            "screenshots": screenshots
+        }

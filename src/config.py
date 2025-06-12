@@ -26,6 +26,10 @@ class SecurityConfig:
     # Directory configuration
     SOURCE_DIR = Path(os.getenv("FFMPEG_SOURCE_DIR", "/tmp/music/source"))
     TEMP_DIR = Path(os.getenv("FFMPEG_TEMP_DIR", "/tmp/music/temp"))
+    SCREENSHOTS_DIR = Path(os.getenv("FFMPEG_SCREENSHOTS_DIR", "/tmp/music/screenshots"))
+    
+    # Screenshot URL configuration
+    SCREENSHOTS_BASE_URL = os.getenv("SCREENSHOTS_BASE_URL", "https://kompo.st/screenshots")
     
     # FFMPEG binary path
     FFMPEG_PATH = os.getenv("FFMPEG_PATH", "ffmpeg")

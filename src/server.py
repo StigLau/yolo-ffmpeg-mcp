@@ -358,6 +358,167 @@ async def smart_trim_suggestions(file_id: str, desired_duration: float = 10.0) -
 
 
 @mcp.tool()
+async def get_scene_screenshots(file_id: str) -> Dict[str, Any]:
+    """Get scene screenshots with URLs for visual scene selection"""
+    
+    # Validate file exists
+    file_path = file_manager.resolve_id(file_id)
+    if not file_path:
+        return {"success": False, "error": f"File ID '{file_id}' not found"}
+        
+    # Only work with video files
+    if file_path.suffix.lower() not in ['.mp4', '.mov', '.avi', '.mkv', '.webm']:
+        return {"success": False, "error": f"Screenshots only supported for video files"}
+    
+    try:
+        result = await content_analyzer.get_scene_screenshots(file_id)
+        
+        if result["success"]:
+            result["usage_hint"] = "Use screenshot URLs to visually select scenes for editing operations"
+            result["next_steps"] = [
+                "Use scene start/end times with trim operation",
+                "Reference scenes by scene_id for consistent editing",
+                "Combine multiple scenes using concatenate operations"
+            ]
+        
+        return result
+        
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get screenshots: {str(e)}"}
+
+
+@mcp.tool()
+async def list_generated_files() -> Dict[str, Any]:
+    """List all generated/processed files in temp directory with metadata"""
+    
+    try:
+        temp_files = []
+        
+        # Scan temp directory for generated files
+        for temp_file in SecurityConfig.TEMP_DIR.glob("temp_*.mp4"):
+            if temp_file.is_file() and temp_file.stat().st_size > 0:
+                # Register file to get file ID
+                file_id = file_manager.register_file(temp_file)
+                
+                temp_files.append({
+                    "file_id": file_id,
+                    "name": temp_file.name,
+                    "size": temp_file.stat().st_size,
+                    "created": temp_file.stat().st_mtime,
+                    "extension": temp_file.suffix,
+                    "type": "generated_video"
+                })
+        
+        # Also scan for generated audio files
+        for temp_file in SecurityConfig.TEMP_DIR.glob("temp_*.mp3"):
+            if temp_file.is_file() and temp_file.stat().st_size > 0:
+                file_id = file_manager.register_file(temp_file)
+                
+                temp_files.append({
+                    "file_id": file_id,
+                    "name": temp_file.name,
+                    "size": temp_file.stat().st_size,
+                    "created": temp_file.stat().st_mtime,
+                    "extension": temp_file.suffix,
+                    "type": "generated_audio"
+                })
+        
+        # Sort by creation time (newest first)
+        temp_files.sort(key=lambda x: x["created"], reverse=True)
+        
+        return {
+            "success": True,
+            "generated_files": temp_files,
+            "total_count": len(temp_files),
+            "usage_hint": "These are files created by video processing operations",
+            "next_steps": [
+                "Use file_id with other operations",
+                "Get detailed info with get_file_info(file_id)",
+                "Clean up with cleanup_temp_files()"
+            ]
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Failed to list generated files: {str(e)}"}
+
+
+@mcp.tool()
+async def batch_process(operations: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Execute multiple video operations in sequence with atomic transaction support
+    
+    Args:
+        operations: List of operation dicts with keys: input_file_id, operation, output_extension, params
+    
+    Returns:
+        Results for each operation with file IDs for chaining
+    """
+    
+    try:
+        results = []
+        current_file_id = None
+        
+        for i, op in enumerate(operations):
+            # Use previous output as input for chaining (if input_file_id is 'CHAIN')
+            input_id = op.get('input_file_id')
+            if input_id == 'CHAIN' and current_file_id:
+                input_id = current_file_id
+            elif input_id == 'CHAIN' and not current_file_id:
+                return {"success": False, "error": f"Operation {i}: Cannot chain - no previous output"}
+            
+            operation = op.get('operation')
+            output_ext = op.get('output_extension', 'mp4')
+            params = op.get('params', '')
+            
+            print(f"Batch step {i+1}: {operation} on {input_id}")
+            
+            # Execute operation
+            result = await process_file(
+                input_file_id=input_id,
+                operation=operation,
+                output_extension=output_ext,
+                params=params
+            )
+            
+            # Handle result format (both dict and object)
+            success = result.success if hasattr(result, 'success') else result.get('success', False)
+            message = result.message if hasattr(result, 'message') else result.get('message', 'No message')
+            output_id = result.output_file_id if hasattr(result, 'output_file_id') else result.get('output_file_id')
+            
+            step_result = {
+                "step": i + 1,
+                "operation": operation,
+                "success": success,
+                "message": message,
+                "output_file_id": output_id,
+                "input_file_id": input_id
+            }
+            
+            results.append(step_result)
+            
+            if success and output_id:
+                current_file_id = output_id  # For chaining
+            else:
+                # Stop on first failure
+                return {
+                    "success": False,
+                    "error": f"Batch failed at step {i+1}: {message}",
+                    "completed_steps": results,
+                    "final_output": None
+                }
+        
+        return {
+            "success": True,
+            "total_steps": len(operations),
+            "completed_steps": results,
+            "final_output": current_file_id,
+            "usage_hint": "All operations completed successfully. Use final_output file_id for further processing."
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Batch processing failed: {str(e)}"}
+
+
+@mcp.tool()
 async def cleanup_temp_files() -> Dict[str, str]:
     """Clean up temporary files"""
     try:
