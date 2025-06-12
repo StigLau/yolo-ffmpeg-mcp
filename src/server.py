@@ -12,6 +12,7 @@ try:
     from .config import SecurityConfig
     from .content_analyzer import VideoContentAnalyzer
     from .komposition_processor import KompositionProcessor
+    from .transition_processor import TransitionProcessor
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -21,7 +22,7 @@ except ImportError:
     from transition_processor import TransitionProcessor
 
 
-# Initialize MCP server
+# In itialize MCP server
 mcp = FastMCP("ffmpeg-mcp")
 
 # Initialize components
