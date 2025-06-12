@@ -1,0 +1,2116 @@
+id"Bergen Json Komposition"
+{
+  "id": "Bergen Json Komposition",
+  "key": "Bergen Json Komposition",
+  "value": {
+    "rev": "7-80e51a494b9d30dc260ef6a304404228"
+  },
+  "doc": {
+    "_id": "Bergen Json Komposition",
+    "_rev": "7-80e51a494b9d30dc260ef6a304404228",
+    "type": "Komposition",
+    "bpm": 120,
+    "config": {
+      "width": 1280,
+      "height": 720,
+      "framerate": 24,
+      "extension": "mp4"
+    },
+    "beatpattern": {
+      "frombeat": 0,
+      "tobeat": 64,
+      "masterbpm": 120
+    },
+    "segments": [
+      {
+        "id": "View from bare mountain - clouds passing left",
+        "sourceid": "",
+        "start": 64,
+        "duration": 16,
+        "end": 80
+      },
+      {
+        "id": "Rooftop yellow sun setting into fjord",
+        "sourceid": "",
+        "start": 48,
+        "duration": 16,
+        "end": 64
+      },
+      {
+        "id": "Green vegetation around waterfall",
+        "sourceid": "",
+        "start": 32,
+        "duration": 16,
+        "end": 48
+      },
+      {
+        "id": "Tree blowing",
+        "sourceid": "",
+        "start": 16,
+        "duration": 16,
+        "end": 32
+      },
+      {
+        "id": "Lake closeup with wite clouds approaching",
+        "sourceid": "",
+        "start": 8,
+        "duration": 8,
+        "end": 16
+      },
+      {
+        "id": "Flurries on roadside einer",
+        "sourceid": "",
+        "start": 0,
+        "duration": 8,
+        "end": 8
+      }
+    ],
+    "sources": [
+      {
+        "id": "Clarian_Ver_(11_Am_Mix)",
+        "url": "https://heap.kompo.se/Clarian_Ver_(11_Am_Mix)",
+        "startingOffset": 0,
+        "checksums": "",
+        "format": "",
+        "extension": "mp3",
+        "mediatype": "audio"
+      },
+      {
+        "id": "Randal__A_quiet_place",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place",
+        "startingOffset": 0,
+        "checksums": "",
+        "format": "136",
+        "extension": "mp4",
+        "mediatype": "video"
+      },
+      {
+        "id": "Bergen_In_Motion",
+        "url": "https://heap.kompo.se/Bergen_In_Motion",
+        "startingOffset": 0,
+        "checksums": "",
+        "format": "136",
+        "extension": "mp4",
+        "mediatype": "video"
+      }
+    ]
+  }
+}
+id"Bergen_In_Motion"
+{
+  "id": "Bergen_In_Motion",
+  "key": "Bergen_In_Motion",
+  "value": {
+    "rev": "19-e1f4048700b6ef6e449180024a747803"
+  },
+  "doc": {
+    "_id": "Bergen_In_Motion",
+    "_rev": "19-e1f4048700b6ef6e449180024a747803",
+    "type": "Video",
+    "bpm": -1,
+    "segments": [
+      {
+        "id": "End credits",
+        "sourceid": "",
+        "start": 191608083,
+        "duration": 9509500,
+        "end": 201117583
+      },
+      {
+        "id": "Hill climbers on sunset",
+        "sourceid": "",
+        "start": 174966458,
+        "duration": 15223542,
+        "end": 190190000
+      },
+      {
+        "id": "Fotgangfelt oversyn immens lys",
+        "sourceid": "",
+        "start": 166791625,
+        "duration": 8133125,
+        "end": 174924750
+      },
+      {
+        "id": "Dark blue hilltip pan right",
+        "sourceid": "",
+        "start": 160493667,
+        "duration": 6256250,
+        "end": 166749917
+      },
+      {
+        "id": "Light blue hilltop view pan left",
+        "sourceid": "",
+        "start": 151568083,
+        "duration": 8883875,
+        "end": 160451958
+      },
+      {
+        "id": "Green vegetation around waterfall",
+        "sourceid": "",
+        "start": 145353542,
+        "duration": 5588916,
+        "end": 150942458
+      },
+      {
+        "id": "Lake closeup with wite clouds approaching",
+        "sourceid": "",
+        "start": 138930458,
+        "duration": 6381375,
+        "end": 145311833
+      },
+      {
+        "id": "Trolsk pond with yellow clouds passing left",
+        "sourceid": "",
+        "start": 133716917,
+        "duration": 5171833,
+        "end": 138888750
+      },
+      {
+        "id": "Below approaching clouds with Bergen in distance",
+        "sourceid": "",
+        "start": 126918458,
+        "duration": 5547209,
+        "end": 132465667
+      },
+      {
+        "id": "Changing coloured clouds passing over hill silouette",
+        "sourceid": "",
+        "start": 122330542,
+        "duration": 4546208,
+        "end": 126876750
+      },
+      {
+        "id": "Clouds moving over ice",
+        "sourceid": "",
+        "start": 119869750,
+        "duration": 2419083,
+        "end": 122288833
+      },
+      {
+        "id": "Windy Tree fork",
+        "sourceid": "",
+        "start": 116116000,
+        "duration": 3712042,
+        "end": 119828042
+      },
+      {
+        "id": "Rooftop yellow sun setting into fjord",
+        "sourceid": "",
+        "start": 109818042,
+        "duration": 6256250,
+        "end": 116074292
+      },
+      {
+        "id": "0deland",
+        "sourceid": "",
+        "start": 102852750,
+        "duration": 6923583,
+        "end": 109776333
+      },
+      {
+        "id": "Climbing mountain",
+        "sourceid": "",
+        "start": 92592500,
+        "duration": 8883875,
+        "end": 101476375
+      },
+      {
+        "id": "Yellow skyline over houses, clouds moving away",
+        "sourceid": "",
+        "start": 78578500,
+        "duration": 13972292,
+        "end": 92550792
+      },
+      {
+        "id": "Johanneskirken",
+        "sourceid": "",
+        "start": 71988583,
+        "duration": 6548209,
+        "end": 78536792
+      },
+      {
+        "id": "Ask0ybroa, clouds passing right",
+        "sourceid": "",
+        "start": 62437375,
+        "duration": 8174833,
+        "end": 70612208
+      },
+      {
+        "id": "View from bare mountain - clouds passing left",
+        "sourceid": "",
+        "start": 56556500,
+        "duration": 5797458,
+        "end": 62353958
+      },
+      {
+        "id": "Mountain top, blue sky view of houses",
+        "sourceid": "",
+        "start": 43001292,
+        "duration": 13221541,
+        "end": 56222833
+      },
+      {
+        "id": "Damgaardsfjellet viewing Cruiseship - pan left",
+        "sourceid": "",
+        "start": 30613917,
+        "duration": 12345666,
+        "end": 42959583
+      },
+      {
+        "id": "View over Bergenhus - blue light",
+        "sourceid": "",
+        "start": 11636625,
+        "duration": 18935583,
+        "end": 30572208
+      },
+      {
+        "id": "Bergen by night intro credits",
+        "sourceid": "",
+        "start": 1209542,
+        "duration": 10385375,
+        "end": 11594917
+      }
+    ],
+    "sources": [
+      {
+        "id": "Bergen_In_Motion:136",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "46133154",
+        "format": "136",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:139",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "139",
+        "extension": "m4a",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Bergen_In_Motion:140",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "140",
+        "extension": "m4a",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Bergen_In_Motion:278",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "278",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:160",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "160",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:242",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "242",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:133",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "133",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:243",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "243",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:134",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "134",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:244",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "244",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:135",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "135",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:247",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "247",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:248",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "248",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:137",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "137",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:18",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "14895355",
+        "format": "18",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Bergen_In_Motion:22",
+        "url": "https://www.youtube.com/watch?v=hxSCyOeW0Gc",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "22",
+        "extension": "mp4",
+        "mediatype": "Video"
+      }
+    ]
+  }
+}
+id"BirkenMix"
+{
+  "id": "BirkenMix",
+  "key": "BirkenMix",
+  "value": {
+    "rev": "5-adc34c69a8ff77e1f1fa101901608d6e"
+  },
+  "doc": {
+    "_id": "BirkenMix",
+    "_rev": "5-adc34c69a8ff77e1f1fa101901608d6e",
+    "type": "Komposition",
+    "bpm": 120,
+    "config": {
+      "width": 960,
+      "height": 720,
+      "framerate": 30,
+      "extension": "mp4"
+    },
+    "beatpattern": {
+      "frombeat": 0,
+      "tobeat": 384,
+      "masterbpm": 120
+    },
+    "segments": [
+      {
+        "id": "Empty",
+        "sourceid": "http://jalla1",
+        "start": 0,
+        "duration": 16,
+        "end": 16
+      }
+    ],
+    "sources": []
+  }
+}
+id"Breddeutvidelse_Birkebeineren_2016"
+{
+  "id": "Breddeutvidelse_Birkebeineren_2016",
+  "key": "Breddeutvidelse_Birkebeineren_2016",
+  "value": {
+    "rev": "1-88167c3e9a0b793c111df8bc57f2fcbf"
+  },
+  "doc": {
+    "_id": "Breddeutvidelse_Birkebeineren_2016",
+    "_rev": "1-88167c3e9a0b793c111df8bc57f2fcbf",
+    "type": "Video",
+    "bpm": 0,
+    "beatpattern": {
+      "frombeat": 0,
+      "tobeat": 0,
+      "masterbpm": 0
+    },
+    "segments": [
+      {
+        "id": "Empty",
+        "sourceid": "http://jalla1",
+        "start": 0,
+        "duration": 16,
+        "end": 16
+      }
+    ],
+    "sources": [
+      {
+        "id": "https://www.youtube.com/watch?v=Vczri7uY0CY",
+        "url": "https://heap.kompo.se/https://www.youtube.com/watch?v=Vczri7uY0CY",
+        "startingOffset": 0,
+        "checksums": "",
+        "extension": "",
+        "mediatype": ""
+      }
+    ]
+  }
+}
+id"Clarian_Ver_(11_Am_Mix)"
+{
+  "id": "Clarian_Ver_(11_Am_Mix)",
+  "key": "Clarian_Ver_(11_Am_Mix)",
+  "value": {
+    "rev": "11-36264c3dd3a0a967f4bff5a834f80561"
+  },
+  "doc": {
+    "_id": "Clarian_Ver_(11_Am_Mix)",
+    "_rev": "11-36264c3dd3a0a967f4bff5a834f80561",
+    "type": "Audio",
+    "bpm": 120,
+    "beatpattern": {
+      "frombeat": 0,
+      "tobeat": 0,
+      "masterbpm": 0
+    },
+    "segments": [
+      {
+        "id": "End",
+        "sourceid": "",
+        "start": 544,
+        "duration": 168,
+        "end": 712
+      },
+      {
+        "id": "Ver_Dude singing",
+        "sourceid": "",
+        "start": 480,
+        "duration": 64,
+        "end": 544
+      },
+      {
+        "id": "Ver_running - synth",
+        "sourceid": "",
+        "start": 416,
+        "duration": 64,
+        "end": 480
+      },
+      {
+        "id": "Ver_running - synth intro",
+        "sourceid": "",
+        "start": 408,
+        "duration": 8,
+        "end": 416
+      },
+      {
+        "id": "Ver_running",
+        "sourceid": "",
+        "start": 256,
+        "duration": 152,
+        "end": 408
+      },
+      {
+        "id": "Rising",
+        "sourceid": "",
+        "start": 192,
+        "duration": 64,
+        "end": 256
+      },
+      {
+        "id": "With basedrum and synth",
+        "sourceid": "",
+        "start": 64,
+        "duration": 128,
+        "end": 192
+      },
+      {
+        "id": "First verse with basedrum",
+        "sourceid": "",
+        "start": 32,
+        "duration": 32,
+        "end": 64
+      },
+      {
+        "id": "Intro",
+        "sourceid": "",
+        "start": 0,
+        "duration": 32,
+        "end": 32
+      }
+    ],
+    "sources": [
+      {
+        "id": "Clarian_Ver_(11_Am_Mix)",
+        "url": "https://s3.amazonaws.com/kompost/dvl-test/Clarian_Ver_(11_Am_Mix).mp3",
+        "startingOffset": 0,
+        "checksums": "ee8a9400f41365164f9847d27d4a7279",
+        "extension": "mp3",
+        "mediatype": "audio"
+      }
+    ]
+  }
+}
+id"Hesnes_yene_Norway"
+{
+  "id": "Hesnes_yene_Norway",
+  "key": "Hesnes_yene_Norway",
+  "value": {
+    "rev": "11-5c53e44bbf1ebc69a57fe2ee44934a61"
+  },
+  "doc": {
+    "_id": "Hesnes_yene_Norway",
+    "_rev": "11-5c53e44bbf1ebc69a57fe2ee44934a61",
+    "type": "Video",
+    "bpm": -1,
+    "segments": [
+      {
+        "id": "Fly out into the boarder",
+        "sourceid": "",
+        "start": 197931067,
+        "duration": 37837800,
+        "end": 235768867
+      },
+      {
+        "id": "Chasing boat into sunset",
+        "sourceid": "",
+        "start": 186186000,
+        "duration": 10677333,
+        "end": 196863333
+      },
+      {
+        "id": "Boats in ponds",
+        "sourceid": "",
+        "start": 174974800,
+        "duration": 9609600,
+        "end": 184584400
+      },
+      {
+        "id": "Continued flying",
+        "sourceid": "",
+        "start": 147247100,
+        "duration": 26659967,
+        "end": 173907067
+      },
+      {
+        "id": "Two boats fly over",
+        "sourceid": "",
+        "start": 132332200,
+        "duration": 12245567,
+        "end": 144577767
+      },
+      {
+        "id": "Two boats zooming past",
+        "sourceid": "",
+        "start": 116850067,
+        "duration": 13880533,
+        "end": 130730600
+      },
+      {
+        "id": "Tree boat going out",
+        "sourceid": "",
+        "start": 86986900,
+        "duration": 28795433,
+        "end": 115782333
+      },
+      {
+        "id": "Tree boat",
+        "sourceid": "",
+        "start": 73106367,
+        "duration": 12278933,
+        "end": 85385300
+      },
+      {
+        "id": "Two racing boats",
+        "sourceid": "",
+        "start": 60860800,
+        "duration": 10643967,
+        "end": 71504767
+      },
+      {
+        "id": "Panoramic greens and blues",
+        "sourceid": "",
+        "start": 37904533,
+        "duration": 21354667,
+        "end": 59259200
+      },
+      {
+        "id": "Fly out to sun",
+        "sourceid": "",
+        "start": 25125100,
+        "duration": 11177833,
+        "end": 36302933
+      },
+      {
+        "id": "Many red huts and narrow fjord, flying downwards",
+        "sourceid": "",
+        "start": 6973633,
+        "duration": 14948267,
+        "end": 21921900
+      }
+    ],
+    "sources": [
+      {
+        "id": "Hesnes_yene_Norway:136",
+        "url": "https://www.youtube.com/watch?v=ZSs0PBuLeSc?format=136",
+        "startingOffset": 0,
+        "checksums": "78887724",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:248",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:248",
+        "startingOffset": 0,
+        "checksums": "78887724",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:22",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:22",
+        "startingOffset": 0,
+        "checksums": "null",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:18",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:18",
+        "startingOffset": 0,
+        "checksums": "21622420",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:249",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:249",
+        "startingOffset": 0,
+        "checksums": "1488169",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Hesnes_yene_Norway:250",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:250",
+        "startingOffset": 0,
+        "checksums": "1978891",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Hesnes_yene_Norway:140",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:140",
+        "startingOffset": 0,
+        "checksums": "3773632",
+        "extension": "m4a",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Hesnes_yene_Norway:251",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:251",
+        "startingOffset": 0,
+        "checksums": "3935389",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Hesnes_yene_Norway:160",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:160",
+        "startingOffset": 0,
+        "checksums": "3240778",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:278",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:278",
+        "startingOffset": 0,
+        "checksums": "3119915",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:242",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:242",
+        "startingOffset": 0,
+        "checksums": "5469823",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:133",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:133",
+        "startingOffset": 0,
+        "checksums": "7224025",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:243",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:243",
+        "startingOffset": 0,
+        "checksums": "10154019",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:134",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:134",
+        "startingOffset": 0,
+        "checksums": "15394629",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:244",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:244",
+        "startingOffset": 0,
+        "checksums": "19175612",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:135",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:135",
+        "startingOffset": 0,
+        "checksums": "31177616",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:247",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:247",
+        "startingOffset": 0,
+        "checksums": "40507626",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Hesnes_yene_Norway:137",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway:137",
+        "startingOffset": 0,
+        "checksums": "118059737",
+        "extension": "mp4",
+        "mediatype": "Video"
+      }
+    ]
+  }
+}
+id"Javazone_2016_demo_rehash"
+{
+  "id": "Javazone_2016_demo_rehash",
+  "key": "Javazone_2016_demo_rehash",
+  "value": {
+    "rev": "4-b38b27685bcf719fb52010f62af493dc"
+  },
+  "doc": {
+    "_id": "Javazone_2016_demo_rehash",
+    "_rev": "4-b38b27685bcf719fb52010f62af493dc",
+    "type": "Komposition",
+    "bpm": 124,
+    "config": {
+      "width": 1280,
+      "height": 720,
+      "framerate": 24,
+      "extension": "mp4"
+    },
+    "beatpattern": {
+      "frombeat": 0,
+      "tobeat": 120,
+      "masterbpm": 124
+    },
+    "segments": [
+      {
+        "id": "Johanneskirken",
+        "sourceid": "",
+        "start": 16,
+        "duration": 32,
+        "end": 48
+      },
+      {
+        "id": "Damgaardsfjellet viewing Cruiseship - pan left",
+        "sourceid": "http://jalla1",
+        "start": 0,
+        "duration": 16,
+        "end": 16
+      }
+    ],
+    "sources": [
+      {
+        "id": "Hesnes_yene_Norway",
+        "url": "https://heap.kompo.se/Hesnes_yene_Norway",
+        "startingOffset": 0,
+        "checksums": "6ac94af509c88c699e268f431b0bf63c",
+        "extension": "mp4",
+        "mediatype": "video"
+      }
+    ]
+  }
+}
+id"NORWAY__A_Time_Lapse_Adventure_4K"
+{
+  "id": "NORWAY__A_Time_Lapse_Adventure_4K",
+  "key": "NORWAY__A_Time_Lapse_Adventure_4K",
+  "value": {
+    "rev": "6-ada1f017d01f6065197c65a1ec4ae629"
+  },
+  "doc": {
+    "_id": "NORWAY__A_Time_Lapse_Adventure_4K",
+    "_rev": "6-ada1f017d01f6065197c65a1ec4ae629",
+    "type": "Video",
+    "bpm": -1,
+    "segments": [
+      {
+        "id": "Omnious fjord Lightbrake",
+        "sourceid": "",
+        "start": 79750000,
+        "duration": 8000000,
+        "end": 87750000
+      },
+      {
+        "id": "Mountain range",
+        "sourceid": "",
+        "start": 74750000,
+        "duration": 4750000,
+        "end": 79500000
+      },
+      {
+        "id": "Dark lake",
+        "sourceid": "",
+        "start": 69375000,
+        "duration": 4625000,
+        "end": 74000000
+      },
+      {
+        "id": "Fjord like river",
+        "sourceid": "",
+        "start": 64250000,
+        "duration": 3875000,
+        "end": 68125000
+      },
+      {
+        "id": "Fjord foss",
+        "sourceid": "",
+        "start": 58541667,
+        "duration": 4333333,
+        "end": 62875000
+      },
+      {
+        "id": "Slide Blue mountain top lake",
+        "sourceid": "",
+        "start": 47000000,
+        "duration": 10000000,
+        "end": 57000000
+      },
+      {
+        "id": "Flower fjord",
+        "sourceid": "",
+        "start": 35500000,
+        "duration": 10750000,
+        "end": 46250000
+      },
+      {
+        "id": "Norway showing",
+        "sourceid": "",
+        "start": 30166667,
+        "duration": 4375000,
+        "end": 34541667
+      },
+      {
+        "id": "Besseggen",
+        "sourceid": "",
+        "start": 21250000,
+        "duration": 6375000,
+        "end": 27625000
+      },
+      {
+        "id": "Purple Mountains Clouds",
+        "sourceid": "",
+        "start": 7541667,
+        "duration": 12208333,
+        "end": 19750000
+      }
+    ],
+    "sources": [
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:249",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:249",
+        "startingOffset": 0,
+        "checksums": "2116753",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:250",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:250",
+        "startingOffset": 0,
+        "checksums": "2822270",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:140",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:140",
+        "startingOffset": 0,
+        "checksums": "5385423",
+        "extension": "m4a",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:251",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:251",
+        "startingOffset": 0,
+        "checksums": "5536432",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:394",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:394",
+        "startingOffset": 0,
+        "checksums": "2461235",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:278",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:278",
+        "startingOffset": 0,
+        "checksums": "3101595",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:160",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:160",
+        "startingOffset": 0,
+        "checksums": "1966760",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:395",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:395",
+        "startingOffset": 0,
+        "checksums": "4486661",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:242",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:242",
+        "startingOffset": 0,
+        "checksums": "5328383",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:133",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:133",
+        "startingOffset": 0,
+        "checksums": "4578814",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:396",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:396",
+        "startingOffset": 0,
+        "checksums": "9189032",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:243",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:243",
+        "startingOffset": 0,
+        "checksums": "11790509",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:134",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:134",
+        "startingOffset": 0,
+        "checksums": "9579332",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:397",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:397",
+        "startingOffset": 0,
+        "checksums": "16675629",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:244",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:244",
+        "startingOffset": 0,
+        "checksums": "21490833",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:135",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:135",
+        "startingOffset": 0,
+        "checksums": "16054206",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:398",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:398",
+        "startingOffset": 0,
+        "checksums": "31470713",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:136",
+        "url": "https://www.youtube.com/watch?v=Scxs7L0vhZ4?format=136",
+        "startingOffset": 0,
+        "checksums": "594309892",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:247",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:247",
+        "startingOffset": 0,
+        "checksums": "43619221",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:248",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:248",
+        "startingOffset": 0,
+        "checksums": "81220929",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:137",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:137",
+        "startingOffset": 0,
+        "checksums": "107370321",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:271",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:271",
+        "startingOffset": 0,
+        "checksums": "250886045",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:313",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:313",
+        "startingOffset": 0,
+        "checksums": "594309892",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:18",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:18",
+        "startingOffset": 0,
+        "checksums": "24241710",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "NORWAY__A_Time_Lapse_Adventure_4K:22",
+        "url": "https://heap.kompo.se/NORWAY__A_Time_Lapse_Adventure_4K:22",
+        "startingOffset": 0,
+        "checksums": "null",
+        "extension": "mp4",
+        "mediatype": "Video"
+      }
+    ]
+  }
+}
+id"Randal__A_quiet_place"
+{
+  "id": "Randal__A_quiet_place",
+  "key": "Randal__A_quiet_place",
+  "value": {
+    "rev": "14-a6b30ee7b9060c4dde64370c6625d3e8"
+  },
+  "doc": {
+    "_id": "Randal__A_quiet_place",
+    "_rev": "14-a6b30ee7b9060c4dde64370c6625d3e8",
+    "type": "Video",
+    "bpm": -1,
+    "segments": [
+      {
+        "id": "Outro credits Quiet Place",
+        "sourceid": "",
+        "start": 137262125,
+        "duration": 5380375,
+        "end": 142642500
+      },
+      {
+        "id": "Star sky passing",
+        "sourceid": "",
+        "start": 132465667,
+        "duration": 3628625,
+        "end": 136094292
+      },
+      {
+        "id": "Green and red sunset",
+        "sourceid": "",
+        "start": 126209417,
+        "duration": 6214541,
+        "end": 132423958
+      },
+      {
+        "id": "Moon passing over frame",
+        "sourceid": "",
+        "start": 120203417,
+        "duration": 5964291,
+        "end": 126167708
+      },
+      {
+        "id": "Sunset over distant silouette",
+        "sourceid": "",
+        "start": 107107000,
+        "duration": 13054708,
+        "end": 120161708
+      },
+      {
+        "id": "Green house with moon passing",
+        "sourceid": "",
+        "start": 96346250,
+        "duration": 10677333,
+        "end": 107023583
+      },
+      {
+        "id": "Stone house with red blikktak",
+        "sourceid": "",
+        "start": 87587500,
+        "duration": 8717042,
+        "end": 96304542
+      },
+      {
+        "id": "Red boathouse panning out",
+        "sourceid": "",
+        "start": 81081000,
+        "duration": 6381375,
+        "end": 87462375
+      },
+      {
+        "id": "Trees with red",
+        "sourceid": "",
+        "start": 78078000,
+        "duration": 2961292,
+        "end": 81039292
+      },
+      {
+        "id": "Boat approaching on fjord with little movement",
+        "sourceid": "",
+        "start": 74407667,
+        "duration": 3628625,
+        "end": 78036292
+      },
+      {
+        "id": "Hei of nothing exciting",
+        "sourceid": "",
+        "start": 72280542,
+        "duration": 2085416,
+        "end": 74365958
+      },
+      {
+        "id": "Roof removal",
+        "sourceid": "",
+        "start": 60518792,
+        "duration": 11720041,
+        "end": 72238833
+      },
+      {
+        "id": "Flurries on roadside einer",
+        "sourceid": "",
+        "start": 56222833,
+        "duration": 4254250,
+        "end": 60477083
+      },
+      {
+        "id": "Tree blowing",
+        "sourceid": "",
+        "start": 51843458,
+        "duration": 3044709,
+        "end": 54888167
+      },
+      {
+        "id": "Snowing on field of stones",
+        "sourceid": "",
+        "start": 47505792,
+        "duration": 3294958,
+        "end": 50800750
+      },
+      {
+        "id": "Snowing on trees in valley",
+        "sourceid": "",
+        "start": 43126417,
+        "duration": 2794458,
+        "end": 45920875
+      },
+      {
+        "id": "Stone boulder with wet snow flurries",
+        "sourceid": "",
+        "start": 34909875,
+        "duration": 6006000,
+        "end": 40915875
+      },
+      {
+        "id": "Stone house with no roof, and sheep movement",
+        "sourceid": "",
+        "start": 30780750,
+        "duration": 4087417,
+        "end": 34868167
+      },
+      {
+        "id": "Brown house bathed in late light with sheep and cloud movement",
+        "sourceid": "",
+        "start": 25650625,
+        "duration": 5088417,
+        "end": 30739042
+      },
+      {
+        "id": "Brown fjord landskape pan right",
+        "sourceid": "",
+        "start": 17642625,
+        "duration": 7966292,
+        "end": 25608917
+      },
+      {
+        "id": "Small dark sheep with small white",
+        "sourceid": "",
+        "start": 13263250,
+        "duration": 4337667,
+        "end": 17600917
+      },
+      {
+        "id": "Sheep by stone wall",
+        "sourceid": "",
+        "start": 9175833,
+        "duration": 4045709,
+        "end": 13221542
+      },
+      {
+        "id": "Sheep grazing on hill",
+        "sourceid": "",
+        "start": 7549208,
+        "duration": 1584917,
+        "end": 9134125
+      },
+      {
+        "id": "Quiet place intro",
+        "sourceid": "",
+        "start": 1543208,
+        "duration": 4921584,
+        "end": 6464792
+      }
+    ],
+    "sources": [
+      {
+        "id": "Randal__A_quiet_place:136",
+        "url": "https://www.youtube.com/watch?v=CSdmqIbdLVY",
+        "startingOffset": 0,
+        "checksums": "40851958",
+        "format": "136",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:249",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:249",
+        "startingOffset": 0,
+        "checksums": "942660",
+        "format": "249",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Randal__A_quiet_place:250",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:250",
+        "startingOffset": 0,
+        "checksums": "1296974",
+        "format": "250",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Randal__A_quiet_place:140",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:140",
+        "startingOffset": 0,
+        "checksums": "2277173",
+        "format": "140",
+        "extension": "m4a",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Randal__A_quiet_place:251",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:251",
+        "startingOffset": 0,
+        "checksums": "2553798",
+        "format": "251",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "Randal__A_quiet_place:160",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:160",
+        "startingOffset": 0,
+        "checksums": "2012454",
+        "format": "160",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:278",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:278",
+        "startingOffset": 0,
+        "checksums": "1479777",
+        "format": "278",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:133",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:133",
+        "startingOffset": 0,
+        "checksums": "4451706",
+        "format": "133",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:242",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:242",
+        "startingOffset": 0,
+        "checksums": "2622166",
+        "format": "242",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:134",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:134",
+        "startingOffset": 0,
+        "checksums": "7362608",
+        "format": "134",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:243",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:243",
+        "startingOffset": 0,
+        "checksums": "5497541",
+        "format": "243",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:135",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:135",
+        "startingOffset": 0,
+        "checksums": "16288251",
+        "format": "135",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:244",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:244",
+        "startingOffset": 0,
+        "checksums": "10170943",
+        "format": "244",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:247",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:247",
+        "startingOffset": 0,
+        "checksums": "21253443",
+        "format": "247",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:248",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:248",
+        "startingOffset": 0,
+        "checksums": "40851958",
+        "format": "248",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:137",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:137",
+        "startingOffset": 0,
+        "checksums": "65105278",
+        "format": "137",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:264",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:264",
+        "startingOffset": 0,
+        "checksums": "80842737",
+        "format": "264",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:22",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:22",
+        "startingOffset": 0,
+        "checksums": "null",
+        "format": "22",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "Randal__A_quiet_place:18",
+        "url": "https://heap.kompo.se/Randal__A_quiet_place:18",
+        "startingOffset": 0,
+        "checksums": "10616024",
+        "format": "18",
+        "extension": "mp4",
+        "mediatype": "Video"
+      }
+    ]
+  }
+}
+id"Testing"
+{
+  "id": "Testing",
+  "key": "Testing",
+  "value": {
+    "rev": "10-81578aa707f995648b3fa06327443de9"
+  },
+  "doc": {
+    "_id": "Testing",
+    "_rev": "10-81578aa707f995648b3fa06327443de9",
+    "type": "Komposition",
+    "bpm": 121,
+    "config": {
+      "width": 1280,
+      "height": 720,
+      "framerate": 24,
+      "extension": "mp4"
+    },
+    "beatpattern": {
+      "frombeat": 0,
+      "tobeat": 16,
+      "masterbpm": 124
+    },
+    "segments": [
+      {
+        "id": "First refrain",
+        "sourceid": "",
+        "start": 32,
+        "duration": 16,
+        "end": 48
+      },
+      {
+        "id": "First verse",
+        "sourceid": "",
+        "start": 16,
+        "duration": 16,
+        "end": 32
+      },
+      {
+        "id": "Intro",
+        "sourceid": "http://jalla1",
+        "start": 0,
+        "duration": 16,
+        "end": 16
+      }
+    ],
+    "sources": []
+  }
+}
+id"World's Largest Rope Swing"
+{
+  "id": "World's Largest Rope Swing",
+  "key": "World's Largest Rope Swing",
+  "value": {
+    "rev": "7-4cffda78e4a6dc2ca943a0ac94c49303"
+  },
+  "doc": {
+    "_id": "World's Largest Rope Swing",
+    "_rev": "7-4cffda78e4a6dc2ca943a0ac94c49303",
+    "type": "Video",
+    "bpm": -1,
+    "segments": [
+      {
+        "id": "Swing through bridge with mountain smile",
+        "sourceid": "",
+        "start": 45128417,
+        "duration": 1584916,
+        "end": 46713333
+      },
+      {
+        "id": "Smile girl, smile",
+        "sourceid": "",
+        "start": 34034000,
+        "duration": 959292,
+        "end": 34993292
+      },
+      {
+        "id": "Swing second out from bridge",
+        "sourceid": "",
+        "start": 32323958,
+        "duration": 1584917,
+        "end": 33908875
+      },
+      {
+        "id": "Swing out from bridge",
+        "sourceid": "",
+        "start": 26526500,
+        "duration": 1668333,
+        "end": 28194833
+      },
+      {
+        "id": "Swing into bridge",
+        "sourceid": "",
+        "start": 22439083,
+        "duration": 4045709,
+        "end": 26484792
+      },
+      {
+        "id": "Red bridge",
+        "sourceid": "",
+        "start": 2919583,
+        "duration": 3128125,
+        "end": 6047708
+      }
+    ],
+    "sources": [
+      {
+        "id": "WorldsLargestRopeSwing136",
+        "url": "https://heap.kompo.se/WorldsLargestRopeSwing136",
+        "startingOffset": 0,
+        "checksums": "17656311",
+        "extension": "mp4",
+        "mediatype": "video"
+      }
+    ]
+  }
+}
+id"World_s_Largest_Rope_Swing"
+{
+  "id": "World_s_Largest_Rope_Swing",
+  "key": "World_s_Largest_Rope_Swing",
+  "value": {
+    "rev": "14-b2202b318c2041c2cfcfce10418eeb8b"
+  },
+  "doc": {
+    "_id": "World_s_Largest_Rope_Swing",
+    "_rev": "14-b2202b318c2041c2cfcfce10418eeb8b",
+    "name": "World's Largest Rope Swing",
+    "sourceUrl": "https://www.youtube.com/watch?v=4B36Lr0Unp4",
+    "type": "Video",
+    "segments": [
+      {
+        "id": "Swing through bridge with mountain smile",
+        "sourceid": "",
+        "start": 45128417,
+        "duration": 1584916,
+        "end": 46713333
+      },
+      {
+        "id": "Smile girl, smile",
+        "sourceid": "",
+        "start": 34034000,
+        "duration": 959292,
+        "end": 34993292
+      },
+      {
+        "id": "Swing second out from bridge",
+        "sourceid": "",
+        "start": 32323958,
+        "duration": 1584917,
+        "end": 33908875
+      },
+      {
+        "id": "Swing out from bridge",
+        "sourceid": "",
+        "start": 26526500,
+        "duration": 1668333,
+        "end": 28194833
+      },
+      {
+        "id": "Swing into bridge",
+        "sourceid": "",
+        "start": 22439083,
+        "duration": 4045709,
+        "end": 26484792
+      },
+      {
+        "id": "Red bridge",
+        "sourceid": "",
+        "start": 2919583,
+        "duration": 3128125,
+        "end": 6047708
+      }
+    ],
+    "sources": [
+      {
+        "id": "World_s_Largest_Rope_Swing:249",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=249",
+        "format": "249",
+        "startingOffset": 0,
+        "checksums": "1120087",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:250",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=250",
+        "format": "250",
+        "startingOffset": 0,
+        "checksums": "1480977",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:140",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=140",
+        "format": "140",
+        "startingOffset": 0,
+        "checksums": "2866784",
+        "extension": "m4a",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:251",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=251",
+        "format": "251",
+        "startingOffset": 0,
+        "checksums": "2927732",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:278",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=278",
+        "format": "278",
+        "startingOffset": 0,
+        "checksums": "2011275",
+        "extension": "webm",
+        "mediatype": "Video",
+        "width": 256,
+        "height": 144,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:160",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=160",
+        "format": "160",
+        "startingOffset": 0,
+        "checksums": "1892565",
+        "extension": "mp4",
+        "mediatype": "Video",
+        "width": 256,
+        "height": 144,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:242",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=242",
+        "format": "242",
+        "startingOffset": 0,
+        "checksums": "3944094",
+        "extension": "webm",
+        "mediatype": "Video",
+        "width": 426,
+        "height": 240,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:133",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=133",
+        "format": "133",
+        "startingOffset": 0,
+        "checksums": "4396440",
+        "extension": "mp4",
+        "mediatype": "Video",
+        "width": 426,
+        "height": 240,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:243",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=243",
+        "format": "243",
+        "startingOffset": 0,
+        "checksums": "6903203",
+        "extension": "webm",
+        "mediatype": "Video",
+        "width": 640,
+        "height": 360,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:134",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=134",
+        "format": "134",
+        "startingOffset": 0,
+        "checksums": "8265117",
+        "extension": "mp4",
+        "mediatype": "Video",
+        "width": 640,
+        "height": 360,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:244",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=244",
+        "format": "244",
+        "startingOffset": 0,
+        "checksums": "10841625",
+        "extension": "webm",
+        "mediatype": "Video",
+        "width": 854,
+        "height": 480,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:135",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=135",
+        "format": "135",
+        "startingOffset": 0,
+        "checksums": "11778981",
+        "extension": "mp4",
+        "mediatype": "Video",
+        "width": 854,
+        "height": 480,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:136",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=136",
+        "format": "136",
+        "startingOffset": 0,
+        "checksums": "61088766",
+        "extension": "mp4",
+        "mediatype": "Video",
+        "width": 1280,
+        "height": 720,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:247",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=247",
+        "format": "247",
+        "startingOffset": 0,
+        "checksums": "18860945",
+        "extension": "webm",
+        "mediatype": "Video",
+        "width": 1280,
+        "height": 720,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:248",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=248",
+        "format": "248",
+        "startingOffset": 0,
+        "checksums": "48329436",
+        "extension": "webm",
+        "mediatype": "Video",
+        "width": 1920,
+        "height": 1080,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:137",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=137",
+        "format": "137",
+        "startingOffset": 0,
+        "checksums": "61088766",
+        "extension": "mp4",
+        "mediatype": "Video",
+        "width": 1920,
+        "height": 1080,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:18",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=18",
+        "format": "18",
+        "startingOffset": 0,
+        "checksums": "14570495",
+        "extension": "mp4",
+        "mediatype": "Video",
+        "width": 640,
+        "height": 360,
+        "framerate": 24
+      },
+      {
+        "id": "World_s_Largest_Rope_Swing:22",
+        "url": "https://www.youtube.com/watch?v=4B36Lr0Unp4?format=22",
+        "format": "22",
+        "startingOffset": 0,
+        "checksums": "null",
+        "extension": "mp4",
+        "mediatype": "Video",
+        "width": 1280,
+        "height": 720,
+        "framerate": 24
+      }
+    ]
+  }
+}
+id"world_s_largest_rope_swing"
+{
+  "id": "world_s_largest_rope_swing",
+  "key": "world_s_largest_rope_swing",
+  "value": {
+    "rev": "4-65a073dc56ed24469c6434b2d4ca97ee"
+  },
+  "doc": {
+    "_id": "world_s_largest_rope_swing",
+    "_rev": "4-65a073dc56ed24469c6434b2d4ca97ee",
+    "type": "Video",
+    "bpm": -1,
+    "segments": [
+      {
+        "id": "Swing through bridge with mountain smile",
+        "sourceid": "",
+        "start": 45128417,
+        "duration": 1584916,
+        "end": 46713333
+      },
+      {
+        "id": "Smile girl, smile",
+        "sourceid": "",
+        "start": 34034000,
+        "duration": 959292,
+        "end": 34993292
+      },
+      {
+        "id": "Swing second out from bridge",
+        "sourceid": "",
+        "start": 32323958,
+        "duration": 1584917,
+        "end": 33908875
+      },
+      {
+        "id": "Swing out from bridge",
+        "sourceid": "",
+        "start": 26526500,
+        "duration": 1668333,
+        "end": 28194833
+      },
+      {
+        "id": "Swing into bridge",
+        "sourceid": "",
+        "start": 22439083,
+        "duration": 4045709,
+        "end": 26484792
+      },
+      {
+        "id": "Red bridge",
+        "sourceid": "",
+        "start": 2919583,
+        "duration": 3128125,
+        "end": 6047708
+      }
+    ],
+    "sources": [
+      {
+        "id": "world_s_largest_rope_swing:249__audio_only_tiny_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:249__audio_only_tiny_",
+        "startingOffset": 0,
+        "checksums": "1120087",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "world_s_largest_rope_swing:250__audio_only_tiny_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:250__audio_only_tiny_",
+        "startingOffset": 0,
+        "checksums": "1480977",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "world_s_largest_rope_swing:140__audio_only_tiny_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:140__audio_only_tiny_",
+        "startingOffset": 0,
+        "checksums": "2866784",
+        "extension": "m4a",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "world_s_largest_rope_swing:251__audio_only_tiny_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:251__audio_only_tiny_",
+        "startingOffset": 0,
+        "checksums": "2927732",
+        "extension": "webm",
+        "mediatype": "Audio"
+      },
+      {
+        "id": "world_s_largest_rope_swing:278__256x144_144p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:278__256x144_144p_",
+        "startingOffset": 0,
+        "checksums": "2011275",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:160__256x144_144p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:160__256x144_144p_",
+        "startingOffset": 0,
+        "checksums": "1892565",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:242__426x240_240p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:242__426x240_240p_",
+        "startingOffset": 0,
+        "checksums": "3944094",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:133__426x240_240p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:133__426x240_240p_",
+        "startingOffset": 0,
+        "checksums": "4396440",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:243__640x360_360p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:243__640x360_360p_",
+        "startingOffset": 0,
+        "checksums": "6903203",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:134__640x360_360p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:134__640x360_360p_",
+        "startingOffset": 0,
+        "checksums": "8265117",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:244__854x480_480p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:244__854x480_480p_",
+        "startingOffset": 0,
+        "checksums": "10841625",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:135__854x480_480p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:135__854x480_480p_",
+        "startingOffset": 0,
+        "checksums": "11778981",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:136__1280x720_720p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:136__1280x720_720p_",
+        "startingOffset": 0,
+        "checksums": "17656311",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:247__1280x720_720p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:247__1280x720_720p_",
+        "startingOffset": 0,
+        "checksums": "18860945",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:248__1920x1080_1080p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:248__1920x1080_1080p_",
+        "startingOffset": 0,
+        "checksums": "48329436",
+        "extension": "webm",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:137__1920x1080_1080p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:137__1920x1080_1080p_",
+        "startingOffset": 0,
+        "checksums": "61088766",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:18__640x360_360p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:18__640x360_360p_",
+        "startingOffset": 0,
+        "checksums": "14570495",
+        "extension": "mp4",
+        "mediatype": "Video"
+      },
+      {
+        "id": "world_s_largest_rope_swing:22__1280x720_720p_",
+        "url": "https://heap.kompo.se/world_s_largest_rope_swing:22__1280x720_720p_",
+        "startingOffset": 0,
+        "checksums": "null",
+        "extension": "mp4",
+        "mediatype": "Video"
+      }
+    ]
+  }
+}

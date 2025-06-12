@@ -128,8 +128,8 @@ tests/
 **This MCP server is production-ready and fully tested with real FFMPEG operations.**
 
 ## 📚 Additional Documentation
-- **[PRODUCTION_RECOMMENDATIONS.md](PRODUCTION_RECOMMENDATIONS.md)** - Critical fixes, architecture lessons, and implementation priorities
-- **[WORKFLOW_EXAMPLES.md](WORKFLOW_EXAMPLES.md)** - Complete production workflows with code examples
+- **[PRODUCTION_RECOMMENDATIONS.md](documents/PRODUCTION_RECOMMENDATIONS.md)** - Critical fixes, architecture lessons, and implementation priorities
+- **[WORKFLOW_EXAMPLES.md](documents/WORKFLOW_EXAMPLES.md)** - Complete production workflows with code examples
 
 ## 📚 Key Learnings & Architecture Insights
 

@@ -46,6 +46,10 @@ class FFMPEGWrapper:
         "image_to_video": {
             "args": ["-loop", "1", "-t", "{duration}", "-r", "25", "-c:v", "libx264", "-pix_fmt", "yuv420p"],
             "description": "Convert image to video clip (requires duration in seconds)"
+        },
+        "reverse": {
+            "args": ["-vf", "reverse", "-af", "areverse"],
+            "description": "Reverse video and audio playback"
         }
     }
 
