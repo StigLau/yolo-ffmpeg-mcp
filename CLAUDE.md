@@ -1,7 +1,7 @@
-Ok # FFMPEG MCP Server - READY FOR USE ✅
+Ok # FFMPEG MCP Server - INTELLIGENT VIDEO EDITING ✅
 
-## Project Status: COMPLETE AND FUNCTIONAL
-This is a fully working FFMPEG MCP server with comprehensive testing completed. All 6 tools are functional and tested with real video processing.
+## Project Status: ADVANCED CONTENT-AWARE SYSTEM  
+This is an intelligent FFMPEG MCP server with AI-powered content understanding. The system now has "eyes" to understand video content and provide smart editing suggestions without manual timecode specification.
 
 ## Quick Start
 ```bash
@@ -11,12 +11,13 @@ uv run python -m src.server
 # Test with MCP Inspector (running at http://127.0.0.1:6274)
 npx @modelcontextprotocol/inspector uv run python -m src.server
 
-# Run all tests (unit + end-to-end)
+# Run all tests (unit + end-to-end + intelligent analysis)
 python run_tests.py
 
 # Run specific tests
 uv run pytest tests/test_ffmpeg_integration.py -v -s                    # Unit tests
 uv run python tests/test_end_to_end_music_video.py                     # Full workflow test
+uv run python tests/test_intelligent_content_analysis.py               # Content analysis test
 ```
 
 ## MCP Server Configuration for Claude Code
@@ -32,12 +33,18 @@ uv run python tests/test_end_to_end_music_video.py                     # Full wo
 }
 ```
 
-## Available MCP Tools (All Tested ✅)
+## Available MCP Tools (Intelligent Content-Aware ✅)
+### Core Video Processing Tools
 1. **list_files()** - List source files with secure IDs
 2. **get_file_info(file_id)** - Get detailed metadata using ffprobe
-3. **get_available_operations()** - Show 6 available FFMPEG operations
+3. **get_available_operations()** - Show 9 available FFMPEG operations
 4. **process_file(input_file_id, operation, output_extension, **params)** - Process files
 5. **cleanup_temp_files()** - Remove temporary files
+
+### Intelligent Content Analysis Tools 🧠
+6. **analyze_video_content(file_id, force_reanalysis=False)** - AI-powered scene detection and object recognition
+7. **get_video_insights(file_id)** - Get cached content analysis with editing suggestions  
+8. **smart_trim_suggestions(file_id, desired_duration=10.0)** - Intelligent trim recommendations based on content
 
 ## Test Results Summary
 - **✅ File Management**: Secure ID-based file references working
@@ -48,6 +55,8 @@ uv run python tests/test_end_to_end_music_video.py                     # Full wo
 - **✅ Security**: All security features verified and working
 - **✅ End-to-End Music Video**: Complete workflow test creating 14.6s music video from multiple sources
 - **✅ Performance Optimization**: Video property caching delivers 3000x faster repeated analysis
+- **✅ Intelligent Content Analysis**: AI-powered scene detection with 21 scenes identified automatically
+- **✅ Smart Editing Suggestions**: Object recognition and content-aware trimming recommendations
 
 ## Available FFMPEG Operations
 - **convert** - Convert video/audio format

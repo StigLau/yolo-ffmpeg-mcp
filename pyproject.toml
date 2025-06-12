@@ -7,7 +7,9 @@ requires-python = ">=3.13"
 dependencies = [
     "fastmcp>=2.7.1",
     "mcp>=1.9.3",
+    "opencv-python>=4.11.0.86",
     "pydantic>=2.11.5",
+    "scenedetect>=0.6.6",
 ]
 
 [dependency-groups]

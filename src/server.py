@@ -10,10 +10,12 @@ try:
     from .file_manager import FileManager
     from .ffmpeg_wrapper import FFMPEGWrapper
     from .config import SecurityConfig
+    from .content_analyzer import VideoContentAnalyzer
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
     from config import SecurityConfig
+    from content_analyzer import VideoContentAnalyzer
 
 
 # Initialize MCP server
@@ -22,6 +24,7 @@ mcp = FastMCP("ffmpeg-mcp")
 # Initialize components
 file_manager = FileManager()
 ffmpeg = FFMPEGWrapper(SecurityConfig.FFMPEG_PATH)
+content_analyzer = VideoContentAnalyzer()
 
 
 class FileInfo(BaseModel):
@@ -257,6 +260,101 @@ async def process_file(
             success=False,
             message=f"Unexpected error: {str(e)}"
         )
+
+
+@mcp.tool()
+async def analyze_video_content(file_id: str, force_reanalysis: bool = False) -> Dict[str, Any]:
+    """Analyze video content to understand scenes, objects, and generate intelligent editing suggestions"""
+    
+    # Resolve file path
+    file_path = file_manager.resolve_id(file_id)
+    if not file_path:
+        return {"success": False, "error": f"File ID '{file_id}' not found"}
+        
+    if not file_path.exists():
+        return {"success": False, "error": f"File no longer exists: {file_path.name}"}
+    
+    # Only analyze video files
+    if file_path.suffix.lower() not in ['.mp4', '.mov', '.avi', '.mkv', '.webm']:
+        return {"success": False, "error": f"Content analysis only supported for video files"}
+        
+    try:
+        result = await content_analyzer.analyze_video_content(file_path, file_id, force_reanalysis)
+        return result
+    except Exception as e:
+        return {"success": False, "error": f"Analysis failed: {str(e)}"}
+
+
+@mcp.tool()  
+async def get_video_insights(file_id: str) -> Dict[str, Any]:
+    """Get cached video content insights and intelligent editing suggestions"""
+    
+    # First check if we have cached analysis
+    analysis = await content_analyzer.get_cached_analysis(file_id)
+    
+    if not analysis:
+        return {
+            "success": False, 
+            "error": "No analysis available. Run analyze_video_content first.",
+            "suggestion": f"Call analyze_video_content(file_id='{file_id}') to generate insights"
+        }
+    
+    # Extract useful insights for editing
+    insights = {
+        "success": True,
+        "file_info": analysis.get("file_info", {}),
+        "scene_count": analysis.get("total_scenes", 0),
+        "total_duration": analysis.get("total_duration", 0),
+        "highlights": analysis.get("summary", {}).get("best_scenes_for_highlights", []),
+        "editing_suggestions": analysis.get("summary", {}).get("editing_suggestions", []),
+        "detected_content": analysis.get("summary", {}).get("detected_objects", []),
+        "visual_characteristics": analysis.get("summary", {}).get("common_characteristics", [])
+    }
+    
+    # Add scene breakdown
+    scenes = analysis.get("scenes", [])
+    insights["scenes"] = [
+        {
+            "scene_id": scene["scene_id"],
+            "start": scene["start"], 
+            "end": scene["end"],
+            "duration": scene["duration"],
+            "objects": scene["objects"],
+            "characteristics": scene["characteristics"]
+        }
+        for scene in scenes
+    ]
+    
+    return insights
+
+
+@mcp.tool()
+async def smart_trim_suggestions(file_id: str, desired_duration: float = 10.0) -> Dict[str, Any]:
+    """Get intelligent trim suggestions based on video content analysis"""
+    
+    # Get cached analysis
+    analysis = await content_analyzer.get_cached_analysis(file_id)
+    
+    if not analysis:
+        return {
+            "success": False,
+            "error": "No analysis available. Run analyze_video_content first.",
+            "suggestion": f"Call analyze_video_content(file_id='{file_id}') to enable smart trimming"
+        }
+    
+    try:
+        suggestions = content_analyzer.get_smart_trim_suggestions(analysis, desired_duration)
+        
+        return {
+            "success": True,
+            "file_id": file_id,
+            "desired_duration": desired_duration,
+            "suggestions": suggestions,
+            "usage_hint": "Use the start/end times from suggestions with the 'trim' operation"
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Failed to generate suggestions: {str(e)}"}
 
 
 @mcp.tool()

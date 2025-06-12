@@ -1,4 +1,4 @@
-# FFMPEG MCP Server - Future Improvements
+ç# FFMPEG MCP Server - Future Improvements
 
 ## Context: Music Video Production Workflow
 This server is designed for music video creation where:
