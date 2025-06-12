@@ -18,6 +18,7 @@ except ImportError:
     from config import SecurityConfig
     from content_analyzer import VideoContentAnalyzer
     from komposition_processor import KompositionProcessor
+    from transition_processor import TransitionProcessor
 
 
 # Initialize MCP server
@@ -28,6 +29,7 @@ file_manager = FileManager()
 ffmpeg = FFMPEGWrapper(SecurityConfig.FFMPEG_PATH)
 content_analyzer = VideoContentAnalyzer()
 komposition_processor = KompositionProcessor(file_manager, ffmpeg)
+transition_processor = TransitionProcessor(file_manager, ffmpeg)
 
 
 class FileInfo(BaseModel):
@@ -1909,6 +1911,43 @@ async def process_file_internal(input_file_id: str, operation: str, output_exten
             
     except Exception as e:
         raise Exception(f"Internal process_file failed: {str(e)}")
+
+
+@mcp.tool()
+async def process_transition_effects_komposition(komposition_path: str) -> Dict[str, Any]:
+    """Process a komposition JSON file with advanced transition effects tree
+    
+    Args:
+        komposition_path: Path to komposition JSON file with effects_tree (relative to project root)
+    
+    Returns:
+        Result with output file ID and effects composition details
+    """
+    try:
+        # Load komposition from file
+        full_path = Path(komposition_path)
+        if not full_path.is_absolute():
+            # Make relative to project root
+            project_root = Path(__file__).parent.parent
+            full_path = project_root / komposition_path
+        
+        if not full_path.exists():
+            return {
+                "success": False,
+                "error": f"Transition effects komposition file not found: {komposition_path}"
+            }
+        
+        # Load and process komposition with effects tree
+        komposition_data = await transition_processor.load_komposition_with_effects(str(full_path))
+        result = await transition_processor.process_effects_tree(komposition_data)
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to process transition effects komposition: {str(e)}"
+        }
 
 
 # Run the server

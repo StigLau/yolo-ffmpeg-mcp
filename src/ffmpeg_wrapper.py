@@ -51,6 +51,24 @@ class FFMPEGWrapper:
         "reverse": {
             "args": ["-vf", "reverse", "-af", "areverse"],
             "description": "Reverse video and audio playback"
+        },
+        "gradient_wipe": {
+            "args": ["-i", "{second_video}", "-filter_complex", 
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=wiperight:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Gradient wipe transition between two videos (requires second_video, duration, offset)"
+        },
+        "crossfade_transition": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=fade:duration={duration}:offset={offset}[outv]", 
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Crossfade transition between two videos (requires second_video, duration, offset)"
+        },
+        "opacity_transition": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[1:v]format=yuva420p,colorchannelmixer=aa={opacity}[overlay];[0:v][overlay]overlay[outv];[0:a][1:a]amix=duration=shortest[outa]",
+                     "-map", "[outv]", "-map", "[outa]", "-c:v", "libx264", "-c:a", "aac"],
+            "description": "Opacity-based transition with transparency control (requires second_video, opacity 0.0-1.0)"
         }
     }
 

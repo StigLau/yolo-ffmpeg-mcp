@@ -60,6 +60,7 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 
 ### Beat-Synchronized Music Video Tools 🎵
 12. **process_komposition_file(komposition_path)** - Create beat-synchronized music videos from komposition JSON
+13. **process_transition_effects_komposition(komposition_path)** - Process komposition with advanced transition effects tree
 
 ## Test Results Summary
 - **✅ File Management**: Secure ID-based file references working
@@ -74,6 +75,8 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 - **✅ Smart Editing Suggestions**: Object recognition and content-aware trimming recommendations
 - **✅ Beat-Synchronized Videos**: Komposition JSON processing with precise BPM timing (120 BPM = 8s per 16 beats)
 - **✅ Video Stretching**: FFmpeg setpts/atempo filters for perfect beat synchronization
+- **✅ Transition Effects**: Gradient wipe, crossfade, and opacity transitions with effects tree processing
+- **✅ Advanced Effects System**: Non-destructive layered effects architecture based on documents/Describing_effects.md
 
 ## Available FFMPEG Operations
 - **convert** - Convert video/audio format
@@ -86,6 +89,9 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 - **concatenate_simple** - Smart concatenate two videos with automatic resolution/audio handling
 - **image_to_video** - Convert image to video clip (requires duration in seconds)
 - **reverse** - Reverse video and audio playback
+- **gradient_wipe** - Gradient wipe transition between videos (requires second_video, duration, offset)
+- **crossfade_transition** - Crossfade transition between videos (requires second_video, duration, offset)
+- **opacity_transition** - Opacity-based transition with transparency control
 
 ## File Management and Visual Content
 - **Source directory**: `/tmp/music/source/` (contains test videos)
@@ -153,7 +159,7 @@ tests/
 ### 🎯 Successful Design Patterns
 - **Content-First Analysis**: Scene detection before editing provides intelligent suggestions
 - **Screenshot URLs**: Visual scene selection dramatically improves user experience  
-- **Caching System**: 3000x performance improvement with persistent metadata storage
+-wha **Caching System**: 3000x performance improvement with persistent metadata storage
 - **Smart Concatenation**: Automatic resolution/audio compatibility handling with orientation normalization
 - **Security by Design**: ID-based file references prevent path traversal
 

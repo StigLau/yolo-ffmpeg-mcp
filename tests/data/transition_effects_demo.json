@@ -1,0 +1,104 @@
+{
+  "komposition_id": "transition_effects_demo",
+  "type": "Komposition",
+  "bpm": 120,
+  "effects_schema_version": "1.0",
+  "config": {
+    "width": 1280,
+    "height": 720,
+    "framerate": 25,
+    "extension": "mp4"
+  },
+  "beatpattern": {
+    "frombeat": 0,
+    "tobeat": 96,
+    "masterbpm": 120
+  },
+  "segments": [
+    {
+      "segment_id": "intro_segment",
+      "source_ref": "dagny_video",
+      "start_beat": 0,
+      "end_beat": 32
+    },
+    {
+      "segment_id": "main_segment",
+      "source_ref": "previous_video",
+      "start_beat": 32,
+      "end_beat": 64
+    },
+    {
+      "segment_id": "outro_segment",
+      "source_ref": "boat_image_video",
+      "start_beat": 64,
+      "end_beat": 96
+    }
+  ],
+  "sources": [
+    {
+      "id": "subnautic_audio",
+      "url": "file://Subnautic Measures.flac",
+      "mediatype": "audio"
+    },
+    {
+      "id": "dagny_video",
+      "url": "file://Dagny-Baybay.mp4",
+      "mediatype": "video"
+    },
+    {
+      "id": "previous_video",
+      "url": "file://JJVtt947FfI_136.mp4",
+      "mediatype": "video"
+    },
+    {
+      "id": "boat_image_video",
+      "url": "file://Boat having a sad day.jpeg",
+      "mediatype": "image"
+    }
+  ],
+  "effects_tree": {
+    "effect_id": "root_composition",
+    "type": "passthrough",
+    "parameters": {},
+    "children": [
+      {
+        "effect_id": "intro_to_main_transition",
+        "type": "gradient_wipe",
+        "applies_to": [
+          {
+            "type": "segment",
+            "id": "intro_segment"
+          },
+          {
+            "type": "segment",
+            "id": "main_segment"
+          }
+        ],
+        "parameters": {
+          "duration_beats": 4,
+          "start_offset_beats": -2,
+          "end_offset_beats": 2
+        }
+      },
+      {
+        "effect_id": "main_to_outro_transition",
+        "type": "crossfade_transition",
+        "applies_to": [
+          {
+            "type": "segment",
+            "id": "main_segment"
+          },
+          {
+            "type": "segment",
+            "id": "outro_segment"
+          }
+        ],
+        "parameters": {
+          "duration_beats": 6,
+          "start_offset_beats": -3,
+          "end_offset_beats": 3
+        }
+      }
+    ]
+  }
+}
