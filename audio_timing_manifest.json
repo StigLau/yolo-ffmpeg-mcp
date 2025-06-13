@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "title": "Beat-Synchronized Audio Timing Manifest",
+    "description": "Timing information for manual audio mixing in external tools",
+    "totalDuration": 24.0,
+    "backgroundMusic": "16BL - Deep In My Soul (Original Mix).mp3",
+    "createdAt": "2025-01-06T15:30:00Z"
+  },
+  "videoSegments": [
+    {
+      "segmentId": "segment_1",
+      "videoFile": "PXL_20250306_132546255.mp4",
+      "originalDuration": 3.567133,
+      "targetDuration": 8.0,
+      "timeSlot": {
+        "startTime": 0.0,
+        "endTime": 8.0
+      },
+      "audioHandling": {
+        "useOriginalAudio": false,
+        "musicOnly": true,
+        "extractedAudioFile": null
+      }
+    },
+    {
+      "segmentId": "segment_2", 
+      "videoFile": "lookin.mp4",
+      "originalDuration": 5.800567,
+      "targetDuration": 8.0,
+      "timeSlot": {
+        "startTime": 8.0,
+        "endTime": 16.0
+      },
+      "audioHandling": {
+        "useOriginalAudio": true,
+        "musicOnly": false,
+        "extractedAudioFile": "stretched_speech_8s.wav",
+        "speechVolume": 0.9,
+        "musicVolume": 0.2,
+        "mixInstruction": "Layer extracted speech over background music during 8.0-16.0s timeframe"
+      }
+    },
+    {
+      "segmentId": "segment_3",
+      "videoFile": "panning back and forth.mp4", 
+      "originalDuration": 12.262044,
+      "targetDuration": 8.0,
+      "timeSlot": {
+        "startTime": 16.0,
+        "endTime": 24.0
+      },
+      "audioHandling": {
+        "useOriginalAudio": false,
+        "musicOnly": true,
+        "extractedAudioFile": null
+      }
+    }
+  ],
+  "audioMixingInstructions": {
+    "backgroundMusicSettings": {
+      "file": "16BL - Deep In My Soul (Original Mix).mp3",
+      "startOffset": 0.0,
+      "volume": 0.5,
+      "fadeIn": 1.0,
+      "fadeOut": 2.0,
+      "keepPristine": true,
+      "note": "Background music should NEVER be time-stretched or altered"
+    },
+    "speechOverlays": [
+      {
+        "sourceFile": "stretched_speech_8s.wav",
+        "insertAtTime": 8.0,
+        "duration": 8.0,
+        "volume": 0.9,
+        "fadeIn": 0.5,
+        "fadeOut": 0.5,
+        "note": "Speech extracted from lookin.mp4 and time-stretched to fit 8-second slot"
+      }
+    ],
+    "finalMixInstructions": {
+      "timeline": [
+        {
+          "timeRange": "0.0-8.0s",
+          "audioSources": ["background_music_only"],
+          "description": "PXL video segment with background music only"
+        },
+        {
+          "timeRange": "8.0-16.0s", 
+          "audioSources": ["background_music", "stretched_speech"],
+          "description": "lookin video segment with speech overlaid on background music",
+          "mixRatio": "speech:0.9, music:0.2"
+        },
+        {
+          "timeRange": "16.0-24.0s",
+          "audioSources": ["background_music_only"],
+          "description": "panning video segment with background music only"
+        }
+      ]
+    }
+  },
+  "extractedAudioFiles": {
+    "stretched_speech_8s.wav": {
+      "sourceVideo": "lookin.mp4",
+      "originalDuration": 5.800567,
+      "stretchedDuration": 8.0,
+      "stretchFactor": 0.725,
+      "location": "/tmp/music/temp/stretched_speech_8s.wav",
+      "format": "WAV",
+      "sampleRate": 44100,
+      "channels": 2
+    }
+  },
+  "usage": {
+    "description": "Import this manifest into your audio editing software",
+    "steps": [
+      "1. Load background music: '16BL - Deep In My Soul (Original Mix).mp3'",
+      "2. Set background music volume to 0.5 throughout 24-second timeline",
+      "3. At 8.0s: Insert 'stretched_speech_8s.wav' at volume 0.9",
+      "4. Ensure speech audio ends at 16.0s",
+      "5. Export final mixed audio track",
+      "6. Replace audio in final video using: ffmpeg -i video.mp4 -i mixed_audio.wav -c:v copy -map 0:v -map 1:a output.mp4"
+    ]
+  }
+}

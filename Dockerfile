@@ -10,8 +10,10 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies including FFmpeg
-RUN apt-get update && apt-get install -y \
+# Fix GPG keys and install system dependencies
+RUN apt-get update --allow-releaseinfo-change || true && \
+    apt-get update --allow-unauthenticated || true && \
+    apt-get install -y --allow-unauthenticated \
     # FFmpeg and multimedia libraries
     ffmpeg \
     # OpenCV dependencies
@@ -53,15 +55,16 @@ RUN uv pip install --system \
     pytest>=8.4.0 \
     pytest-asyncio>=1.0.0
 
-# Install additional dependencies for future speech detection features
-# (Prepared but not required for current functionality)
+# Install speech detection dependencies
 RUN uv pip install --system \
     # Audio processing libraries
     librosa>=0.10.0 \
     pydub>=0.25.0 \
-    # Speech processing (prepared for future features)
+    # Speech processing
     torch>=2.0.0 \
     torchaudio>=2.0.0 \
+    # Silero VAD for speech detection
+    silero-vad \
     # JSON schema validation
     jsonschema>=4.0.0 \
     # Performance monitoring

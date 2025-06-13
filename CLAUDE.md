@@ -9,6 +9,9 @@ Successfully created complete music video using intelligent scene detection, aut
 ### 🎵 BEAT-SYNCHRONIZED KOMPOSITION SYSTEM ✅
 Implemented advanced komposition JSON processing for beat-synchronized music videos. Supports precise BPM timing, video stretching, and multi-segment workflows with 120 BPM = 8 seconds per 16 beats formula.
 
+### 🎤 SPEECH DETECTION & AUDIO ANALYSIS ✅
+Implemented AI-powered speech detection using Silero VAD with pluggable backend architecture. Provides precise speech timestamps, quality assessment, and intelligent editing suggestions for advanced audio-video synchronization workflows.
+
 ## Quick Start
 
 ### 🐳 Docker Setup (Recommended)
@@ -84,13 +87,17 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 8. **smart_trim_suggestions(file_id, desired_duration=10.0)** - Intelligent trim recommendations based on content
 9. **get_scene_screenshots(file_id)** - Get scene screenshots with URLs for visual scene selection 📸
 
+### Speech Detection & Audio Analysis Tools 🎤 **NEW**
+10. **detect_speech_segments(file_id, force_reanalysis=False, threshold=0.5, min_speech_duration=250, min_silence_duration=100)** - AI-powered speech detection with precise timestamps using Silero VAD
+11. **get_speech_insights(file_id)** - Comprehensive speech analysis with quality metrics, timing patterns, and editing suggestions
+
 ### Workflow Management Tools 🔧
-10. **list_generated_files()** - List all processed files in temp directory with metadata 
-11. **batch_process(operations)** - Execute multi-step workflows with atomic transaction support
+12. **list_generated_files()** - List all processed files in temp directory with metadata 
+13. **batch_process(operations)** - Execute multi-step workflows with atomic transaction support
 
 ### Beat-Synchronized Music Video Tools 🎵
-12. **process_komposition_file(komposition_path)** - Create beat-synchronized music videos from komposition JSON
-13. **process_transition_effects_komposition(komposition_path)** - Process komposition with advanced transition effects tree
+14. **process_komposition_file(komposition_path)** - Create beat-synchronized music videos from komposition JSON
+15. **process_transition_effects_komposition(komposition_path)** - Process komposition with advanced transition effects tree
 
 ## Test Results Summary
 - **✅ File Management**: Secure ID-based file references working
@@ -107,6 +114,8 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 - **✅ Video Stretching**: FFmpeg setpts/atempo filters for perfect beat synchronization
 - **✅ Transition Effects**: Gradient wipe, crossfade, and opacity transitions with effects tree processing
 - **✅ Advanced Effects System**: Non-destructive layered effects architecture based on documents/Describing_effects.md
+- **✅ Speech Detection**: AI-powered speech detection using Silero VAD with pluggable backend architecture
+- **✅ Speech Analysis**: Comprehensive quality metrics, timing patterns, and intelligent editing suggestions
 
 ## Available FFMPEG Operations
 - **convert** - Convert video/audio format
@@ -200,7 +209,7 @@ tests/
 ### 🎯 Successful Design Patterns
 - **Content-First Analysis**: Scene detection before editing provides intelligent suggestions
 - **Screenshot URLs**: Visual scene selection dramatically improves user experience  
--wha **Caching System**: 3000x performance improvement with persistent metadata storage
+- **Caching System**: 3000x performance improvement with persistent metadata storage
 - **Smart Concatenation**: Automatic resolution/audio compatibility handling with orientation normalization
 - **Security by Design**: ID-based file references prevent path traversal
 
