@@ -10,8 +10,23 @@ Successfully created complete music video using intelligent scene detection, aut
 Implemented advanced komposition JSON processing for beat-synchronized music videos. Supports precise BPM timing, video stretching, and multi-segment workflows with 120 BPM = 8 seconds per 16 beats formula.
 
 ## Quick Start
+
+### 🐳 Docker Setup (Recommended)
 ```bash
-# Start the MCP server
+# Build and run with Docker (production-ready)
+./build-docker.sh run
+
+# Or development mode with MCP Inspector
+./build-docker.sh dev
+
+# View logs and status
+docker-compose logs -f
+docker-compose ps
+```
+
+### 🛠️ Local Development
+```bash
+# Start the MCP server locally
 uv run python -m src.server
 
 # Test with MCP Inspector (running at http://127.0.0.1:6274)
@@ -28,13 +43,28 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 ```
 
 ## MCP Server Configuration for Claude Code
+
+### 🐳 Docker Configuration (Recommended)
+```json
+{
+  "mcpServers": {
+    "ffmpeg-mcp": {
+      "command": "nc",
+      "args": ["localhost", "8000"],
+      "cwd": "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp"
+    }
+  }
+}
+```
+
+### 🛠️ Local Development Configuration
 ```json
 {
   "mcpServers": {
     "ffmpeg-mcp": {
       "command": "uv",
       "args": ["run", "python", "-m", "src.server"],
-      "cwd": "/Users/stiglau/utvikling/privat/yolo-ffmpeg-mcp"
+      "cwd": "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp"
     }
   }
 }
@@ -151,8 +181,19 @@ tests/
 **This MCP server is production-ready and fully tested with real FFMPEG operations.**
 
 ## 📚 Additional Documentation
+
+### Core Documentation
 - **[PRODUCTION_RECOMMENDATIONS.md](documents/PRODUCTION_RECOMMENDATIONS.md)** - Critical fixes, architecture lessons, and implementation priorities
 - **[WORKFLOW_EXAMPLES.md](documents/WORKFLOW_EXAMPLES.md)** - Complete production workflows with code examples
+- **[IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md)** - Comprehensive quality assessment and 4-week improvement roadmap
+
+### Speech Detection Research & Planning
+- **[SPEECH_DETECTION_FEATURE_SPEC.md](SPEECH_DETECTION_FEATURE_SPEC.md)** - Feature specification for speech detection and audio synchronization
+- **[AUDIO_PROCESSING_FINDINGS.md](documents/AUDIO_PROCESSING_FINDINGS.md)** - Implementation research and technology stack recommendations
+
+### Docker & Deployment
+- **[DOCKER_SETUP.md](documents/DOCKER_SETUP.md)** - Complete Docker containerization guide with production deployment
+- **[build-docker.sh](build-docker.sh)** - Automated Docker build and deployment script
 
 ## 📚 Key Learnings & Architecture Insights
 
@@ -183,6 +224,26 @@ tests/
 1. **Image Integration**: Missing tools to insert images between video clips
 2. **Progress Tracking**: No real-time feedback for long-running video operations
 3. **Error Recovery**: Failed operations leave orphaned temp files
+
+#### 🎤 Speech Detection & Audio Synchronization (In Development)
+**Next Major Feature**: Intelligent speech detection and audio synchronization capabilities
+
+**Planned MCP Tools**:
+```python
+# Speech detection and transcription
+detect_speech_segments(file_id, options)           # VAD processing with timestamps
+transcribe_speech(file_id, segments, options)      # STT with word-level timing
+get_speech_insights(file_id)                       # Analysis and quality metrics
+
+# Audio synchronization and mixing  
+synchronize_speech_audio(video_id, speech_segments, music_track)  # Layer speech over music
+mix_audio_tracks(primary_audio, background_audio, options)        # Advanced audio mixing
+```
+
+**Technology Stack** (Research Complete):
+- **Primary**: Silero VAD + OpenAI Whisper + FFmpeg mixing
+- **Alternatives**: WebRTC VAD, WhisperX, Vosk (pluggable backends)
+- **Timeline Sync**: Word-level timestamps for perfect video-speech alignment
 
 #### 🎯 Remaining Recommended Features
 ```python
