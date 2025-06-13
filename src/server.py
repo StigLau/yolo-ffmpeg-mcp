@@ -13,6 +13,8 @@ try:
     from .content_analyzer import VideoContentAnalyzer
     from .komposition_processor import KompositionProcessor
     from .transition_processor import TransitionProcessor
+    from .speech_detector import SpeechDetector
+    from .speech_komposition_processor import SpeechKompositionProcessor
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -20,6 +22,8 @@ except ImportError:
     from content_analyzer import VideoContentAnalyzer
     from komposition_processor import KompositionProcessor
     from transition_processor import TransitionProcessor
+    from speech_detector import SpeechDetector
+    from speech_komposition_processor import SpeechKompositionProcessor
 
 
 # In itialize MCP server
@@ -31,6 +35,8 @@ ffmpeg = FFMPEGWrapper(SecurityConfig.FFMPEG_PATH)
 content_analyzer = VideoContentAnalyzer()
 komposition_processor = KompositionProcessor(file_manager, ffmpeg)
 transition_processor = TransitionProcessor(file_manager, ffmpeg)
+speech_detector = SpeechDetector()
+speech_komposition_processor = SpeechKompositionProcessor(file_manager, ffmpeg)
 
 
 class FileInfo(BaseModel):
@@ -1948,6 +1954,235 @@ async def process_transition_effects_komposition(komposition_path: str) -> Dict[
         return {
             "success": False,
             "error": f"Failed to process transition effects komposition: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def process_speech_komposition(komposition_path: str) -> Dict[str, Any]:
+    """Process a komposition JSON file with speech overlay capabilities
+    
+    This tool creates music videos that combine multiple video segments with intelligent
+    speech detection and audio layering. It can detect speech in videos and layer the
+    original speech over background music while maintaining perfect synchronization.
+    
+    Args:
+        komposition_path: Path to komposition JSON file with speechOverlay settings (relative to project root)
+    
+    Returns:
+        Result with output file ID and speech processing details
+        
+    Example komposition structure:
+    {
+        "metadata": {"title": "Speech Music Video", "bpm": 120, "estimatedDuration": 30},
+        "segments": [
+            {
+                "id": "speech_segment",
+                "sourceRef": "video_with_speech.mp4", 
+                "speechOverlay": {
+                    "enabled": true,
+                    "backgroundMusic": "music.mp3",
+                    "musicVolume": 0.3,
+                    "speechVolume": 0.8,
+                    "speechSegments": [{"start_time": 2.5, "end_time": 5.0, "duration": 2.5}]
+                }
+            }
+        ]
+    }
+    """
+    try:
+        # Load komposition from file
+        full_path = Path(komposition_path)
+        if not full_path.is_absolute():
+            # Make relative to project root
+            project_root = Path(__file__).parent.parent
+            full_path = project_root / komposition_path
+        
+        if not full_path.exists():
+            return {
+                "success": False,
+                "error": f"Speech komposition file not found: {komposition_path}"
+            }
+        
+        # Process komposition with speech overlay support
+        result = await speech_komposition_processor.process_speech_komposition(str(full_path))
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to process speech komposition: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def detect_speech_segments(file_id: str, force_reanalysis: bool = False, threshold: float = 0.5, 
+                                min_speech_duration: int = 250, min_silence_duration: int = 100) -> Dict[str, Any]:
+    """
+    Detect speech segments in video/audio file using AI-powered voice activity detection.
+    
+    This tool uses Silero VAD (Voice Activity Detection) to identify when people are speaking
+    in video or audio files. It provides precise timestamps and quality assessment for each
+    speech segment, enabling intelligent audio editing and synchronization.
+    
+    Args:
+        file_id: ID of the source video/audio file
+        force_reanalysis: Skip cache and reanalyze (default: False)
+        threshold: Speech detection sensitivity 0.1-0.9 (default: 0.5, higher = more strict)
+        min_speech_duration: Minimum speech segment duration in ms (default: 250)
+        min_silence_duration: Minimum silence gap to separate segments in ms (default: 100)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating if detection succeeded
+        - has_speech: Boolean indicating if speech was found
+        - speech_segments: List of segments with start_time, end_time, duration, quality
+        - total_speech_duration: Sum of all speech segment durations
+        - total_segments: Number of speech segments detected
+        - analysis_metadata: Processing details and engine used
+        
+    Example Response:
+        {
+            "success": true,
+            "has_speech": true,
+            "speech_segments": [
+                {
+                    "segment_id": 0,
+                    "start_time": 5.2,
+                    "end_time": 12.8,
+                    "duration": 7.6,
+                    "confidence": 0.5,
+                    "audio_quality": "clear"
+                }
+            ],
+            "total_speech_duration": 7.6,
+            "total_segments": 1,
+            "analysis_metadata": {
+                "engine_used": "silero",
+                "processing_time": 1640995200.0
+            }
+        }
+    
+    Use Cases:
+    - Extract speech segments from music videos before adding background music
+    - Identify dialogue sections in tutorial videos
+    - Analyze podcast audio for editing and enhancement
+    - Prepare audio for speech-to-text transcription
+    
+    Notes:
+    - Results are cached for 5 minutes to improve performance
+    - Supports all video formats (MP4, AVI, MOV) and audio formats (MP3, WAV, FLAC)
+    - Audio is automatically extracted from video files for analysis
+    - Uses pluggable backend system with Silero VAD as primary, WebRTC VAD as fallback
+    """
+    try:
+        # Get file path from ID
+        input_path = file_manager.resolve_id(file_id)
+        if not input_path:
+            return {
+                "success": False,
+                "error": f"File with ID '{file_id}' not found"
+            }
+        
+        # Run speech detection
+        result = await speech_detector.detect_speech_segments(
+            input_path,
+            force_reanalysis=force_reanalysis,
+            threshold=threshold,
+            min_speech_duration=min_speech_duration,
+            min_silence_duration=min_silence_duration
+        )
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Speech detection failed: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def get_speech_insights(file_id: str) -> Dict[str, Any]:
+    """
+    Get detailed insights and analysis from cached speech detection results.
+    
+    This tool provides comprehensive analysis of previously detected speech segments,
+    including quality metrics, timing patterns, and intelligent editing suggestions.
+    Must be called after detect_speech_segments() to have cached data available.
+    
+    Args:
+        file_id: ID of the analyzed video/audio file
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating if insights were generated
+        - summary: Statistical summary of speech segments
+        - quality_distribution: Breakdown of audio quality levels
+        - timing_analysis: Patterns in speech timing and gaps
+        - editing_suggestions: AI-generated recommendations for editing
+        - analysis_metadata: Original detection metadata
+        
+    Example Response:
+        {
+            "success": true,
+            "summary": {
+                "total_segments": 3,
+                "total_speech_duration": 25.4,
+                "average_segment_duration": 8.47,
+                "longest_segment": 12.8,
+                "shortest_segment": 5.2
+            },
+            "quality_distribution": {
+                "clear": 2,
+                "moderate": 1,
+                "low": 0
+            },
+            "timing_analysis": {
+                "average_gap": 2.1,
+                "longest_gap": 4.5,
+                "speech_density": 0.68
+            },
+            "editing_suggestions": [
+                {
+                    "type": "quality_improvement",
+                    "message": "Segment 2 has moderate quality. Consider audio enhancement.",
+                    "segment_id": 1,
+                    "priority": "low"
+                }
+            ]
+        }
+    
+    Use Cases:
+    - Assess overall speech quality before proceeding with audio mixing
+    - Identify segments that need audio enhancement or replacement
+    - Get recommendations for optimal speech extraction and synchronization
+    - Analyze speech patterns for automated editing decisions
+    
+    Notes:
+    - Requires previous speech detection analysis (cached results)
+    - Provides actionable editing suggestions based on AI analysis
+    - Quality assessment helps prioritize which segments to use in final edit
+    - Timing analysis useful for understanding natural speech flow
+    """
+    try:
+        # Get file path from ID
+        input_path = file_manager.resolve_id(file_id)
+        if not input_path:
+            return {
+                "success": False,
+                "error": f"File with ID '{file_id}' not found"
+            }
+        
+        # Get insights from cached analysis
+        insights = speech_detector.get_speech_insights(input_path)
+        
+        return insights
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get speech insights: {str(e)}"
         }
 
 

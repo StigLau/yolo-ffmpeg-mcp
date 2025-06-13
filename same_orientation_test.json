@@ -1,0 +1,64 @@
+{
+  "metadata": {
+    "title": "Same Orientation Test - Portrait Only",
+    "description": "Test video 1 + video 2 + video 1 (all portrait)",
+    "bpm": 120,
+    "beatsPerMeasure": 16,
+    "totalBeats": 48,
+    "estimatedDuration": 24.0
+  },
+  "segments": [
+    {
+      "id": "first_segment",
+      "startBeat": 0,
+      "endBeat": 16,
+      "duration": 8.0,
+      "sourceType": "video",
+      "sourceRef": "PXL_20250306_132546255.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 0,
+        "duration": 8.0
+      },
+      "effects": [],
+      "description": "First portrait video (PXL)"
+    },
+    {
+      "id": "second_segment", 
+      "startBeat": 16,
+      "endBeat": 32,
+      "duration": 8.0,
+      "sourceType": "video",
+      "sourceRef": "lookin.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 0,
+        "duration": 8.0
+      },
+      "effects": [],
+      "description": "Second portrait video (your dog)"
+    },
+    {
+      "id": "third_segment",
+      "startBeat": 32,
+      "endBeat": 48,
+      "duration": 8.0,
+      "sourceType": "video", 
+      "sourceRef": "PXL_20250306_132546255.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 8,
+        "duration": 8.0
+      },
+      "effects": [],
+      "description": "Third segment - same as first (PXL 8-16s)"
+    }
+  ],
+  "outputSettings": {
+    "resolution": "1920x1080",
+    "fps": 30,
+    "videoCodec": "libx264",
+    "audioCodec": "aac",
+    "audioSampleRate": 44100
+  }
+}
