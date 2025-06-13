@@ -1,7 +1,8 @@
 import asyncio
+import json
 import os
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
@@ -28,6 +29,8 @@ except ImportError:
     from speech_komposition_processor import SpeechKompositionProcessor
     from enhanced_speech_analyzer import EnhancedSpeechAnalyzer
     from composition_planner import CompositionPlanner
+    from komposition_build_planner import KompositionBuildPlanner
+    from komposition_generator import KompositionGenerator
 
 
 # In itialize MCP server
@@ -43,6 +46,8 @@ speech_detector = SpeechDetector()
 speech_komposition_processor = SpeechKompositionProcessor(file_manager, ffmpeg)
 enhanced_speech_analyzer = EnhancedSpeechAnalyzer()
 composition_planner = CompositionPlanner()
+komposition_build_planner = KompositionBuildPlanner()
+komposition_generator = KompositionGenerator()
 
 
 class FileInfo(BaseModel):
@@ -2731,6 +2736,405 @@ async def preview_composition_timing(
         return {
             "success": False,
             "error": f"Failed to preview composition timing: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def generate_komposition_from_description(
+    description: str,
+    title: str = "Generated Composition",
+    custom_bpm: Optional[int] = None,
+    custom_resolution: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Generate komposition.json from natural language description.
+    
+    This tool creates a complete komposition structure from text descriptions like:
+    - "Create a 135 BPM music video with intro, speech segment, and outro"
+    - "Make a 600x800 portrait video with lookin.mp4 and panning video" 
+    - "Build composition from beat 32-48 with fade transitions"
+    
+    Args:
+        description: Natural language description of desired composition
+        title: Title for the generated composition (default: "Generated Composition")
+        custom_bpm: Override BPM (parsed from description if not provided)
+        custom_resolution: Override resolution like "600x800" (parsed from description if not provided)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating generation success
+        - komposition: Complete komposition.json structure
+        - komposition_file: Path to saved komposition file
+        - intent: Parsed user intent and requirements
+        - summary: Generation summary with segments, effects, duration
+        
+    Example Usage:
+        generate_komposition_from_description(
+            "Create a 135 BPM music video with PXL intro, lookin speech segment, and panning outro. Make it 600x800 format.",
+            title="Custom Music Video"
+        )
+    """
+    try:
+        print(f"🤖 GENERATING KOMPOSITION FROM DESCRIPTION")
+        
+        # Get available source files
+        available_sources = komposition_generator.get_available_sources()
+        print(f"   📂 Available sources: {len(available_sources)} files")
+        
+        # Generate komposition
+        result = await komposition_generator.generate_from_description(
+            description=description,
+            title=title,
+            available_sources=available_sources
+        )
+        
+        if not result["success"]:
+            return result
+        
+        # Apply custom overrides if provided
+        komposition = result["komposition"]
+        
+        if custom_bpm:
+            komposition["metadata"]["bpm"] = custom_bpm
+            # Recalculate duration
+            total_beats = komposition["metadata"]["totalBeats"]
+            komposition["metadata"]["estimatedDuration"] = total_beats * 60 / custom_bpm
+            print(f"   🎵 BPM override: {custom_bpm}")
+        
+        if custom_resolution:
+            try:
+                width, height = map(int, custom_resolution.split('x'))
+                komposition["outputSettings"]["resolution"] = f"{width}x{height}"
+                komposition["outputSettings"]["aspectRatio"] = f"{width}:{height}"
+                print(f"   📐 Resolution override: {width}x{height}")
+            except ValueError:
+                print(f"   ⚠️ Invalid resolution format: {custom_resolution}")
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to generate komposition from description: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def create_build_plan_from_komposition(
+    komposition_path: str,
+    render_start_beat: Optional[int] = None,
+    render_end_beat: Optional[int] = None,
+    output_resolution: str = "1920x1080",
+    custom_bpm: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Create detailed build plan from komposition.json with beat-precise calculations.
+    
+    This tool transforms a komposition.json into a comprehensive build plan containing:
+    - File dependency mapping (source → intermediate → final)
+    - Beat-precise timing calculations for any BPM
+    - Snippet extraction specifications with exact timestamps
+    - Effects tree dependency ordering
+    - Processing operation sequencing
+    - Intermediate file tracking
+    
+    Args:
+        komposition_path: Path to komposition.json file
+        render_start_beat: Override start beat (default: use komposition)
+        render_end_beat: Override end beat (default: use komposition)
+        output_resolution: Target resolution like "1920x1080" or "600x800"
+        custom_bpm: Override BPM for timing calculations
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating plan creation success
+        - build_plan: Complete build plan with dependencies and execution order
+        - build_plan_file: Path to saved build plan file
+        - summary: Processing summary with operations, timing, resolution
+        
+    Example Usage:
+        create_build_plan_from_komposition(
+            "my_composition.json",
+            render_start_beat=32,
+            render_end_beat=48,
+            output_resolution="600x800"
+        )
+    """
+    try:
+        print(f"🏗️ CREATING BUILD PLAN FROM KOMPOSITION")
+        
+        # Parse resolution
+        try:
+            width, height = map(int, output_resolution.split('x'))
+            resolution_tuple = (width, height)
+        except ValueError:
+            return {
+                "success": False,
+                "error": f"Invalid resolution format: {output_resolution}"
+            }
+        
+        # Create build plan
+        result = await komposition_build_planner.create_build_plan(
+            komposition_path=komposition_path,
+            render_start_beat=render_start_beat,
+            render_end_beat=render_end_beat,
+            output_resolution=resolution_tuple,
+            custom_bpm=custom_bpm
+        )
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to create build plan: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def validate_build_plan_for_bpms(
+    build_plan_file: str,
+    test_bpms: List[int] = [120, 135, 140, 100]
+) -> Dict[str, Any]:
+    """
+    Validate build plan calculations for multiple BPM values.
+    
+    This tool tests build plan timing calculations across different BPMs to ensure:
+    - Beat timing calculations are correct
+    - Segment durations are reasonable
+    - No mathematical errors in time conversions
+    - All extractions have valid timing
+    
+    Args:
+        build_plan_file: Path to build plan JSON file
+        test_bpms: List of BPM values to test (default: [120, 135, 140, 100])
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating validation completion
+        - validation_results: Results for each BPM tested
+        - overall_valid: Boolean indicating if all BPMs passed validation
+        - error_summary: Summary of any validation errors found
+        
+    Example Usage:
+        validate_build_plan_for_bpms(
+            "build_20241206_143022.json",
+            test_bpms=[120, 135, 140]
+        )
+    """
+    try:
+        print(f"🧪 VALIDATING BUILD PLAN FOR MULTIPLE BPMs")
+        
+        # Load build plan
+        plan_path = Path(build_plan_file)
+        if not plan_path.is_absolute():
+            plan_path = komposition_build_planner.build_cache_dir / build_plan_file
+        
+        if not plan_path.exists():
+            return {
+                "success": False,
+                "error": f"Build plan file not found: {build_plan_file}"
+            }
+        
+        # Load and parse build plan
+        with open(plan_path, 'r') as f:
+            build_plan_data = json.load(f)
+        
+        # Convert to BuildPlan object for validation
+        from komposition_build_planner import BuildPlan, BeatTiming, SnippetExtraction
+        
+        # Reconstruct beat timing
+        beat_timing_data = build_plan_data["beat_timing"]
+        beat_timing = BeatTiming(
+            bpm=beat_timing_data["bpm"],
+            beats_per_measure=beat_timing_data["beats_per_measure"],
+            start_beat=beat_timing_data["start_beat"],
+            end_beat=beat_timing_data["end_beat"]
+        )
+        
+        # Reconstruct snippet extractions
+        snippet_extractions = []
+        for extraction_data in build_plan_data["snippet_extractions"]:
+            target_timing = BeatTiming(
+                bpm=extraction_data["target_timing"]["bpm"],
+                start_beat=extraction_data["target_timing"]["start_beat"],
+                end_beat=extraction_data["target_timing"]["end_beat"]
+            )
+            
+            extraction = SnippetExtraction(
+                id=extraction_data["id"],
+                source_file_id=extraction_data["source_file_id"],
+                source_start=extraction_data["source_start"],
+                source_duration=extraction_data["source_duration"],
+                target_start_beat=extraction_data["target_start_beat"],
+                target_end_beat=extraction_data["target_end_beat"],
+                target_timing=target_timing
+            )
+            snippet_extractions.append(extraction)
+        
+        # Create minimal BuildPlan for validation
+        build_plan = BuildPlan(
+            id=build_plan_data["id"],
+            title=build_plan_data["title"],
+            source_komposition_path=build_plan_data["source_komposition_path"],
+            created_at=build_plan_data["created_at"],
+            beat_timing=beat_timing,
+            render_range=tuple(build_plan_data["render_range"]),
+            output_resolution=tuple(build_plan_data["output_resolution"]),
+            snippet_extractions=snippet_extractions
+        )
+        
+        # Validate for multiple BPMs
+        validation_results = komposition_build_planner.validate_build_plan_bpm(build_plan, test_bpms)
+        
+        # Check if all validations passed
+        overall_valid = all(result["valid"] for result in validation_results.values())
+        
+        # Create error summary
+        error_summary = []
+        for bpm, result in validation_results.items():
+            if not result["valid"]:
+                error_summary.extend([f"BPM {bpm}: {error}" for error in result["extraction_errors"]])
+        
+        print(f"✅ VALIDATION COMPLETE: {len([r for r in validation_results.values() if r['valid']])}/{len(test_bpms)} BPMs passed")
+        
+        return {
+            "success": True,
+            "validation_results": validation_results,
+            "overall_valid": overall_valid,
+            "error_summary": error_summary,
+            "tested_bpms": test_bpms
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to validate build plan: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def generate_and_build_from_description(
+    description: str,
+    title: str = "Generated Video",
+    render_start_beat: Optional[int] = None,
+    render_end_beat: Optional[int] = None,
+    output_resolution: str = "1920x1080",
+    validate_bpms: List[int] = [120, 135]
+) -> Dict[str, Any]:
+    """
+    Complete workflow: Generate komposition from description and create build plan.
+    
+    This tool combines komposition generation and build planning into a single workflow:
+    1. Parses natural language description
+    2. Generates complete komposition.json
+    3. Creates detailed build plan with dependencies
+    4. Validates timing calculations for multiple BPMs
+    5. Returns ready-to-execute build specifications
+    
+    Args:
+        description: Natural language description of desired video
+        title: Title for the composition
+        render_start_beat: Override render start beat
+        render_end_beat: Override render end beat  
+        output_resolution: Target resolution like "600x800"
+        validate_bpms: BPM values to validate (default: [120, 135])
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating complete workflow success
+        - komposition: Generated komposition structure
+        - build_plan: Complete build plan
+        - validation_results: BPM validation results
+        - files: Paths to generated komposition and build plan files
+        - summary: Complete workflow summary
+        
+    Example Usage:
+        generate_and_build_from_description(
+            "Create a 135 BPM music video with lookin speech and panning action. Render from beat 32-48 in 600x800 portrait format with fade transitions.",
+            title="Custom Portrait Video"
+        )
+    """
+    try:
+        print(f"🚀 COMPLETE WORKFLOW: DESCRIPTION → KOMPOSITION → BUILD PLAN")
+        
+        # Step 1: Generate komposition from description
+        print(f"\n🤖 STEP 1: GENERATING KOMPOSITION")
+        komposition_result = await generate_komposition_from_description(
+            description=description,
+            title=title,
+            custom_resolution=output_resolution
+        )
+        
+        if not komposition_result["success"]:
+            return {
+                "success": False,
+                "error": f"Komposition generation failed: {komposition_result.get('error')}"
+            }
+        
+        komposition_file = komposition_result["komposition_file"]
+        
+        # Step 2: Create build plan
+        print(f"\n🏗️ STEP 2: CREATING BUILD PLAN")
+        build_plan_result = await create_build_plan_from_komposition(
+            komposition_path=komposition_file,
+            render_start_beat=render_start_beat,
+            render_end_beat=render_end_beat,
+            output_resolution=output_resolution
+        )
+        
+        if not build_plan_result["success"]:
+            return {
+                "success": False,
+                "error": f"Build plan creation failed: {build_plan_result.get('error')}"
+            }
+        
+        build_plan_file = build_plan_result["build_plan_file"]
+        
+        # Step 3: Validate build plan
+        print(f"\n🧪 STEP 3: VALIDATING BUILD PLAN")
+        validation_result = await validate_build_plan_for_bpms(
+            build_plan_file=build_plan_file,
+            test_bpms=validate_bpms
+        )
+        
+        if not validation_result["success"]:
+            print(f"   ⚠️ Validation failed, but continuing with build plan")
+        
+        # Compile complete results
+        workflow_summary = {
+            "komposition_segments": len(komposition_result["komposition"]["segments"]),
+            "komposition_effects": len(komposition_result["komposition"]["effects_tree"]),
+            "build_plan_operations": build_plan_result["summary"]["total_operations"],
+            "estimated_processing_time": build_plan_result["summary"]["estimated_time"],
+            "output_resolution": output_resolution,
+            "validation_passed": validation_result.get("overall_valid", False),
+            "validated_bpms": validate_bpms
+        }
+        
+        print(f"\n🎉 COMPLETE WORKFLOW SUCCESSFUL!")
+        print(f"   🎬 {workflow_summary['komposition_segments']} segments")
+        print(f"   ✨ {workflow_summary['komposition_effects']} effects")
+        print(f"   🔗 {workflow_summary['build_plan_operations']} operations")
+        print(f"   ⏱️ Est. processing: {workflow_summary['estimated_processing_time']/60:.1f} minutes")
+        print(f"   🧪 BPM validation: {'✅ PASSED' if workflow_summary['validation_passed'] else '⚠️ ISSUES'}")
+        
+        return {
+            "success": True,
+            "komposition": komposition_result["komposition"],
+            "build_plan": build_plan_result["build_plan"],
+            "validation_results": validation_result.get("validation_results", {}),
+            "files": {
+                "komposition_file": komposition_file,
+                "build_plan_file": build_plan_file
+            },
+            "summary": workflow_summary
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Complete workflow failed: {str(e)}"
         }
 
 
