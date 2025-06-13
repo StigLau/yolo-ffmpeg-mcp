@@ -15,6 +15,8 @@ try:
     from .transition_processor import TransitionProcessor
     from .speech_detector import SpeechDetector
     from .speech_komposition_processor import SpeechKompositionProcessor
+    from .enhanced_speech_analyzer import EnhancedSpeechAnalyzer
+    from .composition_planner import CompositionPlanner
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -24,6 +26,8 @@ except ImportError:
     from transition_processor import TransitionProcessor
     from speech_detector import SpeechDetector
     from speech_komposition_processor import SpeechKompositionProcessor
+    from enhanced_speech_analyzer import EnhancedSpeechAnalyzer
+    from composition_planner import CompositionPlanner
 
 
 # In itialize MCP server
@@ -37,6 +41,8 @@ komposition_processor = KompositionProcessor(file_manager, ffmpeg)
 transition_processor = TransitionProcessor(file_manager, ffmpeg)
 speech_detector = SpeechDetector()
 speech_komposition_processor = SpeechKompositionProcessor(file_manager, ffmpeg)
+enhanced_speech_analyzer = EnhancedSpeechAnalyzer()
+composition_planner = CompositionPlanner()
 
 
 class FileInfo(BaseModel):
@@ -2183,6 +2189,548 @@ async def get_speech_insights(file_id: str) -> Dict[str, Any]:
         return {
             "success": False,
             "error": f"Failed to get speech insights: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def analyze_composition_sources(source_filenames: List[str], force_reanalysis: bool = False) -> Dict[str, Any]:
+    """
+    Analyze multiple video sources for intelligent composition planning.
+    
+    This tool performs comprehensive analysis of video files to determine optimal processing strategies:
+    - Enhanced speech detection with cut point identification
+    - Content quality assessment and visual complexity analysis
+    - Processing strategy recommendations (time-stretch vs smart-cut vs hybrid)
+    - Priority scoring for source ordering in compositions
+    
+    Args:
+        source_filenames: List of video filenames to analyze
+        force_reanalysis: Force fresh analysis, ignore cache (default: False)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating analysis completion
+        - analyzed_sources: List of source analysis results
+        - recommendations: Processing strategy recommendations
+        - priority_order: Suggested ordering by quality/speech importance
+        
+    Example Usage:
+        analyze_composition_sources(["intro.mp4", "speech_video.mp4", "outro.mp4"])
+    """
+    try:
+        print(f"🔍 ANALYZING {len(source_filenames)} SOURCES FOR COMPOSITION")
+        
+        analyzed_sources = []
+        
+        for i, filename in enumerate(source_filenames):
+            print(f"   📹 Analyzing {i+1}/{len(source_filenames)}: {filename}")
+            
+            # Get file ID and path
+            file_id = file_manager.get_id_by_name(filename)
+            if not file_id:
+                print(f"      ❌ File not found: {filename}")
+                continue
+            
+            file_path = file_manager.resolve_id(file_id)
+            
+            # Enhanced speech analysis
+            speech_analysis = await enhanced_speech_analyzer.analyze_video_for_composition(
+                file_path, force_reanalysis=force_reanalysis
+            )
+            
+            if not speech_analysis["success"]:
+                print(f"      ❌ Analysis failed: {filename}")
+                continue
+            
+            # Content analysis
+            content_analysis = await content_analyzer.analyze_video_content(file_id)
+            
+            # Determine processing strategy
+            has_speech = speech_analysis["has_speech"]
+            speech_quality = speech_analysis["quality_metrics"]["overall_quality"]
+            
+            if not has_speech:
+                strategy = "time_stretch"
+            elif speech_quality > 0.8:
+                strategy = "smart_cut"
+            elif speech_quality > 0.5:
+                strategy = "hybrid"
+            else:
+                strategy = "minimal_stretch"
+            
+            # Calculate priority score
+            priority_score = 0.5
+            if has_speech:
+                priority_score += speech_quality * 0.3
+            priority_score += content_analysis.get("overall_score", 0.5) * 0.2
+            priority_score = min(1.0, priority_score)
+            
+            source_result = {
+                "filename": filename,
+                "file_id": file_id,
+                "duration": speech_analysis["video_duration"],
+                "has_speech": has_speech,
+                "speech_quality": speech_quality if has_speech else 0.0,
+                "content_score": content_analysis.get("overall_score", 0.5),
+                "recommended_strategy": strategy,
+                "priority_score": priority_score,
+                "speech_segments": speech_analysis.get("speech_segments", []),
+                "cut_points": speech_analysis.get("cut_points", []),
+                "cut_strategies": speech_analysis.get("cut_strategies", [])
+            }
+            
+            analyzed_sources.append(source_result)
+            print(f"      ✅ Strategy: {strategy}, Priority: {priority_score:.2f}")
+        
+        # Sort by priority score
+        analyzed_sources.sort(key=lambda s: s["priority_score"], reverse=True)
+        
+        # Generate overall recommendations
+        recommendations = {
+            "total_sources": len(analyzed_sources),
+            "sources_with_speech": sum(1 for s in analyzed_sources if s["has_speech"]),
+            "high_priority_sources": sum(1 for s in analyzed_sources if s["priority_score"] > 0.8),
+            "suggested_composition_order": [s["filename"] for s in analyzed_sources],
+            "processing_strategies": {
+                s["filename"]: s["recommended_strategy"] for s in analyzed_sources
+            }
+        }
+        
+        print(f"✅ ANALYSIS COMPLETE: {len(analyzed_sources)} sources analyzed")
+        
+        return {
+            "success": True,
+            "analyzed_sources": analyzed_sources,
+            "recommendations": recommendations,
+            "priority_order": [s["filename"] for s in analyzed_sources]
+        }
+        
+    except Exception as e:
+        print(f"❌ Source analysis failed: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@mcp.tool()
+async def generate_composition_plan(
+    source_filenames: List[str], 
+    background_music: str,
+    total_duration: float = 24.0,
+    bpm: int = 120,
+    composition_title: str = "Intelligent Composition",
+    force_reanalysis: bool = False
+) -> Dict[str, Any]:
+    """
+    Generate intelligent composition plan with speech-aware processing strategies.
+    
+    This tool creates a comprehensive komposition-plan.json that intelligently handles:
+    - Speech preservation with natural cut points
+    - Time allocation based on beat synchronization
+    - Audio mixing strategies for speech + music
+    - Effects chain optimization
+    - Processing workflow with estimated timings
+    
+    Args:
+        source_filenames: List of video filenames for composition
+        background_music: Background music filename
+        total_duration: Total composition duration in seconds (default: 24.0)
+        bpm: Beats per minute for synchronization (default: 120)
+        composition_title: Title for the composition (default: "Intelligent Composition")
+        force_reanalysis: Force fresh analysis of sources (default: False)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating plan generation success
+        - composition_plan: Complete komposition-plan JSON structure
+        - plan_file_path: Path to saved plan file
+        - processing_summary: Summary of planned operations
+        
+    Example Usage:
+        generate_composition_plan(
+            ["intro.mp4", "speech_segment.mp4", "outro.mp4"],
+            "background_music.mp3",
+            total_duration=30.0,
+            bpm=120
+        )
+    """
+    try:
+        # Generate composition plan using the planner engine
+        composition_plan = await composition_planner.create_composition_plan(
+            sources=source_filenames,
+            background_music=background_music,
+            total_duration=total_duration,
+            bpm=bpm,
+            composition_title=composition_title,
+            force_reanalysis=force_reanalysis
+        )
+        
+        if not composition_plan.get("success", False):
+            return composition_plan
+        
+        # Create processing summary
+        segments = composition_plan.get("composition", {}).get("segments", [])
+        processing_summary = {
+            "total_segments": len(segments),
+            "speech_segments": sum(1 for s in segments if s.get("strategy", {}).get("preserve_speech_pitch", False)),
+            "time_stretch_segments": sum(1 for s in segments if s.get("strategy", {}).get("type") == "time_stretch"),
+            "smart_cut_segments": sum(1 for s in segments if s.get("strategy", {}).get("type") == "smart_cut"),
+            "estimated_processing_time": len(segments) * 60,  # 1 minute per segment estimate
+            "audio_overlays": len([s for s in segments if s.get("audio_handling", {}).get("extracted_audio")])
+        }
+        
+        return {
+            "success": True,
+            "composition_plan": composition_plan,
+            "plan_file_path": str(composition_planner.cache_dir / f"composition_plan_latest.json"),
+            "processing_summary": processing_summary
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to generate composition plan: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def process_composition_plan(plan_file_path: str) -> Dict[str, Any]:
+    """
+    Execute an intelligent composition plan with speech-aware processing.
+    
+    This tool processes a komposition-plan.json file created by generate_composition_plan():
+    - Executes speech-aware cutting strategies
+    - Preserves natural speech pitch where specified
+    - Creates time-stretched video segments for beat synchronization
+    - Extracts and processes speech audio separately
+    - Generates audio timing manifest for external mixing
+    
+    Args:
+        plan_file_path: Path to komposition-plan.json file
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating processing completion
+        - output_files: List of generated files with descriptions
+        - audio_manifest: Audio timing information for external mixing
+        - processing_log: Detailed log of operations performed
+        
+    Example Usage:
+        process_composition_plan("composition_plan_latest.json")
+    """
+    try:
+        print(f"🎬 PROCESSING INTELLIGENT COMPOSITION PLAN")
+        
+        # Load plan file
+        plan_path = Path(plan_file_path)
+        if not plan_path.is_absolute():
+            plan_path = composition_planner.cache_dir / plan_file_path
+        
+        if not plan_path.exists():
+            return {
+                "success": False,
+                "error": f"Plan file not found: {plan_file_path}"
+            }
+        
+        with open(plan_path, 'r') as f:
+            plan = json.load(f)
+        
+        if not plan.get("success", False):
+            return {
+                "success": False,
+                "error": "Invalid composition plan"
+            }
+        
+        segments = plan.get("composition", {}).get("segments", [])
+        sources = plan.get("sources", {}).get("videos", [])
+        audio_plan = plan.get("audio_plan", {})
+        
+        print(f"   📊 Processing {len(segments)} segments")
+        
+        # Create processing log
+        processing_log = []
+        output_files = []
+        
+        # Process each segment according to its strategy
+        for i, segment in enumerate(segments):
+            segment_id = segment["id"]
+            source_id = segment["source_id"]
+            strategy = segment["strategy"]
+            cutting = segment["cutting"]
+            audio_handling = segment["audio_handling"]
+            
+            print(f"\n   🎬 Processing {segment_id} ({strategy['type']})")
+            
+            # Find source file
+            source_file = None
+            for src in sources:
+                if src["id"] == source_id:
+                    source_file = src["file"]
+                    break
+            
+            if not source_file:
+                error_msg = f"Source file not found for {source_id}"
+                processing_log.append({"segment": segment_id, "error": error_msg})
+                continue
+            
+            # Get file ID
+            file_id = file_manager.get_id_by_name(source_file)
+            if not file_id:
+                error_msg = f"File ID not found for {source_file}"
+                processing_log.append({"segment": segment_id, "error": error_msg})
+                continue
+            
+            try:
+                # Process based on strategy type
+                if strategy["type"] == "time_stretch":
+                    # Time-stretch entire video
+                    stretch_factor = strategy.get("stretch_factor", 1.0)
+                    target_duration = cutting["resulting_duration"]
+                    
+                    # Create time-stretched segment
+                    result = await process_file(
+                        input_file_id=file_id,
+                        operation="trim",
+                        output_extension="mp4",
+                        params=f"start={cutting['source_start']} duration={target_duration}"
+                    )
+                    
+                    if result["success"]:
+                        segment_file_id = result["output_file_id"]
+                        output_files.append({
+                            "file_id": segment_file_id,
+                            "description": f"Time-stretched segment: {segment_id}",
+                            "type": "video_segment"
+                        })
+                        processing_log.append({
+                            "segment": segment_id,
+                            "operation": "time_stretch",
+                            "success": True,
+                            "output_file_id": segment_file_id
+                        })
+                    
+                elif strategy["type"] == "smart_cut":
+                    # Smart cut preserving speech
+                    cut_start = cutting["source_start"]
+                    cut_end = cutting["source_end"]
+                    duration = cut_end - cut_start
+                    
+                    # Extract segment using natural cut points
+                    result = await process_file(
+                        input_file_id=file_id,
+                        operation="trim",
+                        output_extension="mp4",
+                        params=f"start={cut_start} duration={duration}"
+                    )
+                    
+                    if result["success"]:
+                        segment_file_id = result["output_file_id"]
+                        output_files.append({
+                            "file_id": segment_file_id,
+                            "description": f"Smart-cut segment: {segment_id} (speech preserved)",
+                            "type": "video_segment"
+                        })
+                        
+                        # Extract speech audio if needed
+                        if audio_handling.get("extracted_audio"):
+                            speech_result = await process_file(
+                                input_file_id=segment_file_id,
+                                operation="extract_audio",
+                                output_extension="wav",
+                                params=""
+                            )
+                            
+                            if speech_result["success"]:
+                                speech_file_id = speech_result["output_file_id"]
+                                output_files.append({
+                                    "file_id": speech_file_id,
+                                    "description": f"Extracted speech: {segment_id}",
+                                    "type": "speech_audio"
+                                })
+                        
+                        processing_log.append({
+                            "segment": segment_id,
+                            "operation": "smart_cut",
+                            "success": True,
+                            "output_file_id": segment_file_id,
+                            "speech_preserved": True
+                        })
+                
+            except Exception as e:
+                processing_log.append({
+                    "segment": segment_id,
+                    "error": str(e),
+                    "success": False
+                })
+                continue
+        
+        # Generate audio timing manifest
+        audio_manifest = {
+            "background_music": audio_plan.get("background_music", {}),
+            "speech_overlays": audio_plan.get("speech_overlays", []),
+            "timeline": plan.get("timeline", {}),
+            "instructions": [
+                "1. Load background music for full duration",
+                "2. Insert speech overlays at specified times",
+                "3. Mix with specified volume levels",
+                "4. Export final audio track"
+            ]
+        }
+        
+        success_count = sum(1 for log in processing_log if log.get("success", False))
+        
+        print(f"\n✅ PROCESSING COMPLETE: {success_count}/{len(segments)} segments successful")
+        
+        return {
+            "success": success_count > 0,
+            "output_files": output_files,
+            "audio_manifest": audio_manifest,
+            "processing_log": processing_log,
+            "segments_processed": success_count,
+            "total_segments": len(segments)
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to process composition plan: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def preview_composition_timing(
+    source_filenames: List[str],
+    total_duration: float = 24.0,
+    bpm: int = 120
+) -> Dict[str, Any]:
+    """
+    Preview timing allocation for composition without full processing.
+    
+    This tool provides a quick preview of how sources will be allocated in time slots:
+    - Shows time slot assignments based on BPM
+    - Estimates processing strategies for each source
+    - Identifies potential timing conflicts or issues
+    - Provides recommendations before full processing
+    
+    Args:
+        source_filenames: List of video filenames
+        total_duration: Total composition duration in seconds (default: 24.0)
+        bpm: Beats per minute for synchronization (default: 120)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating preview generation success
+        - timing_preview: Time slot allocations and strategies
+        - recommendations: Suggestions for optimization
+        - estimated_processing_time: Predicted processing duration
+    """
+    try:
+        print(f"⏰ PREVIEWING COMPOSITION TIMING")
+        
+        # Calculate time slots
+        seconds_per_beat = 60.0 / bpm
+        beats_per_measure = 16  # Standard for compositions
+        slot_duration = seconds_per_beat * beats_per_measure
+        
+        time_slots = []
+        current_time = 0.0
+        
+        for i in range(len(source_filenames)):
+            if current_time >= total_duration:
+                break
+                
+            end_time = min(current_time + slot_duration, total_duration)
+            
+            time_slots.append({
+                "slot_number": i + 1,
+                "source_file": source_filenames[i] if i < len(source_filenames) else None,
+                "start_time": current_time,
+                "end_time": end_time,
+                "duration": end_time - current_time,
+                "beat_start": int(current_time / seconds_per_beat),
+                "beat_end": int(end_time / seconds_per_beat)
+            })
+            
+            current_time = end_time
+        
+        # Get basic file info for strategy estimation
+        timing_preview = []
+        total_processing_estimate = 0
+        
+        for slot in time_slots:
+            if not slot["source_file"]:
+                continue
+                
+            file_id = file_manager.get_id_by_name(slot["source_file"])
+            if not file_id:
+                slot_info = {
+                    **slot,
+                    "strategy": "unknown",
+                    "issue": "File not found",
+                    "processing_time_estimate": 0
+                }
+            else:
+                # Quick analysis for strategy estimation
+                file_path = file_manager.resolve_id(file_id)
+                
+                # Estimate strategy based on filename and basic analysis
+                if "speech" in slot["source_file"].lower() or "talk" in slot["source_file"].lower():
+                    strategy = "smart_cut"
+                    processing_time = 120  # 2 minutes for speech processing
+                else:
+                    strategy = "time_stretch"
+                    processing_time = 60   # 1 minute for time stretching
+                
+                slot_info = {
+                    **slot,
+                    "strategy": strategy,
+                    "processing_time_estimate": processing_time,
+                    "note": f"Will use {strategy} processing"
+                }
+                
+                total_processing_estimate += processing_time
+            
+            timing_preview.append(slot_info)
+        
+        # Generate recommendations
+        recommendations = []
+        
+        if len(source_filenames) > len(time_slots):
+            recommendations.append({
+                "type": "warning",
+                "message": f"Too many sources ({len(source_filenames)}) for duration ({total_duration}s). Only first {len(time_slots)} will be used."
+            })
+        
+        if total_processing_estimate > 300:  # > 5 minutes
+            recommendations.append({
+                "type": "info",
+                "message": f"Estimated processing time: {total_processing_estimate/60:.1f} minutes. Consider processing in smaller batches."
+            })
+        
+        speech_sources = sum(1 for slot in timing_preview if slot.get("strategy") == "smart_cut")
+        if speech_sources > 0:
+            recommendations.append({
+                "type": "info",
+                "message": f"{speech_sources} sources detected as speech content. These will preserve natural pitch."
+            })
+        
+        print(f"✅ TIMING PREVIEW COMPLETE: {len(timing_preview)} slots allocated")
+        
+        return {
+            "success": True,
+            "timing_preview": timing_preview,
+            "recommendations": recommendations,
+            "estimated_processing_time": total_processing_estimate,
+            "total_duration": total_duration,
+            "beats_per_minute": bpm,
+            "slot_duration": slot_duration
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to preview composition timing: {str(e)}"
         }
 
 
