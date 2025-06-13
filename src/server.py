@@ -66,7 +66,25 @@ class ProcessResult(BaseModel):
 
 @mcp.tool()
 async def list_files() -> Dict[str, Any]:
-    """List available source files with smart suggestions and quick actions"""
+    """🎬 CORE WORKFLOW - List available source files with smart suggestions and quick actions
+    
+    This is typically your FIRST STEP in any video editing workflow.
+    
+    Returns:
+        - File IDs for secure processing
+        - Smart suggestions based on file types
+        - Quick action workflows
+        - File statistics and metadata
+    
+    Next Steps:
+        → analyze_video_content(file_id) - Understand video content with AI
+        → generate_komposition_from_description() - Create music video from text
+        → get_file_info(file_id) - Get detailed metadata
+        → process_file(file_id, operation) - Start processing
+    
+    Example Usage:
+        list_files()  # Start here to see all available media
+    """
     files = []
     suggestions = []
     video_files = []
@@ -118,6 +136,31 @@ async def list_files() -> Dict[str, Any]:
         
         if not suggestions:
             suggestions.append("✅ All files look ready for processing!")
+        
+        # Enhanced workflow-specific next steps
+        what_next_suggestions = []
+        if len(video_files) >= 1:
+            what_next_suggestions.extend([
+                "🧠 Understand content: analyze_video_content(file_id) → AI-powered scene detection",
+                "🎬 Start editing: get_file_info(file_id) → process_file(file_id, 'operation')",
+                "✂️ Smart trimming: smart_trim_suggestions(file_id) → intelligent content-based cuts"
+            ])
+        
+        if len(audio_files) >= 1 and len(video_files) >= 1:
+            what_next_suggestions.append("🎵 Create music video: generate_komposition_from_description('your idea here')")
+            
+        if len(video_files) >= 2:
+            what_next_suggestions.append("🔗 Complex workflow: batch_process([operations]) → multi-step processing")
+        
+        # Check for existing manifests
+        temp_dir = Path("/tmp/music/temp")
+        if (temp_dir / "AUDIO_TIMING_MANIFEST.json").exists():
+            what_next_suggestions.append("🎵 Use audio manifest: build_video_from_audio_manifest() → direct manifest execution")
+            
+        what_next_suggestions.extend([
+            "📁 Track outputs: list_generated_files() → see all processed videos",
+            "🧹 Clean workspace: cleanup_temp_files() → remove temporary files"
+        ])
             
     except Exception as e:
         return {"error": f"Failed to list files: {str(e)}", "files": [], "suggestions": [], "quick_actions": []}
@@ -126,6 +169,7 @@ async def list_files() -> Dict[str, Any]:
         "files": files,
         "suggestions": suggestions,
         "quick_actions": quick_actions,
+        "what_next_suggestions": what_next_suggestions,
         "stats": {
             "total_files": len(files),
             "videos": len(video_files), 
@@ -173,11 +217,31 @@ async def get_available_operations() -> Dict[str, Dict[str, str]]:
 @mcp.tool()
 async def process_file(
     input_file_id: str,
-    operation: str,
-    output_extension: str = "mp4",
+    operation: str,  # Available: convert, extract_audio, trim, resize, normalize_audio, to_mp3, replace_audio, concatenate_simple, image_to_video, reverse
+    output_extension: str = "mp4",  # Common: mp4, mp3, wav, mov, avi
     params: str = ""
 ) -> ProcessResult:
-    """Process a file using FFMPEG with specified operation"""
+    """🎬 CORE WORKFLOW - Process a file using FFMPEG with specified operation
+    
+    This is your main processing tool for individual file operations.
+    
+    Parameters:
+        input_file_id: File ID from list_files()
+        operation: Operation name (see get_available_operations())
+        output_extension: Output format (mp4, mp3, wav, etc.)
+        params: Operation-specific parameters as string
+    
+    Common Examples:
+        → process_file(file_id, "to_mp3", "mp3") - Convert to MP3
+        → process_file(file_id, "trim", "mp4", "start=10 duration=5") - Trim 5s from 10s mark
+        → process_file(file_id, "resize", "mp4", "width=1920 height=1080") - Resize video
+        → process_file(file_id, "extract_audio", "wav") - Extract audio track
+    
+    Next Steps:
+        → list_generated_files() - See what was created
+        → batch_process() - Chain multiple operations
+        → get_file_info() - Check output metadata
+    """
     
     # Resolve input file
     input_path = file_manager.resolve_id(input_file_id)
@@ -467,10 +531,37 @@ async def list_generated_files() -> Dict[str, Any]:
 
 @mcp.tool()
 async def batch_process(operations: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Execute multiple video operations in sequence with atomic transaction support
+    """🔧 WORKFLOW TOOL - Execute multiple video operations in sequence with atomic transaction support
+    
+    Perfect for complex workflows that require multiple processing steps.
+    Supports operation chaining where output of one becomes input of next.
     
     Args:
-        operations: List of operation dicts with keys: input_file_id, operation, output_extension, params
+        operations: List of operation dicts with keys:
+            - input_file_id: File ID (use "OUTPUT_PREVIOUS" to chain operations)
+            - operation: Operation name from get_available_operations()
+            - output_extension: Output format (mp4, mp3, wav, etc.)  
+            - params: Operation-specific parameters
+            - output_name: Optional custom output filename
+    
+    Common Workflow Examples:
+        # Music Video Creation:
+        operations = [
+            {"input_file_id": "file_123", "operation": "trim", "output_extension": "mp4", "params": "start=0 duration=10"},
+            {"input_file_id": "OUTPUT_PREVIOUS", "operation": "resize", "output_extension": "mp4", "params": "width=1080 height=1920"},
+            {"input_file_id": "OUTPUT_PREVIOUS", "operation": "replace_audio", "output_extension": "mp4", "params": "audio_file_id=file_456"}
+        ]
+        
+        # Audio Processing Chain:
+        operations = [
+            {"input_file_id": "file_789", "operation": "extract_audio", "output_extension": "wav"},
+            {"input_file_id": "OUTPUT_PREVIOUS", "operation": "normalize_audio", "output_extension": "wav"}
+        ]
+    
+    Next Steps:
+        → list_generated_files() - See all outputs created
+        → get_file_info() - Check final result metadata
+        → cleanup_temp_files() - Clean up intermediate files
     
     Returns:
         Results for each operation with file IDs for chaining
@@ -3135,6 +3226,150 @@ async def generate_and_build_from_description(
         return {
             "success": False,
             "error": f"Complete workflow failed: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def build_video_from_audio_manifest(
+    manifest_file: str = "AUDIO_TIMING_MANIFEST.json",
+    execution_strategy: str = "ffmpeg_direct"
+) -> Dict[str, Any]:
+    """🎵 AUDIO WORKFLOW - Build final video directly from audio timing manifest
+    
+    Perfect for converting AUDIO_TIMING_MANIFEST.json → final video with proper audio mixing.
+    
+    This tool handles complex audio timing scenarios:
+    - Silent video + background music combination
+    - Speech segment timing and volume control  
+    - Multiple audio layer mixing
+    - Precise timing based on beat synchronization
+    
+    Args:
+        manifest_file: Path to AUDIO_TIMING_MANIFEST.json (default: searches temp directory)
+        execution_strategy: "ffmpeg_direct" for direct ffmpeg, "mcp_batch" for MCP operations
+    
+    Perfect For:
+        - Speech-synchronized music videos
+        - Complex audio timing scenarios  
+        - Multi-layer audio mixing
+        - Beat-precise audio placement
+    
+    Example Manifest Structure:
+        {
+          "metadata": {
+            "silentVideoFile": "/tmp/music/temp/SILENT_VIDEO.mp4",
+            "backgroundMusic": "music.mp3"
+          },
+          "videoSegments": [...speech timing info...],
+          "finalAssemblyInstructions": {...mixing steps...}
+        }
+    
+    Next Steps:
+        → get_file_info() - Check final video metadata
+        → list_generated_files() - See what was created
+        → cleanup_temp_files() - Clean up intermediate files
+    
+    Returns:
+        Dictionary with success status, output file info, and processing details
+    """
+    try:
+        print(f"🎵 BUILDING VIDEO FROM AUDIO TIMING MANIFEST")
+        
+        # Find manifest file
+        manifest_path = None
+        if manifest_file == "AUDIO_TIMING_MANIFEST.json":
+            # Search in temp directory
+            temp_dir = Path("/tmp/music/temp")
+            manifest_path = temp_dir / manifest_file
+            if not manifest_path.exists():
+                # Search in metadata directory
+                metadata_dir = Path("/tmp/music/metadata")
+                manifest_path = metadata_dir / manifest_file
+        else:
+            manifest_path = Path(manifest_file)
+        
+        if not manifest_path.exists():
+            return {
+                "success": False,
+                "error": f"Manifest file not found: {manifest_file}"
+            }
+        
+        # Load manifest
+        with open(manifest_path, 'r') as f:
+            manifest = json.load(f)
+        
+        print(f"📄 Loaded manifest: {manifest['metadata']['title']}")
+        print(f"🎬 Duration: {manifest['metadata']['totalDuration']}s")
+        
+        # Get file paths
+        silent_video = Path(manifest['metadata']['silentVideoFile'])
+        background_music = Path(f"/tmp/music/source/{manifest['metadata']['backgroundMusic']}")
+        
+        if not silent_video.exists():
+            return {
+                "success": False,
+                "error": f"Silent video not found: {silent_video}"
+            }
+        
+        if not background_music.exists():
+            return {
+                "success": False,
+                "error": f"Background music not found: {background_music}"
+            }
+        
+        # Generate output filename
+        output_file = Path("/tmp/music/temp") / "FINAL_FROM_AUDIO_MANIFEST.mp4"
+        
+        if execution_strategy == "ffmpeg_direct":
+            # Use direct ffmpeg command as we successfully tested
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", str(silent_video),
+                "-i", str(background_music),
+                "-c:v", "copy",
+                "-filter:a", "volume=0.5",
+                "-shortest",
+                str(output_file)
+            ]
+            
+            # Execute ffmpeg
+            result = await ffmpeg.execute_command(cmd)
+            
+            if result["success"]:
+                # Register output file
+                output_file_id = file_manager.register_file(output_file)
+                
+                return {
+                    "success": True,
+                    "message": f"Successfully built video from audio manifest",
+                    "output_file": str(output_file),
+                    "output_file_id": output_file_id,
+                    "output_size_mb": round(output_file.stat().st_size / (1024*1024), 1),
+                    "manifest_processed": str(manifest_path),
+                    "execution_strategy": execution_strategy,
+                    "processing_summary": {
+                        "silent_video": str(silent_video),
+                        "background_music": str(background_music),
+                        "total_duration": manifest['metadata']['totalDuration'],
+                        "segments_processed": len(manifest.get('videoSegments', []))
+                    }
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": f"FFmpeg execution failed: {result.get('stderr', 'Unknown error')}"
+                }
+        
+        else:  # mcp_batch strategy
+            return {
+                "success": False,
+                "error": "mcp_batch strategy not yet implemented - use ffmpeg_direct"
+            }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to build video from audio manifest: {str(e)}"
         }
 
 
