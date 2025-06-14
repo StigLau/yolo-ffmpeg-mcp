@@ -1,0 +1,119 @@
+# Multi-stage Dockerfile for CI/CD Testing
+# Optimized for automated testing with video validation capabilities
+
+# Stage 1: Base system with FFMPEG and dependencies
+FROM ubuntu:22.04 AS base
+
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    # Core system tools
+    curl \
+    wget \
+    git \
+    build-essential \
+    pkg-config \
+    # Python
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-dev \
+    # FFMPEG and multimedia
+    ffmpeg \
+    # OpenCV dependencies  
+    libopencv-dev \
+    python3-opencv \
+    # Audio processing
+    libsndfile1 \
+    libsox-dev \
+    # Video validation tools
+    mediainfo \
+    # Cleanup
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify FFMPEG installation
+RUN ffmpeg -version
+
+# Stage 2: Python environment with UV
+FROM base AS python-env
+
+# Install UV for fast Python dependency management
+RUN pip3 install uv
+
+# Create app directory
+WORKDIR /app
+
+# Copy Python configuration
+COPY pyproject.toml uv.lock ./
+
+# Install Python dependencies using UV
+RUN uv venv /app/.venv && \
+    . /app/.venv/bin/activate && \
+    uv sync --frozen
+
+# Stage 3: Application with test environment
+FROM python-env AS app
+
+# Create MCP server user (non-root for security)
+RUN useradd -m -s /bin/bash mcp && \
+    chown -R mcp:mcp /app
+
+# Copy source code
+COPY --chown=mcp:mcp src/ ./src/
+COPY --chown=mcp:mcp tests/ ./tests/
+
+# Create required directories
+RUN mkdir -p /tmp/music/{source,temp,metadata,screenshots} && \
+    chown -R mcp:mcp /tmp/music
+
+# Copy test data
+COPY --chown=mcp:mcp tests/files/ /tmp/music/source/
+
+# Install video validation tools
+COPY --chown=mcp:mcp scripts/video_validator.py ./scripts/
+
+# Set PATH to include venv
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app/src:/app"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python3 -c "import src.server; print('MCP server imports OK')" || exit 1
+
+# Switch to non-root user
+USER mcp
+
+# Stage 4: CI/CD Test Runner
+FROM app AS ci-test
+
+# Copy CI/CD specific files
+COPY --chown=mcp:mcp tests/ci/ ./tests/ci/
+COPY --chown=mcp:mcp .github/ ./.github/
+
+# Install additional CI tools
+USER root
+RUN apt-get update && apt-get install -y \
+    jq \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+USER mcp
+
+# Test entry points
+COPY --chown=mcp:mcp scripts/run_ci_tests.sh ./scripts/
+RUN chmod +x ./scripts/run_ci_tests.sh
+
+# Default command runs CI tests
+CMD ["./scripts/run_ci_tests.sh"]
+
+# Expose port for HTTP testing (if needed)
+EXPOSE 8000
+
+# Labels for metadata
+LABEL org.opencontainers.image.title="FFMPEG MCP Server CI/CD"
+LABEL org.opencontainers.image.description="Containerized CI/CD environment for FFMPEG MCP server testing"
+LABEL org.opencontainers.image.vendor="YOLO FFMPEG MCP"
+LABEL org.opencontainers.image.version="1.0"
