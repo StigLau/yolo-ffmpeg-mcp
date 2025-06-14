@@ -69,6 +69,18 @@ class FFMPEGWrapper:
                      "[1:v]format=yuva420p,colorchannelmixer=aa={opacity}[overlay];[0:v][overlay]overlay[outv];[0:a][1:a]amix=duration=shortest[outa]",
                      "-map", "[outv]", "-map", "[outa]", "-c:v", "libx264", "-c:a", "aac"],
             "description": "Opacity-based transition with transparency control (requires second_video, opacity 0.0-1.0)"
+        },
+        "leica_look": {
+            "args": ["-vf", "curves=vintage,eq=contrast=1.1:brightness=0.05:saturation=0.9:gamma=1.05,colorbalance=rs=0.1:gs=-0.05:bs=-0.1:rm=0.05:gm=0:bm=-0.05:rh=-0.05:gh=0.05:bh=0.1,unsharp=5:5:0.8:3:3:0.4"],
+            "description": "Apply Leica-style color grading with vintage curves, contrast, and color balance"
+        },
+        "leica_look_enhanced": {
+            "args": ["-vf", "curves=vintage,eq=contrast=1.15:brightness=0.08:saturation=0.85:gamma=1.08,colorbalance=rs=0.15:gs=-0.08:bs=-0.15:rm=0.08:gm=0:bm=-0.08:rh=-0.08:gh=0.08:bh=0.15,unsharp=5:5:1.0:3:3:0.6,vignette=angle=PI/4:mode=backward"],
+            "description": "Enhanced Leica-style look with stronger vintage characteristics and vignetting"
+        },
+        "apply_leica_and_trim": {
+            "args": ["-ss", "{start}", "-t", "{duration}", "-vf", "curves=vintage,eq=contrast=1.1:brightness=0.05:saturation=0.9:gamma=1.05,colorbalance=rs=0.1:gs=-0.05:bs=-0.1:rm=0.05:gm=0:bm=-0.05:rh=-0.05:gh=0.05:bh=0.1,unsharp=5:5:0.8:3:3:0.4"],
+            "description": "Trim video segment and apply Leica look in one operation (requires start, duration)"
         }
     }
 

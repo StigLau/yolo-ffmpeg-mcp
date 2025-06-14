@@ -18,6 +18,8 @@ try:
     from .speech_komposition_processor import SpeechKompositionProcessor
     from .enhanced_speech_analyzer import EnhancedSpeechAnalyzer
     from .composition_planner import CompositionPlanner
+    from .komposition_build_planner import KompositionBuildPlanner
+    from .komposition_generator import KompositionGenerator
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -33,7 +35,7 @@ except ImportError:
     from komposition_generator import KompositionGenerator
 
 
-# In itialize MCP server
+# Initialize MCP server
 mcp = FastMCP("ffmpeg-mcp")
 
 # Initialize components
@@ -2314,17 +2316,13 @@ async def analyze_composition_sources(source_filenames: List[str], force_reanaly
         analyze_composition_sources(["intro.mp4", "speech_video.mp4", "outro.mp4"])
     """
     try:
-        print(f"🔍 ANALYZING {len(source_filenames)} SOURCES FOR COMPOSITION")
-        
         analyzed_sources = []
         
         for i, filename in enumerate(source_filenames):
-            print(f"   📹 Analyzing {i+1}/{len(source_filenames)}: {filename}")
             
             # Get file ID and path
             file_id = file_manager.get_id_by_name(filename)
             if not file_id:
-                print(f"      ❌ File not found: {filename}")
                 continue
             
             file_path = file_manager.resolve_id(file_id)
@@ -2335,7 +2333,6 @@ async def analyze_composition_sources(source_filenames: List[str], force_reanaly
             )
             
             if not speech_analysis["success"]:
-                print(f"      ❌ Analysis failed: {filename}")
                 continue
             
             # Content analysis
@@ -2376,7 +2373,6 @@ async def analyze_composition_sources(source_filenames: List[str], force_reanaly
             }
             
             analyzed_sources.append(source_result)
-            print(f"      ✅ Strategy: {strategy}, Priority: {priority_score:.2f}")
         
         # Sort by priority score
         analyzed_sources.sort(key=lambda s: s["priority_score"], reverse=True)
@@ -2392,8 +2388,6 @@ async def analyze_composition_sources(source_filenames: List[str], force_reanaly
             }
         }
         
-        print(f"✅ ANALYSIS COMPLETE: {len(analyzed_sources)} sources analyzed")
-        
         return {
             "success": True,
             "analyzed_sources": analyzed_sources,
@@ -2402,7 +2396,6 @@ async def analyze_composition_sources(source_filenames: List[str], force_reanaly
         }
         
     except Exception as e:
-        print(f"❌ Source analysis failed: {e}")
         return {
             "success": False,
             "error": str(e)
@@ -3418,10 +3411,6 @@ async def create_video_from_description(
         Dictionary with complete workflow results, files created, and processing summary
     """
     try:
-        print(f"🚀 ATOMIC VIDEO CREATION - {execution_mode.upper()} MODE")
-        print(f"📝 Description: {description}")
-        print(f"🎯 Quality: {quality}")
-        print("=" * 80)
         
         workflow_start = asyncio.get_event_loop().time()
         workflow_results = {
@@ -3433,7 +3422,6 @@ async def create_video_from_description(
         }
         
         # Step 1: Enhanced file discovery
-        print("\n📁 STEP 1: Smart file discovery and analysis")
         step_start = asyncio.get_event_loop().time()
         
         files_result = await mcp.call_tool('list_files', {})
@@ -3447,10 +3435,7 @@ async def create_video_from_description(
             "files_found": len(files_data.get("files", [])),
             "status": "completed"
         })
-        print(f"   ✅ Found {len(files_data.get('files', []))} source files ({step_duration:.2f}s)")
-        
         # Step 2: Enhanced komposition generation with musical structure
-        print("\n🎵 STEP 2: Enhanced komposition generation")
         step_start = asyncio.get_event_loop().time()
         
         komposition_result = await mcp.call_tool('generate_komposition_from_description', {
@@ -3482,10 +3467,7 @@ async def create_video_from_description(
             "effects": len(komposition_data.get("komposition", {}).get("effects_tree", [])),
             "status": "completed"
         })
-        print(f"   ✅ Generated komposition with {len(komposition_data.get('komposition', {}).get('segments', []))} segments ({step_duration:.2f}s)")
-        
         # Step 3: Optimized build plan creation
-        print("\n🏗️ STEP 3: Optimized build plan creation")
         step_start = asyncio.get_event_loop().time()
         
         build_plan_result = await mcp.call_tool('create_build_plan_from_komposition', {
@@ -3514,10 +3496,7 @@ async def create_video_from_description(
             "extractions": len(build_plan_data.get("build_plan", {}).get("snippet_extractions", [])),
             "status": "completed"
         })
-        print(f"   ✅ Created build plan with {len(build_plan_data.get('build_plan', {}).get('effect_operations', []))} operations ({step_duration:.2f}s)")
-        
         # Step 4: Quick validation
-        print("\n🧪 STEP 4: Build plan validation")
         step_start = asyncio.get_event_loop().time()
         
         validation_result = await mcp.call_tool('validate_build_plan_for_bpms', {
@@ -3535,11 +3514,8 @@ async def create_video_from_description(
             "validation_passed": validation_data.get("overall_valid", False),
             "status": "completed"
         })
-        print(f"   ✅ Validation {'passed' if validation_data.get('overall_valid') else 'failed'} ({step_duration:.2f}s)")
-        
         # Step 5: Conditional execution based on mode
         if execution_mode == "full":
-            print("\n🎬 STEP 5: Full video processing")
             step_start = asyncio.get_event_loop().time()
             
             # Process the komposition
@@ -3560,13 +3536,10 @@ async def create_video_from_description(
             
             if processing_data.get("success"):
                 workflow_results["files_created"].extend(processing_data.get("output_files", []))
-                print(f"   ✅ Video processing completed ({step_duration:.2f}s)")
             else:
-                print(f"   ❌ Video processing failed: {processing_data.get('error')}")
                 workflow_results["success"] = False
         
         elif execution_mode == "plan_only":
-            print("\n📋 STEP 5: Plan-only mode - video processing skipped")
             workflow_results["workflow_steps"].append({
                 "step": "video_processing",
                 "duration": 0,
@@ -3575,7 +3548,6 @@ async def create_video_from_description(
             })
         
         elif execution_mode == "preview":
-            print("\n👀 STEP 5: Preview mode - quick processing")
             # TODO: Implement quick preview processing
             workflow_results["workflow_steps"].append({
                 "step": "video_processing",
@@ -3602,12 +3574,6 @@ async def create_video_from_description(
             "build_plan_operations": len(build_plan_data.get("build_plan", {}).get("effect_operations", [])),
             "validation_passed": validation_data.get("overall_valid", False)
         }
-        
-        print(f"\n🎉 ATOMIC VIDEO CREATION COMPLETE!")
-        print(f"   ⏱️ Total time: {total_time:.1f}s")
-        print(f"   📁 Files created: {len(workflow_results['files_created'])}")
-        print(f"   🎬 Steps completed: {len(workflow_results['workflow_steps'])}")
-        print(f"   🎵 Mode: {execution_mode}")
         
         return workflow_results
         
