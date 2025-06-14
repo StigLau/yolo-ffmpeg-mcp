@@ -23,7 +23,10 @@ import numpy as np
 from scenedetect import detect, ContentDetector, AdaptiveDetector
 from scenedetect.video_splitter import split_video_ffmpeg
 
-from .config import SecurityConfig
+try:
+    from .config import SecurityConfig
+except ImportError:
+    from config import SecurityConfig
 
 
 class VideoContentAnalyzer:

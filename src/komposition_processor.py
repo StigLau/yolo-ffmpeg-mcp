@@ -122,7 +122,10 @@ class KompositionProcessor:
         original_duration = source_timing.get("original_duration", target_duration)
         
         # Step 1: Extract the segment from source video
-        from .server import process_file_internal  # Import MCP operation
+        try:
+            from .server import process_file_internal  # Import MCP operation
+        except ImportError:
+            from server import process_file_internal
         extracted_clip = await process_file_internal(
             source_file_id,
             "trim",
@@ -148,7 +151,10 @@ class KompositionProcessor:
     
     async def create_image_video(self, image_file_id: str, duration: float) -> str:
         """Convert image to video clip of specified duration"""
-        from .server import process_file_internal
+        try:
+            from .server import process_file_internal
+        except ImportError:
+            from server import process_file_internal
         
         return await process_file_internal(
             image_file_id,
@@ -159,7 +165,10 @@ class KompositionProcessor:
     
     async def concatenate_segments(self, segment_clips: List[Dict[str, Any]]) -> str:
         """Concatenate all processed segments into final video"""
-        from .server import process_file_internal
+        try:
+            from .server import process_file_internal
+        except ImportError:
+            from server import process_file_internal
         
         if len(segment_clips) < 2:
             return segment_clips[0]["clip_id"] if segment_clips else None
@@ -185,7 +194,10 @@ class KompositionProcessor:
     
     async def add_audio_track(self, video_file_id: str, audio_file_id: str, timing: BeatTiming) -> str:
         """Add audio track to video, trimming audio to video length"""
-        from .server import process_file_internal
+        try:
+            from .server import process_file_internal
+        except ImportError:
+            from server import process_file_internal
         
         return await process_file_internal(
             video_file_id,
@@ -243,7 +255,10 @@ class KompositionProcessor:
             filename = url[7:]  # Remove "file://" prefix
             
             # Find matching file in source directory
-            from .config import SecurityConfig
+            try:
+                from .config import SecurityConfig
+            except ImportError:
+                from config import SecurityConfig
             source_dir = SecurityConfig.SOURCE_DIR
             
             for file_path in source_dir.glob("*"):

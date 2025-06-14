@@ -9,9 +9,27 @@ Successfully created complete music video using intelligent scene detection, aut
 ### 🎵 BEAT-SYNCHRONIZED KOMPOSITION SYSTEM ✅
 Implemented advanced komposition JSON processing for beat-synchronized music videos. Supports precise BPM timing, video stretching, and multi-segment workflows with 120 BPM = 8 seconds per 16 beats formula.
 
+### 🎤 SPEECH DETECTION & AUDIO ANALYSIS ✅
+Implemented AI-powered speech detection using Silero VAD with pluggable backend architecture. Provides precise speech timestamps, quality assessment, and intelligent editing suggestions for advanced audio-video synchronization workflows.
+
 ## Quick Start
+
+### 🐳 Docker Setup (Recommended)
 ```bash
-# Start the MCP server
+# Build and run with Docker (production-ready)
+./build-docker.sh run
+
+# Or development mode with MCP Inspector
+./build-docker.sh dev
+
+# View logs and status
+docker-compose logs -f
+docker-compose ps
+```
+
+### 🛠️ Local Development
+```bash
+# Start the MCP server locally
 uv run python -m src.server
 
 # Test with MCP Inspector (running at http://127.0.0.1:6274)
@@ -28,13 +46,28 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 ```
 
 ## MCP Server Configuration for Claude Code
+
+### 🐳 Docker Configuration (Recommended)
+```json
+{
+  "mcpServers": {
+    "ffmpeg-mcp": {
+      "command": "nc",
+      "args": ["localhost", "8000"],
+      "cwd": "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp"
+    }
+  }
+}
+```
+
+### 🛠️ Local Development Configuration
 ```json
 {
   "mcpServers": {
     "ffmpeg-mcp": {
       "command": "uv",
       "args": ["run", "python", "-m", "src.server"],
-      "cwd": "/Users/stiglau/utvikling/privat/yolo-ffmpeg-mcp"
+      "cwd": "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp"
     }
   }
 }
@@ -54,13 +87,17 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 8. **smart_trim_suggestions(file_id, desired_duration=10.0)** - Intelligent trim recommendations based on content
 9. **get_scene_screenshots(file_id)** - Get scene screenshots with URLs for visual scene selection 📸
 
+### Speech Detection & Audio Analysis Tools 🎤 **NEW**
+10. **detect_speech_segments(file_id, force_reanalysis=False, threshold=0.5, min_speech_duration=250, min_silence_duration=100)** - AI-powered speech detection with precise timestamps using Silero VAD
+11. **get_speech_insights(file_id)** - Comprehensive speech analysis with quality metrics, timing patterns, and editing suggestions
+
 ### Workflow Management Tools 🔧
-10. **list_generated_files()** - List all processed files in temp directory with metadata 
-11. **batch_process(operations)** - Execute multi-step workflows with atomic transaction support
+12. **list_generated_files()** - List all processed files in temp directory with metadata 
+13. **batch_process(operations)** - Execute multi-step workflows with atomic transaction support
 
 ### Beat-Synchronized Music Video Tools 🎵
-12. **process_komposition_file(komposition_path)** - Create beat-synchronized music videos from komposition JSON
-13. **process_transition_effects_komposition(komposition_path)** - Process komposition with advanced transition effects tree
+14. **process_komposition_file(komposition_path)** - Create beat-synchronized music videos from komposition JSON
+15. **process_transition_effects_komposition(komposition_path)** - Process komposition with advanced transition effects tree
 
 ## Test Results Summary
 - **✅ File Management**: Secure ID-based file references working
@@ -77,6 +114,8 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 - **✅ Video Stretching**: FFmpeg setpts/atempo filters for perfect beat synchronization
 - **✅ Transition Effects**: Gradient wipe, crossfade, and opacity transitions with effects tree processing
 - **✅ Advanced Effects System**: Non-destructive layered effects architecture based on documents/Describing_effects.md
+- **✅ Speech Detection**: AI-powered speech detection using Silero VAD with pluggable backend architecture
+- **✅ Speech Analysis**: Comprehensive quality metrics, timing patterns, and intelligent editing suggestions
 
 ## Available FFMPEG Operations
 - **convert** - Convert video/audio format
@@ -151,15 +190,26 @@ tests/
 **This MCP server is production-ready and fully tested with real FFMPEG operations.**
 
 ## 📚 Additional Documentation
+
+### Core Documentation
 - **[PRODUCTION_RECOMMENDATIONS.md](documents/PRODUCTION_RECOMMENDATIONS.md)** - Critical fixes, architecture lessons, and implementation priorities
 - **[WORKFLOW_EXAMPLES.md](documents/WORKFLOW_EXAMPLES.md)** - Complete production workflows with code examples
+- **[IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md)** - Comprehensive quality assessment and 4-week improvement roadmap
+
+### Speech Detection Research & Planning
+- **[SPEECH_DETECTION_FEATURE_SPEC.md](SPEECH_DETECTION_FEATURE_SPEC.md)** - Feature specification for speech detection and audio synchronization
+- **[AUDIO_PROCESSING_FINDINGS.md](documents/AUDIO_PROCESSING_FINDINGS.md)** - Implementation research and technology stack recommendations
+
+### Docker & Deployment
+- **[DOCKER_SETUP.md](documents/DOCKER_SETUP.md)** - Complete Docker containerization guide with production deployment
+- **[build-docker.sh](build-docker.sh)** - Automated Docker build and deployment script
 
 ## 📚 Key Learnings & Architecture Insights
 
 ### 🎯 Successful Design Patterns
 - **Content-First Analysis**: Scene detection before editing provides intelligent suggestions
 - **Screenshot URLs**: Visual scene selection dramatically improves user experience  
--wha **Caching System**: 3000x performance improvement with persistent metadata storage
+- **Caching System**: 3000x performance improvement with persistent metadata storage
 - **Smart Concatenation**: Automatic resolution/audio compatibility handling with orientation normalization
 - **Security by Design**: ID-based file references prevent path traversal
 
@@ -183,6 +233,26 @@ tests/
 1. **Image Integration**: Missing tools to insert images between video clips
 2. **Progress Tracking**: No real-time feedback for long-running video operations
 3. **Error Recovery**: Failed operations leave orphaned temp files
+
+#### 🎤 Speech Detection & Audio Synchronization (In Development)
+**Next Major Feature**: Intelligent speech detection and audio synchronization capabilities
+
+**Planned MCP Tools**:
+```python
+# Speech detection and transcription
+detect_speech_segments(file_id, options)           # VAD processing with timestamps
+transcribe_speech(file_id, segments, options)      # STT with word-level timing
+get_speech_insights(file_id)                       # Analysis and quality metrics
+
+# Audio synchronization and mixing  
+synchronize_speech_audio(video_id, speech_segments, music_track)  # Layer speech over music
+mix_audio_tracks(primary_audio, background_audio, options)        # Advanced audio mixing
+```
+
+**Technology Stack** (Research Complete):
+- **Primary**: Silero VAD + OpenAI Whisper + FFmpeg mixing
+- **Alternatives**: WebRTC VAD, WhisperX, Vosk (pluggable backends)
+- **Timeline Sync**: Word-level timestamps for perfect video-speech alignment
 
 #### 🎯 Remaining Recommended Features
 ```python

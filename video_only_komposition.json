@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "title": "Video-Only Multi-Segment Composition",
+    "description": "Test multi-video concatenation without background music",
+    "bpm": 120,
+    "beatsPerMeasure": 16,
+    "totalBeats": 32,
+    "estimatedDuration": 16.0
+  },
+  "segments": [
+    {
+      "id": "intro_segment",
+      "startBeat": 0,
+      "endBeat": 16,
+      "duration": 8.0,
+      "sourceType": "video",
+      "sourceRef": "lookin.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 0,
+        "duration": 8.0
+      },
+      "effects": [],
+      "description": "First segment from lookin video"
+    },
+    {
+      "id": "second_segment", 
+      "startBeat": 16,
+      "endBeat": 32,
+      "duration": 8.0,
+      "sourceType": "video",
+      "sourceRef": "lookin.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 8,
+        "duration": 8.0
+      },
+      "effects": [],
+      "description": "Second segment from lookin video"
+    }
+  ],
+  "outputSettings": {
+    "resolution": "1920x1080",
+    "fps": 30,
+    "videoCodec": "libx264",
+    "audioCodec": "aac",
+    "audioSampleRate": 44100
+  }
+}

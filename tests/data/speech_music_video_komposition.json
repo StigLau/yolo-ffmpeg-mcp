@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "title": "Speech-Enabled Music Video Production",
+    "description": "Multi-video composition with speech detection overlay",
+    "bpm": 120,
+    "beatsPerMeasure": 16,
+    "totalBeats": 64,
+    "estimatedDuration": 32.0
+  },
+  "segments": [
+    {
+      "id": "intro_segment",
+      "startBeat": 0,
+      "endBeat": 16,
+      "duration": 8.0,
+      "sourceType": "video",
+      "sourceRef": "PXL_20250306_132546255.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 0,
+        "duration": 8.0
+      },
+      "effects": [],
+      "description": "Intro video segment"
+    },
+    {
+      "id": "main_speech_segment", 
+      "startBeat": 16,
+      "endBeat": 48,
+      "duration": 16.0,
+      "sourceType": "video",
+      "sourceRef": "lookin.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 0,
+        "duration": 16.0
+      },
+      "speechOverlay": {
+        "enabled": true,
+        "backgroundMusic": "16BL - Deep In My Soul (Original Mix).mp3",
+        "musicVolume": 0.3,
+        "speechVolume": 0.8,
+        "speechSegments": [
+          {
+            "start_time": 2.35,
+            "end_time": 4.82,
+            "duration": 2.47,
+            "quality": "clear"
+          },
+          {
+            "start_time": 5.91,
+            "end_time": 8.13,
+            "duration": 2.22,
+            "quality": "clear"
+          },
+          {
+            "start_time": 9.45,
+            "end_time": 12.78,
+            "duration": 3.33,
+            "quality": "moderate"
+          },
+          {
+            "start_time": 14.12,
+            "end_time": 16.45,
+            "duration": 2.33,
+            "quality": "clear"
+          }
+        ]
+      },
+      "effects": [],
+      "description": "Main video with speech overlay on background music"
+    },
+    {
+      "id": "outro_segment",
+      "startBeat": 48,
+      "endBeat": 64,
+      "duration": 8.0,
+      "sourceType": "video", 
+      "sourceRef": "Dagny-Baybay.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 0,
+        "duration": 8.0
+      },
+      "effects": [],
+      "description": "Outro video segment"
+    }
+  ],
+  "globalAudio": {
+    "backgroundMusic": "16BL - Deep In My Soul (Original Mix).mp3",
+    "musicStartOffset": 10.0,
+    "musicVolume": 0.5,
+    "fadeIn": 1.0,
+    "fadeOut": 2.0
+  },
+  "outputSettings": {
+    "resolution": "1920x1080",
+    "fps": 30,
+    "videoCodec": "libx264",
+    "audioCodec": "aac",
+    "audioSampleRate": 44100
+  }
+}

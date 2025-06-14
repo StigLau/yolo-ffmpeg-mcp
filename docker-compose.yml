@@ -1,0 +1,101 @@
+# Docker Compose for FFMPEG MCP Server
+# Provides easy development and production deployment
+
+version: '3.8'
+
+services:
+  ffmpeg-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ffmpeg-mcp-server
+    
+    # Port mapping for MCP server access
+    ports:
+      - "8000:8000"  # MCP server port
+    
+    # Volume mounts for file processing
+    volumes:
+      # Source files (read-only)
+      - ./test-media:/tmp/music/source:ro
+      # Temporary processing files (read-write)
+      - ffmpeg-temp:/tmp/music/temp
+      # Screenshots and metadata (persistent)
+      - ffmpeg-screenshots:/tmp/music/screenshots
+      - ffmpeg-metadata:/tmp/music/metadata
+      # Application logs
+      - ffmpeg-logs:/app/logs
+    
+    # Environment variables
+    environment:
+      # MCP server configuration
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      # FFmpeg configuration
+      - FFMPEG_PATH=/usr/bin/ffmpeg
+      - FFPROBE_PATH=/usr/bin/ffprobe
+      # Processing limits
+      - MAX_FILE_SIZE=524288000  # 500MB
+      - PROCESSING_TIMEOUT=300   # 5 minutes
+      # Cache configuration
+      - CACHE_TTL=300           # 5 minutes
+      # Security settings
+      - ALLOWED_EXTENSIONS=mp4,avi,mov,mkv,webm,mp3,wav,flac,m4a,ogg,jpg,jpeg,png
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: MCP Inspector for testing (development only)
+  mcp-inspector:
+    image: node:18-alpine
+    container_name: mcp-inspector
+    profiles: ["dev"]  # Only start with --profile dev
+    ports:
+      - "6274:6274"
+    command: >
+      sh -c "
+        npm install -g @modelcontextprotocol/inspector &&
+        npx @modelcontextprotocol/inspector http://ffmpeg-mcp:8000
+      "
+    depends_on:
+      - ffmpeg-mcp
+    restart: "no"
+
+# Named volumes for persistent data
+volumes:
+  ffmpeg-temp:
+    driver: local
+  ffmpeg-screenshots:
+    driver: local
+  ffmpeg-metadata:
+    driver: local
+  ffmpeg-logs:
+    driver: local
+
+# Network configuration
+networks:
+  default:
+    name: ffmpeg-mcp-network
