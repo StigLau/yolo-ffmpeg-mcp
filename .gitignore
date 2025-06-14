@@ -67,3 +67,8 @@ Thumbs.db
 # Logs
 *.log
 logs/
+# Aider files (contain sensitive information)
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.*
+.aider/
