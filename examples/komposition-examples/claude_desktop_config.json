@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ffmpeg-mcp": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "src.server"],
+      "cwd": "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp"
+    }
+  }
+}

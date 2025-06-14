@@ -27,9 +27,11 @@ from datetime import datetime
 try:
     from .file_manager import FileManager
     from .config import SecurityConfig
+    from .content_analyzer import VideoContentAnalyzer
 except ImportError:
     from file_manager import FileManager
     from config import SecurityConfig
+    from content_analyzer import VideoContentAnalyzer
 
 
 @dataclass
@@ -61,6 +63,10 @@ class CompositionIntent:
     render_start_beat: Optional[int] = None
     render_end_beat: Optional[int] = None
     
+    # Scene-based generation
+    use_varied_scenes: bool = False
+    beats_per_snippet: int = 16 # Default, can be overridden by parser
+    
     def __post_init__(self):
         if self.video_sources is None:
             self.video_sources = []
@@ -79,6 +85,7 @@ class KompositionGenerator:
     
     def __init__(self):
         self.file_manager = FileManager()
+        self.content_analyzer = VideoContentAnalyzer()
         self.komposition_cache_dir = Path("/tmp/music/metadata/generated_kompositions")
         self.komposition_cache_dir.mkdir(parents=True, exist_ok=True)
         
@@ -266,8 +273,19 @@ class KompositionGenerator:
             if style in description.lower():
                 intent.effects_requests.append(f"style_{style}")
                 break
+
+        # Parse varied scenes request
+        if "varied scenes" in description.lower() or "scene snippets" in description.lower():
+            intent.use_varied_scenes = True
         
-        print(f"   🎯 Parsed intent: {intent.bpm} BPM, {intent.resolution}, {len(intent.video_sources)} sources")
+        # Parse beats per snippet
+        beats_snippet_match = re.search(r'(\d+)\s*beat\s*snippet', description.lower())
+        if beats_snippet_match:
+            intent.beats_per_snippet = int(beats_snippet_match.group(1))
+            if not intent.use_varied_scenes: # If "8 beat snippet" is mentioned, imply varied scenes
+                intent.use_varied_scenes = True
+        
+        print(f"   🎯 Parsed intent: {intent.bpm} BPM, {intent.resolution}, {len(intent.video_sources)} sources, Varied Scenes: {intent.use_varied_scenes}, Beats/Snippet: {intent.beats_per_snippet}")
         return intent
     
     def _detect_musical_structure(self, description: str) -> List[str]:
@@ -338,53 +356,145 @@ class KompositionGenerator:
     ) -> List[Dict[str, Any]]:
         """Generate segments based on musical structure and matched sources"""
         segments = []
-        
-        # Use detected musical structure for segment planning
-        structure = intent.musical_structure if intent.musical_structure else ["intro", "main", "outro"]
-        total_structure_beats = intent.render_end_beat - (intent.render_start_beat or 0) if intent.render_end_beat else intent.total_beats
-        beats_per_structure_segment = total_structure_beats // len(structure)
-        
         current_beat = intent.render_start_beat or 0
-        segment_id = 0
-        
-        print(f"   🎵 Musical structure detected: {' → '.join(structure)}")
-        print(f"   🎯 Beats per segment: {beats_per_structure_segment}")
-        
-        # Create segments based on musical structure
-        for structure_part in structure:
-            end_beat = current_beat + beats_per_structure_segment
+        segment_id_counter = 0
+
+        if intent.use_varied_scenes:
+            print(f"   🎞️ Generating segments using varied scenes ({intent.beats_per_snippet} beats per snippet)")
             
-            # Find best matching source for this structure part
-            source_file = self._match_source_to_structure(structure_part, matched_sources)
-            
-            if source_file:
-                # Get file ID
-                file_id = self.file_manager.get_id_by_name(source_file)
+            all_analyzed_scenes = []
+            for source_category, source_filename in matched_sources.items():
+                file_id = self.file_manager.get_id_by_name(source_filename)
                 if not file_id:
-                    print(f"   ⚠️ Could not get file ID for: {source_file}")
-                    current_beat = end_beat
+                    print(f"      ⚠️ Could not get file ID for: {source_filename} (category: {source_category})")
                     continue
                 
-                # Create segment with musical awareness
-                segment = {
-                    "id": f"segment_{segment_id}",
-                    "sourceRef": source_file,
-                    "startBeat": current_beat,
-                    "endBeat": end_beat,
-                    "operation": self._determine_operation_enhanced(structure_part, intent),
-                    "params": self._determine_params_enhanced(structure_part, intent, current_beat, end_beat),
-                    "description": f"{structure_part.title()} segment using {source_file}",
-                    "musical_role": structure_part
-                }
+                file_path = self.file_manager.resolve_id(file_id)
+                if not file_path:
+                    print(f"      ⚠️ Could not resolve path for file ID: {file_id}")
+                    continue
+
+                print(f"      Analyzing scenes for {source_filename}...")
+                # Ensure file_id is passed to analyze_video_content for caching key consistency
+                analysis_result = await self.content_analyzer.analyze_video_content(file_path, file_id)
                 
-                segments.append(segment)
-                segment_id += 1
-                
-                print(f"   🎬 {structure_part.title()}: {source_file} (beat {current_beat}-{end_beat})")
-            else:
-                print(f"   ⚠️ No source found for {structure_part}, skipping")
+                if analysis_result.get("success"):
+                    source_scenes = analysis_result.get("analysis", {}).get("scenes", [])
+                    for sc in source_scenes:
+                        sc["source_filename"] = source_filename # Augment scene with its original file
+                        sc["file_id"] = file_id
+                    all_analyzed_scenes.extend(source_scenes)
+                    print(f"         Found {len(source_scenes)} scenes in {source_filename}")
+                else:
+                    print(f"      ⚠️ Scene analysis failed for {source_filename}: {analysis_result.get('error')}")
+
+            if not all_analyzed_scenes:
+                print(f"   ⚠️ No scenes found after analysis. Cannot generate scene-based snippets.")
+                # Potentially fall back to default segment generation or return error
+                # For now, let's fall through to default if no scenes.
+                pass # This will lead to empty segments list if no fallback implemented below.
+
+            num_required_snippets = intent.total_beats // intent.beats_per_snippet
+            snippet_duration_seconds = (intent.beats_per_snippet * 60.0) / intent.bpm
             
-            current_beat = end_beat
+            print(f"      🎬 Required snippets: {num_required_snippets}, each {snippet_duration_seconds:.2f}s long.")
+
+            scene_idx = 0
+            for i in range(num_required_snippets):
+                if not all_analyzed_scenes: # No scenes to pick from
+                    print(f"      ⚠️ Ran out of scenes for snippet {i+1}. Stopping segment generation.")
+                    break
+
+                scene = all_analyzed_scenes[scene_idx % len(all_analyzed_scenes)] # Cycle through scenes
+                scene_idx += 1
+
+                actual_scene_duration = scene['duration']
+                source_snippet_duration = min(snippet_duration_seconds, actual_scene_duration)
+
+                segment = {
+                    "id": f"segment_snippet_{segment_id_counter}",
+                    "sourceRef": scene["source_filename"],
+                    "startBeat": current_beat,
+                    "endBeat": current_beat + intent.beats_per_snippet,
+                    "duration": intent.beats_per_snippet, # Duration in beats for the timeline
+                    "operation": "time_stretch", # Ensures snippet fits the beat duration
+                    "source_timing": { # Specifies which part of the source video to use
+                        "original_start": scene['start'], # Start time of the scene in its source video
+                        "original_duration": source_snippet_duration 
+                    },
+                    "params": {}, # Specific FFMPEG params for the operation, if any
+                    "description": f"Snippet {i+1} from {scene['source_filename']} (Scene ID: {scene['scene_id']})",
+                    "musical_role": "snippet"
+                }
+                segments.append(segment)
+                print(f"      🎞️ Snippet {i+1}: {scene['source_filename']} (Scene {scene['scene_id']}, {scene['start']:.2f}s, {source_snippet_duration:.2f}s) -> beat {current_beat}-{current_beat + intent.beats_per_snippet}")
+                current_beat += intent.beats_per_snippet
+                segment_id_counter +=1
+            
+            if not segments and not all_analyzed_scenes : # Fallback if scene analysis yielded nothing
+                 print(f"   ⚠️ No scenes available for scene-based generation. Falling back to musical structure.")
+                 intent.use_varied_scenes = False # Force fallback
+
+        # Fallback or default musical structure based generation
+        if not intent.use_varied_scenes or not segments: # if varied_scenes was false OR it was true but no segments were made
+            print(f"   🎵 Generating segments based on musical structure.")
+            structure = intent.musical_structure if intent.musical_structure else ["intro", "main", "outro"]
+            total_structure_beats = intent.render_end_beat - (intent.render_start_beat or 0) if intent.render_end_beat else intent.total_beats
+            
+            if not structure: # Ensure structure is not empty
+                 print(f"   ⚠️ Musical structure is empty. Defaulting to simple structure.")
+                 structure = ["main"]
+
+            beats_per_structure_segment = total_structure_beats // len(structure) if len(structure) > 0 else total_structure_beats
+            if beats_per_structure_segment == 0 and total_structure_beats > 0 : beats_per_structure_segment = total_structure_beats # Avoid 0 if possible
+
+            current_beat = intent.render_start_beat or 0 # Reset current_beat for this block
+            
+            print(f"      🎵 Musical structure: {' → '.join(structure)}")
+            print(f"      🎯 Beats per segment: {beats_per_structure_segment}")
+
+            for structure_part in structure:
+                if current_beat >= (intent.render_end_beat or intent.total_beats): break
+
+                end_beat = current_beat + beats_per_structure_segment
+                
+                source_file_for_part = self._match_source_to_structure(structure_part, matched_sources)
+                
+                if source_file_for_part:
+                    file_id = self.file_manager.get_id_by_name(source_file_for_part)
+                    if not file_id:
+                        print(f"      ⚠️ Could not get file ID for: {source_file_for_part}")
+                        current_beat = end_beat
+                        continue
+                    
+                    segment_duration_beats = end_beat - current_beat
+                    segment_duration_seconds = (segment_duration_beats * 60.0) / intent.bpm
+
+                    segment = {
+                        "id": f"segment_structure_{segment_id_counter}",
+                        "sourceRef": source_file_for_part,
+                        "startBeat": current_beat,
+                        "endBeat": end_beat,
+                        "duration": segment_duration_beats,
+                        "operation": self._determine_operation_enhanced(structure_part, intent),
+                        # For structured segments, source_timing might take the whole file or a default chunk
+                        # KompositionProcessor's extract_and_stretch_video defaults original_duration to target_duration
+                        # if source_timing or original_duration is not provided.
+                        "source_timing": { 
+                            "original_start": 0, # Default: start of the source file
+                            # "original_duration": segment_duration_seconds # Extract a chunk matching the target
+                        },
+                        "params": self._determine_params_enhanced(structure_part, intent, current_beat, end_beat),
+                        "description": f"{structure_part.title()} segment using {source_file_for_part}",
+                        "musical_role": structure_part
+                    }
+                    segments.append(segment)
+                    segment_id_counter +=1
+                    print(f"      🎬 {structure_part.title()}: {source_file_for_part} (beat {current_beat}-{end_beat})")
+                else:
+                    print(f"      ⚠️ No source found for {structure_part}, skipping")
+                
+                current_beat = end_beat
         
         return segments
     
