@@ -26,6 +26,7 @@ class SecurityConfig:
     # Directory configuration
     SOURCE_DIR = Path(os.getenv("FFMPEG_SOURCE_DIR", "/tmp/music/source"))
     TEMP_DIR = Path(os.getenv("FFMPEG_TEMP_DIR", "/tmp/music/temp"))
+    FINISHED_DIR = Path(os.getenv("FFMPEG_FINISHED_DIR", "/tmp/music/finished"))
     SCREENSHOTS_DIR = Path(os.getenv("FFMPEG_SCREENSHOTS_DIR", "/tmp/music/screenshots"))
     
     # Screenshot URL configuration

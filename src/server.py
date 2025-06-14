@@ -2024,6 +2024,57 @@ async def process_file_internal(input_file_id: str, operation: str, output_exten
         raise Exception(f"Internal process_file failed: {str(e)}")
 
 
+async def process_file_as_finished(input_file_id: str, operation: str, output_extension: str, params: str = "", title: str = None) -> str:
+    """Process file and create output in finished directory instead of temp"""
+    # Resolve input file
+    input_path = file_manager.resolve_id(input_file_id)
+    if not input_path:
+        raise Exception(f"Input file ID '{input_file_id}' not found")
+        
+    if not input_path.exists():
+        raise Exception(f"Input file no longer exists: {input_path.name}")
+    
+    # Validate file size
+    if not SecurityConfig.validate_file_size(input_path):
+        raise Exception(f"File too large (max {SecurityConfig.MAX_FILE_SIZE} bytes)")
+    
+    # Parse parameters
+    parsed_params = {}
+    if params:
+        for param in params.split():
+            if "=" in param:
+                key, value = param.split("=", 1)
+                # Convert file IDs to paths
+                if key in ['second_video', 'audio_file'] and value.startswith('file_'):
+                    file_path = file_manager.resolve_id(value)
+                    if file_path:
+                        parsed_params[key] = str(file_path)
+                    else:
+                        raise Exception(f"File ID '{value}' not found")
+                else:
+                    parsed_params[key] = value
+    
+    # Create finished output file
+    output_file_id, output_path = file_manager.create_finished_file(output_extension, title)
+    
+    # Build and execute command
+    if operation == 'concatenate_simple':
+        # Use smart concatenation that handles videos with/without audio
+        second_video_path = Path(parsed_params['second_video'])
+        command = await ffmpeg.build_smart_concat_command(input_path, second_video_path, output_path, file_manager)
+    else:
+        command = ffmpeg.build_command(operation, input_path, output_path, **parsed_params)
+    
+    result = await ffmpeg.execute_command(command, SecurityConfig.PROCESS_TIMEOUT)
+    
+    if result["success"]:
+        return output_file_id
+    else:
+        # Clean up failed output file
+        output_path.unlink(missing_ok=True)
+        raise Exception(f"Operation failed: {result.get('message', 'Unknown error')}")
+
+
 @mcp.tool()
 async def process_transition_effects_komposition(komposition_path: str) -> Dict[str, Any]:
     """Process a komposition JSON file with advanced transition effects tree

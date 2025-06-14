@@ -166,14 +166,14 @@ class KompositionProcessor:
     async def concatenate_segments(self, segment_clips: List[Dict[str, Any]]) -> str:
         """Concatenate all processed segments into final video"""
         try:
-            from .server import process_file_internal
+            from .server import process_file_internal, process_file_as_finished
         except ImportError:
-            from server import process_file_internal
+            from server import process_file_internal, process_file_as_finished
         
         if len(segment_clips) < 2:
             return segment_clips[0]["clip_id"] if segment_clips else None
         
-        # Start with first two clips
+        # Start with first two clips (temp processing)
         current_result = await process_file_internal(
             segment_clips[0]["clip_id"],
             "concatenate_simple",
@@ -181,8 +181,8 @@ class KompositionProcessor:
             f"second_video={segment_clips[1]['clip_id']}"
         )
         
-        # Add remaining clips one by one
-        for i in range(2, len(segment_clips)):
+        # Add remaining clips one by one (temp processing)
+        for i in range(2, len(segment_clips) - 1):
             current_result = await process_file_internal(
                 current_result,
                 "concatenate_simple", 
@@ -190,20 +190,40 @@ class KompositionProcessor:
                 f"second_video={segment_clips[i]['clip_id']}"
             )
         
-        return current_result
+        # Final concatenation goes to finished directory
+        if len(segment_clips) > 2:
+            final_result = await process_file_as_finished(
+                current_result,
+                "concatenate_simple",
+                "mp4",
+                f"second_video={segment_clips[-1]['clip_id']}",
+                title="music_video"
+            )
+        else:
+            # For 2 clips, the first concatenation is the final one
+            final_result = await process_file_as_finished(
+                segment_clips[0]["clip_id"],
+                "concatenate_simple",
+                "mp4",
+                f"second_video={segment_clips[1]['clip_id']}",
+                title="music_video"
+            )
+        
+        return final_result
     
     async def add_audio_track(self, video_file_id: str, audio_file_id: str, timing: BeatTiming) -> str:
         """Add audio track to video, trimming audio to video length"""
         try:
-            from .server import process_file_internal
+            from .server import process_file_as_finished
         except ImportError:
-            from server import process_file_internal
+            from server import process_file_as_finished
         
-        return await process_file_internal(
+        return await process_file_as_finished(
             video_file_id,
             "replace_audio",
             "mp4",
-            f"audio_file={audio_file_id}"
+            f"audio_file={audio_file_id}",
+            title="music_video_with_audio"
         )
     
     async def smart_match_segment_to_source(self, segment: Dict[str, Any], sources: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:

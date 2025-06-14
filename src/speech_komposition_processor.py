@@ -263,10 +263,18 @@ class SpeechKompositionProcessor(KompositionProcessor):
             
             print(f"   🔗 Concatenating segment {i+1}/{len(video_segments)}")
             
-            result = await self._execute_ffmpeg_operation(
-                current_id, "concatenate_simple", "mp4",
-                second_video=self.file_manager.resolve_id(next_id)
-            )
+            # For the final concatenation, use finished directory
+            if i == len(video_segments) - 1:
+                result = await self._execute_ffmpeg_operation_finished(
+                    current_id, "concatenate_simple", "mp4",
+                    title="speech_music_video",
+                    second_video=self.file_manager.resolve_id(next_id)
+                )
+            else:
+                result = await self._execute_ffmpeg_operation(
+                    current_id, "concatenate_simple", "mp4",
+                    second_video=self.file_manager.resolve_id(next_id)
+                )
             
             if not result["success"]:
                 print(f"   ❌ Failed to concatenate segments: {result.get('error', 'Unknown error')}")
@@ -288,9 +296,10 @@ class SpeechKompositionProcessor(KompositionProcessor):
         
         print(f"   🎵 Adding global background music: {background_music}")
         
-        # Replace audio with background music
-        result = await self._execute_ffmpeg_operation(
+        # Replace audio with background music (final operation - use finished directory)
+        result = await self._execute_ffmpeg_operation_finished(
             video_id, "replace_audio", "mp4",
+            title="speech_video_with_music",
             audio_file=self.file_manager.resolve_id(music_file_id)
         )
         
@@ -396,6 +405,77 @@ class SpeechKompositionProcessor(KompositionProcessor):
                 }
                 
         except Exception as e:
+            return {"success": False, "error": f"Operation {operation} exception: {str(e)}"}
+    
+    async def _execute_ffmpeg_operation_finished(self, file_id: str, operation: str, extension: str, title: str = None, **params) -> Dict[str, Any]:
+        """Execute FFMPEG operation and save output to finished directory"""
+        
+        input_path = self.file_manager.resolve_id(file_id)
+        if not input_path:
+            return {"success": False, "error": f"File with ID '{file_id}' not found"}
+        
+        # Create finished output file
+        output_file_id, output_path = self.file_manager.create_finished_file(extension, title)
+        
+        try:
+            # Execute operation based on type
+            if operation == "concatenate_simple":
+                second_video = params.get("second_video")
+                if not second_video:
+                    return {"success": False, "error": "second_video parameter required"}
+                
+                cmd = [
+                    SecurityConfig.FFMPEG_PATH,
+                    "-i", str(input_path),
+                    "-i", str(second_video),
+                    "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]",
+                    "-map", "[v]",
+                    "-map", "[a]",
+                    "-c:v", "libx264",
+                    "-c:a", "aac",
+                    "-y",
+                    str(output_path)
+                ]
+            elif operation == "replace_audio":
+                audio_file = params.get("audio_file")
+                if not audio_file:
+                    return {"success": False, "error": "audio_file parameter required"}
+                
+                cmd = [
+                    SecurityConfig.FFMPEG_PATH,
+                    "-i", str(input_path),
+                    "-i", str(audio_file),
+                    "-c:v", "copy",
+                    "-c:a", "aac",
+                    "-map", "0:v:0",
+                    "-map", "1:a:0",
+                    "-shortest",
+                    "-y",
+                    str(output_path)
+                ]
+            else:
+                return {"success": False, "error": f"Unsupported operation for finished files: {operation}"}
+            
+            # Execute command
+            result = await self.ffmpeg_wrapper.execute_command(cmd, SecurityConfig.PROCESS_TIMEOUT)
+            
+            if result["success"]:
+                return {
+                    "success": True,
+                    "output_file_id": output_file_id,
+                    "file_path": str(output_path)
+                }
+            else:
+                # Clean up failed output file
+                output_path.unlink(missing_ok=True)
+                return {
+                    "success": False,
+                    "error": f"Operation {operation} failed: {result.get('logs', 'Unknown error')}"
+                }
+                
+        except Exception as e:
+            # Clean up failed output file
+            output_path.unlink(missing_ok=True)
             return {"success": False, "error": f"Operation {operation} exception: {str(e)}"}
     
     def _generate_unique_id(self) -> str:
