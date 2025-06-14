@@ -1,0 +1,101 @@
+# FFMPEG MCP Server - Ubuntu-based build for better compatibility
+FROM ubuntu:22.04 AS base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install Python 3.11 and system dependencies
+RUN apt-get update && apt-get install -y \
+    # Python and pip
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    # FFmpeg and multimedia libraries
+    ffmpeg \
+    # OpenCV dependencies
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    # Audio processing dependencies
+    libsndfile1 \
+    # Network and security
+    ca-certificates \
+    # Build tools
+    gcc \
+    g++ \
+    # Additional dependencies for PyTorch
+    libjpeg-dev \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create symbolic links for python commands
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
+    ln -sf /usr/bin/python3 /usr/bin/python
+
+# Install UV for package management
+RUN pip3 install uv
+
+# Create working directory
+WORKDIR /app
+
+# Copy application files
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY pyproject.toml ./
+COPY test_lookin_docker.py ./
+
+# Install Python dependencies
+RUN uv pip install --system \
+    fastmcp>=2.7.1 \
+    mcp>=1.9.3 \
+    opencv-python>=4.11.0.86 \
+    pydantic>=2.11.5 \
+    scenedetect>=0.6.6 \
+    pytest>=8.4.0 \
+    pytest-asyncio>=1.0.0
+
+# Install speech detection dependencies
+RUN uv pip install --system \
+    torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu \
+    torchaudio>=2.0.0 --index-url https://download.pytorch.org/whl/cpu \
+    librosa>=0.10.0 \
+    pydub>=0.25.0 \
+    jsonschema>=4.0.0 \
+    psutil>=5.9.0
+
+# Install Silero VAD (try multiple approaches)
+RUN pip3 install silero-vad || \
+    pip3 install git+https://github.com/snakers4/silero-vad.git || \
+    echo "Silero VAD installation failed, will use torch hub loading"
+
+# Create directories for file processing
+RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/screenshots /tmp/music/metadata
+
+# Create non-root user for security
+RUN groupadd -r mcp && useradd -r -g mcp -s /bin/bash mcp && \
+    chown -R mcp:mcp /app /tmp/music
+
+# Health check script
+RUN echo '#!/bin/bash\npython -c "import src.server; print(\"MCP server imports successfully\")" || exit 1' > /app/healthcheck.sh && \
+    chmod +x /app/healthcheck.sh && \
+    chown mcp:mcp /app/healthcheck.sh
+
+# Switch to non-root user
+USER mcp
+
+# Expose MCP server port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD /app/healthcheck.sh
+
+# Default command - start MCP server
+CMD ["python", "-m", "src.server"]

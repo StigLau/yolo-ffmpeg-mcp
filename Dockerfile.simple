@@ -1,0 +1,73 @@
+# Simple Docker build for speech detection testing
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Update and install system dependencies with GPG bypass
+RUN apt-get update --allow-releaseinfo-change || true && \
+    apt-get update --allow-unauthenticated && \
+    apt-get install -y --allow-unauthenticated \
+    ffmpeg \
+    libsndfile1 \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install UV for package management
+RUN pip install uv
+
+# Create working directory
+WORKDIR /app
+
+# Copy application files
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY pyproject.toml ./
+COPY test_lookin_docker.py ./
+
+# Install core dependencies
+RUN uv pip install --system \
+    fastmcp>=2.7.1 \
+    mcp>=1.9.3 \
+    pydantic>=2.11.5 \
+    pytest>=8.4.0 \
+    pytest-asyncio>=1.0.0
+
+# Install speech detection dependencies with fallbacks
+RUN uv pip install --system \
+    torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu || \
+    uv pip install --system torch>=2.0.0
+
+RUN uv pip install --system \
+    torchaudio>=2.0.0 --index-url https://download.pytorch.org/whl/cpu || \
+    uv pip install --system torchaudio>=2.0.0
+
+RUN uv pip install --system \
+    librosa>=0.10.0 \
+    pydub>=0.25.0 \
+    jsonschema>=4.0.0 \
+    psutil>=5.9.0
+
+# Try to install Silero VAD with fallbacks
+RUN pip install silero-vad || \
+    pip install git+https://github.com/snakers4/silero-vad.git || \
+    echo "Silero VAD installation failed, will use torch hub loading"
+
+# Create directories for file processing
+RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/screenshots /tmp/music/metadata
+
+# Create non-root user for security
+RUN groupadd -r mcp && useradd -r -g mcp -s /bin/bash mcp && \
+    chown -R mcp:mcp /app /tmp/music
+
+# Switch to non-root user
+USER mcp
+
+# Default command - run our test
+CMD ["python", "test_lookin_docker.py"]

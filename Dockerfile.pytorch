@@ -1,0 +1,50 @@
+# Use official PyTorch image as base to avoid repository issues
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies using existing package cache
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create working directory
+WORKDIR /app
+
+# Copy application files
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY pyproject.toml ./
+COPY test_lookin_docker.py ./
+
+# Install Python dependencies
+RUN pip install \
+    fastmcp>=2.7.1 \
+    mcp>=1.9.3 \
+    pydantic>=2.11.5 \
+    pytest>=8.4.0 \
+    pytest-asyncio>=1.0.0 \
+    librosa>=0.10.0 \
+    pydub>=0.25.0 \
+    jsonschema>=4.0.0 \
+    psutil>=5.9.0
+
+# Install Silero VAD
+RUN pip install silero-vad || \
+    pip install git+https://github.com/snakers4/silero-vad.git || \
+    echo "Silero VAD installation failed, will use torch hub loading"
+
+# Create directories for file processing
+RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/screenshots /tmp/music/metadata
+
+# Copy the test video file (optional, will be mounted if not found)
+RUN mkdir -p /tmp/music/source
+
+# Default command - run our test
+CMD ["python", "test_lookin_docker.py"]

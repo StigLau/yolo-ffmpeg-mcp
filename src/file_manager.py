@@ -111,3 +111,27 @@ class FileManager:
                     self.invalidate_cache(file_id)
                 except Exception:
                     pass
+    
+    def get_id_by_name(self, filename: str) -> Optional[str]:
+        """Find file ID by filename in source directory"""
+        try:
+            # Look for file in source directory
+            file_path = self.source_dir / filename
+            if file_path.exists():
+                # Check if already registered
+                for file_id, registered_path in self.file_map.items():
+                    if registered_path.samefile(file_path):
+                        return file_id
+                
+                # Register new file
+                return self.register_file(file_path)
+            
+            return None
+        except Exception:
+            return None
+    
+    def add_temp_file(self, file_path: Path) -> str:
+        """Add temporary file to manager and return ID"""
+        file_id = f"file_{uuid.uuid4().hex[:8]}"
+        self.file_map[file_id] = file_path.resolve()
+        return file_id

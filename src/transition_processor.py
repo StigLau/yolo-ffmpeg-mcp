@@ -154,7 +154,10 @@ class TransitionProcessor:
         offset_seconds = abs(start_offset_beats) / beats_per_second
         
         # Apply gradient wipe using FFmpeg xfade
-        from .server import process_file_internal
+        try:
+            from .server import process_file_internal
+        except ImportError:
+            from server import process_file_internal
         
         result = await process_file_internal(
             first_clip,
@@ -180,7 +183,10 @@ class TransitionProcessor:
         duration_seconds = duration_beats / beats_per_second
         offset_seconds = parameters.get("offset_seconds", 0)
         
-        from .server import process_file_internal
+        try:
+            from .server import process_file_internal
+        except ImportError:
+            from server import process_file_internal
         
         result = await process_file_internal(
             first_clip,
@@ -203,7 +209,10 @@ class TransitionProcessor:
         
         opacity = parameters.get("opacity", 0.5)
         
-        from .server import process_file_internal
+        try:
+            from .server import process_file_internal
+        except ImportError:
+            from server import process_file_internal
         
         result = await process_file_internal(
             first_clip,
@@ -235,7 +244,10 @@ class TransitionProcessor:
                              duration_seconds: float, target_duration: float) -> str:
         """Extract and potentially stretch a video segment"""
         
-        from .server import process_file_internal
+        try:
+            from .server import process_file_internal
+        except ImportError:
+            from server import process_file_internal
         
         # Step 1: Extract the segment
         extracted = await process_file_internal(
@@ -275,7 +287,10 @@ class TransitionProcessor:
         if url.startswith("file://"):
             filename = url[7:]  # Remove "file://" prefix
             
-            from .config import SecurityConfig
+            try:
+                from .config import SecurityConfig
+            except ImportError:
+                from config import SecurityConfig
             source_dir = SecurityConfig.SOURCE_DIR
             
             for file_path in source_dir.glob("*"):
@@ -291,7 +306,10 @@ class TransitionProcessor:
         if len(clip_ids) < 2:
             return clip_ids[0] if clip_ids else None
             
-        from .server import process_file_internal
+        try:
+            from .server import process_file_internal
+        except ImportError:
+            from server import process_file_internal
         
         # Start with first two clips
         result = await process_file_internal(
