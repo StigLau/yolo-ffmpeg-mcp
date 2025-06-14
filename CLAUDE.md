@@ -156,25 +156,30 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 - ✅ Command whitelisting and parameter validation
 - ✅ Input sanitization and error handling
 
-## Project Structure
-```
-src/
-├── server.py             # Main MCP server with 12 production tools
-├── file_manager.py       # Secure file ID mapping
-├── ffmpeg_wrapper.py     # Safe FFMPEG command building with image_to_video fix
-├── content_analyzer.py   # AI-powered video content analysis
-├── komposition_processor.py # Beat-synchronized music video processor
-└── config.py            # Security configuration
+## Project Structure (Organized for LLM Navigation)
 
-tests/
-├── test_ffmpeg_integration.py              # Unit tests
-├── test_end_to_end_music_video.py         # Full workflow test
-├── test_intelligent_content_analysis.py   # Content analysis test
-├── test_komposition_music_video.py        # Komposition system validation
-├── data/
-│   └── YOLO_Komposition_Music_Video.json  # Reference komposition JSON
-└── files/                                 # Test videos and audio
-```
+**REFERENCE**: See `PROJECT_STRUCTURE.md` for complete layout guide
+
+### Core System (`src/`)
+- **MCP Server**: `server.py`, `file_manager.py`, `config.py`
+- **Video Processing**: `ffmpeg_wrapper.py`, `content_analyzer.py`, `video_normalizer.py`
+- **Composition System**: `komposition_*.py`, `music_video_builder.py`, `composition_planner.py`
+- **Speech Detection**: `speech_*.py`, `enhanced_speech_analyzer.py`
+- **Resource Management**: `resource_manager.py`, `deterministic_id_generator.py`
+
+### Testing (`tests/`)
+- **CI/CD**: `ci/test_*.py` - Automated pipeline tests
+- **Production**: `test_*_integration.py` - Core functionality tests
+- **Development**: `dev/test_*.py` - Feature development tests
+
+### Examples & Tools
+- **Workflows**: `examples/video-workflows/` - Moved all `create_*.py` scripts
+- **Komposition Examples**: `examples/komposition-examples/` - All JSON compositions
+- **Analysis Tools**: `tools/analysis/` - Debugging and analysis utilities
+- **Scripts**: `scripts/` - Utility scripts (`main.py`, `run_tests.py` moved here)
+
+### Archive
+- **Legacy Tests**: `archive/legacy-tests/` - Historical `test_*.py` files from root
 
 ## Dependencies (UV managed)
 - `mcp` - MCP protocol implementation with FastMCP
@@ -279,3 +284,16 @@ create_video_preset(name, operations)    # Save common workflows as presets
 - **Senior developer context**: Deep technical knowledge assumed
 - **Cost-conscious**: Optimize for efficiency and brevity
 - **YOLO commands**: When prefixed with "YOLO", implement changes directly without discussion
+
+## AI-Generated Documentation Organization
+- **AI-Generated Files**: All .md files created by Claude/AI assistants should be moved to `documents/ai-generated/` folder
+- **Task-Based Organization**: Group documents by the task/feature they address with concise folder names
+- **Purpose**: Enables easier tracking of which documentation is AI-generated vs human-authored, and groups related docs together
+- **Folder Structure**: 
+  - `documents/` - Human-authored documentation and specifications
+  - `documents/ai-generated/mcp-config/` - MCP server configuration and interface docs
+  - `documents/ai-generated/workflow-analysis/` - Workflow efficiency and analysis documents
+  - `documents/ai-generated/komposition/` - Beat-synchronized video creation system docs
+  - `documents/ai-generated/speech-detection/` - Speech detection and audio processing docs
+  - `documents/ai-generated/feature-requests/` - Feature requests and continuation guides
+- **Implementation**: Claude should proactively organize AI-generated files into task-based subfolders with concise names

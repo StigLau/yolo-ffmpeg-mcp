@@ -35,8 +35,8 @@ class KompositionProcessor:
     async def process_komposition(self, komposition_data: Dict[str, Any]) -> Dict[str, Any]:
         """Main processing function: convert komposition to video"""
         
-        # Initialize beat timing
-        bpm = komposition_data["bpm"]
+        # Initialize beat timing (handle both old and new format)
+        bpm = komposition_data.get("bpm") or komposition_data.get("metadata", {}).get("bpm", 120)
         timing = BeatTiming(bpm)
         
         # Step 1: Extract and process all segments according to beat timing

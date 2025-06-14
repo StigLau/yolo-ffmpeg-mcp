@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ffmpeg-mcp": {
+      "command": "/Users/pathsnip/yolo-ffmpeg-mcp/.venv/bin/python",
+      "args": ["-m", "src.server"],
+      "cwd": "/Users/pathsnip/yolo-ffmpeg-mcp",
+      "env": {
+        "PYTHONPATH": "/Users/pathsnip/yolo-ffmpeg-mcp"
+      }
+    }
+  }
+}

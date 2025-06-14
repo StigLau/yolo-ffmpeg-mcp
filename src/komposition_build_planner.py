@@ -162,9 +162,6 @@ class KompositionBuildPlanner:
         Returns:
             Complete build plan with dependencies and execution order
         """
-        print(f"🏗️ CREATING BUILD PLAN FROM KOMPOSITION")
-        print(f"   📄 Source: {komposition_path}")
-        
         try:
             # Step 1: Load and validate komposition
             komposition = await self._load_komposition(komposition_path)
@@ -187,8 +184,6 @@ class KompositionBuildPlanner:
                 end_beat=end_beat
             )
             
-            print(f"   🥁 Timing: {bpm} BPM, beats {start_beat}-{end_beat} ({beat_timing.duration:.1f}s)")
-            
             # Step 3: Create build plan structure
             build_plan = BuildPlan(
                 id=f"build_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
@@ -201,19 +196,15 @@ class KompositionBuildPlanner:
             )
             
             # Step 4: Process source files
-            print(f"\n📂 PROCESSING SOURCE FILES")
             await self._process_source_files(komposition, build_plan)
             
             # Step 5: Plan snippet extractions
-            print(f"\n✂️ PLANNING SNIPPET EXTRACTIONS")
             await self._plan_snippet_extractions(komposition, build_plan)
             
             # Step 6: Plan effects operations
-            print(f"\n✨ PLANNING EFFECTS OPERATIONS")
             await self._plan_effects_operations(komposition, build_plan)
             
             # Step 7: Build dependency graph and execution order
-            print(f"\n🔗 BUILDING DEPENDENCY GRAPH")
             await self._build_execution_order(build_plan)
             
             # Step 8: Estimate processing time
@@ -221,13 +212,6 @@ class KompositionBuildPlanner:
             
             # Step 9: Save build plan
             plan_file = await self._save_build_plan(build_plan)
-            
-            print(f"\n🎉 BUILD PLAN COMPLETE!")
-            print(f"   📊 {len(build_plan.source_files)} source files")
-            print(f"   ✂️ {len(build_plan.snippet_extractions)} extractions")
-            print(f"   ✨ {len(build_plan.effect_operations)} effects")
-            print(f"   🔗 {len(build_plan.execution_order)} operations")
-            print(f"   ⏱️ Est. processing: {build_plan.estimated_processing_time/60:.1f} minutes")
             
             return {
                 "success": True,
@@ -243,9 +227,6 @@ class KompositionBuildPlanner:
             }
             
         except Exception as e:
-            print(f"❌ Build plan creation failed: {e}")
-            import traceback
-            traceback.print_exc()
             return {"success": False, "error": str(e)}
     
     async def _load_komposition(self, komposition_path: str) -> Optional[Dict[str, Any]]:
@@ -257,7 +238,6 @@ class KompositionBuildPlanner:
                 path = Path.cwd() / komposition_path
             
             if not path.exists():
-                print(f"❌ Komposition not found: {komposition_path}")
                 return None
             
             with open(path, 'r') as f:
@@ -267,14 +247,10 @@ class KompositionBuildPlanner:
             required_fields = ["metadata", "segments"]
             for field in required_fields:
                 if field not in komposition:
-                    print(f"❌ Missing required field: {field}")
                     return None
-            
-            print(f"✅ Komposition loaded: {len(komposition['segments'])} segments")
             return komposition
             
         except Exception as e:
-            print(f"❌ Failed to load komposition: {e}")
             return None
     
     async def _process_source_files(self, komposition: Dict[str, Any], build_plan: BuildPlan):
@@ -289,7 +265,6 @@ class KompositionBuildPlanner:
             # Get file info
             file_id = self.file_manager.get_id_by_name(source_ref)
             if not file_id:
-                print(f"   ⚠️ Source not found: {source_ref}")
                 continue
             
             file_path = self.file_manager.resolve_id(file_id)
@@ -304,7 +279,6 @@ class KompositionBuildPlanner:
             )
             
             build_plan.source_files.append(source_file)
-            print(f"   📹 {source_ref}: {file_id}")
     
     async def _plan_snippet_extractions(self, komposition: Dict[str, Any], build_plan: BuildPlan):
         """Plan snippet extractions from source files"""
@@ -352,13 +326,11 @@ class KompositionBuildPlanner:
             )
             
             build_plan.snippet_extractions.append(extraction)
-            print(f"   ✂️ {source_ref}: beat {seg_start}-{seg_end} ({extraction_method})")
     
     async def _plan_effects_operations(self, komposition: Dict[str, Any], build_plan: BuildPlan):
         """Plan effects operations from effects tree"""
         effects_tree = komposition.get("effects_tree", [])
         if not effects_tree:
-            print("   ℹ️ No effects tree found")
             return
         
         operation_id = 0
@@ -379,8 +351,6 @@ class KompositionBuildPlanner:
             
             build_plan.effect_operations.append(operation)
             operation_id += 1
-            
-            print(f"   ✨ {effect_type}: {effect_params}")
     
     async def _build_execution_order(self, build_plan: BuildPlan):
         """Build dependency graph and determine execution order"""
@@ -399,7 +369,6 @@ class KompositionBuildPlanner:
             execution_order.append("final_composition")
         
         build_plan.execution_order = execution_order
-        print(f"   🔗 Execution order: {len(execution_order)} operations")
     
     def _estimate_processing_time(self, build_plan: BuildPlan) -> float:
         """Estimate total processing time in seconds"""
@@ -432,8 +401,6 @@ class KompositionBuildPlanner:
     
     def validate_build_plan_bpm(self, build_plan: BuildPlan, test_bpms: List[int]) -> Dict[str, Any]:
         """Validate build plan calculations for different BPMs"""
-        print(f"🧪 VALIDATING BUILD PLAN FOR MULTIPLE BPMs")
-        
         validation_results = {}
         
         for bpm in test_bpms:
@@ -467,7 +434,4 @@ class KompositionBuildPlanner:
                 "valid": len(extraction_errors) == 0
             }
             
-            status = "✅" if validation_results[bpm]["valid"] else "❌"
-            print(f"   {status} {bpm} BPM: {test_timing.duration:.1f}s total, {len(extraction_errors)} errors")
-        
-        return validation_results
+            return validation_results

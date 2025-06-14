@@ -1,0 +1,124 @@
+{
+  "title": "Generated Music Video",
+  "bpm": 120,
+  "resolution": "1920x1080",
+  "total_beats": 128,
+  "duration_seconds": 64.0,
+  "sources": [
+    {
+      "id": "video1",
+      "type": "video",
+      "mediatype": "video"
+    },
+    {
+      "id": "video2",
+      "type": "video",
+      "mediatype": "video"
+    },
+    {
+      "id": "video3",
+      "type": "video",
+      "mediatype": "video"
+    },
+    {
+      "id": "audio1",
+      "type": "audio",
+      "mediatype": "audio"
+    }
+  ],
+  "segments": [
+    {
+      "beat_start": 0,
+      "beat_end": 8,
+      "source_ref": "video1",
+      "start_time": 5.0,
+      "duration": 4.0,
+      "description": "Action sequence",
+      "visual_score": 0.9
+    },
+    {
+      "beat_start": 8,
+      "beat_end": 16,
+      "source_ref": "video2",
+      "start_time": 5.0,
+      "duration": 4.0,
+      "description": "Action sequence",
+      "visual_score": 0.9
+    },
+    {
+      "beat_start": 16,
+      "beat_end": 24,
+      "source_ref": "video3",
+      "start_time": 5.0,
+      "duration": 4.0,
+      "description": "Action sequence",
+      "visual_score": 0.9
+    },
+    {
+      "beat_start": 24,
+      "beat_end": 32,
+      "source_ref": "video1",
+      "start_time": 0.0,
+      "duration": 4.0,
+      "description": "Opening scene",
+      "visual_score": 0.8
+    },
+    {
+      "beat_start": 32,
+      "beat_end": 40,
+      "source_ref": "video2",
+      "start_time": 0.0,
+      "duration": 4.0,
+      "description": "Opening scene",
+      "visual_score": 0.8
+    },
+    {
+      "beat_start": 40,
+      "beat_end": 48,
+      "source_ref": "video3",
+      "start_time": 0.0,
+      "duration": 4.0,
+      "description": "Opening scene",
+      "visual_score": 0.8
+    },
+    {
+      "beat_start": 48,
+      "beat_end": 56,
+      "source_ref": "video1",
+      "start_time": 10.0,
+      "duration": 4.0,
+      "description": "Close-up shots",
+      "visual_score": 0.7
+    },
+    {
+      "beat_start": 56,
+      "beat_end": 64,
+      "source_ref": "video2",
+      "start_time": 10.0,
+      "duration": 4.0,
+      "description": "Close-up shots",
+      "visual_score": 0.7
+    },
+    {
+      "beat_start": 64,
+      "beat_end": 72,
+      "source_ref": "video3",
+      "start_time": 10.0,
+      "duration": 4.0,
+      "description": "Close-up shots",
+      "visual_score": 0.7
+    }
+  ],
+  "audio": {
+    "file_id": "audio1",
+    "type": "backing_track"
+  },
+  "effects": {
+    "global": [
+      {
+        "type": "leica_look",
+        "applies_to": "all_segments"
+      }
+    ]
+  }
+}
