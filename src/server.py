@@ -20,6 +20,7 @@ try:
     from .composition_planner import CompositionPlanner
     from .komposition_build_planner import KompositionBuildPlanner
     from .komposition_generator import KompositionGenerator
+    from .effect_processor import EffectProcessor
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -33,6 +34,7 @@ except ImportError:
     from composition_planner import CompositionPlanner
     from komposition_build_planner import KompositionBuildPlanner
     from komposition_generator import KompositionGenerator
+    from effect_processor import EffectProcessor
 
 
 # Initialize MCP server
@@ -50,6 +52,7 @@ enhanced_speech_analyzer = EnhancedSpeechAnalyzer()
 composition_planner = CompositionPlanner()
 komposition_build_planner = KompositionBuildPlanner()
 komposition_generator = KompositionGenerator()
+effect_processor = EffectProcessor(ffmpeg, file_manager)
 
 
 class FileInfo(BaseModel):
@@ -3633,6 +3636,247 @@ async def create_video_from_description(
             "success": False,
             "error": f"Atomic video creation failed: {str(e)}",
             "workflow_results": workflow_results if 'workflow_results' in locals() else {}
+        }
+
+
+@mcp.tool()
+async def get_available_video_effects(category: str = None, provider: str = None) -> Dict[str, Any]:
+    """📹 VIDEO EFFECTS - List all available video effects with parameter discovery
+    
+    This tool provides comprehensive information about available video effects including:
+    - Parameter specifications with types, ranges, and defaults
+    - Performance estimates and provider information  
+    - Category-based filtering for easy discovery
+    - Parameter validation rules and constraints
+    
+    Args:
+        category: Filter by effect category ("color", "stylistic", "blur", "distortion", "privacy")
+        provider: Filter by provider ("ffmpeg", "opencv", "pil")
+    
+    Returns:
+        Dictionary containing:
+        - effects: Complete effect specifications with parameters
+        - categories: Available effect categories
+        - providers: Available effect providers  
+        - effects_count: Total number of available effects
+        
+    Categories:
+        🎨 color: Color grading, curves, film looks (vintage, noir)
+        ✨ stylistic: Visual effects (VHS, vignette, neon glow)
+        🌫️ blur: Gaussian blur, motion blur variants
+        🔀 distortion: Chromatic aberration, glitch effects
+        🔒 privacy: Face detection and blurring
+        
+    Providers:
+        🎬 ffmpeg: High-performance native video filters
+        👁️ opencv: AI-powered computer vision effects
+        🖼️ pil: Image processing effects
+        
+    Example Usage:
+        get_available_video_effects()  # All effects
+        get_available_video_effects(category="color")  # Color effects only
+        get_available_video_effects(provider="ffmpeg")  # FFmpeg effects only
+    """
+    try:
+        return effect_processor.get_available_effects(category=category, provider=provider)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get available effects: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_video_effect(file_id: str, effect_name: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    """📹 VIDEO EFFECTS - Apply single video effect with parameter control
+    
+    Apply professional video effects to your videos with precise parameter control.
+    Each effect preserves audio streams and provides performance estimates.
+    
+    Args:
+        file_id: Source video file ID from list_files()
+        effect_name: Effect name from get_available_video_effects()
+        parameters: Effect-specific parameters (optional, uses defaults if not provided)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating processing completion
+        - output_file_id: New file ID for the processed video
+        - processing_time: Actual processing duration
+        - effect_applied: Details of the effect and parameters used
+        
+    Popular Effects:
+    
+    🎨 Color Effects:
+        - vintage_color: Warm nostalgic film look
+          Parameters: intensity (0.0-2.0), warmth (-0.5-0.5), saturation (0.0-2.0)
+        - film_noir: High contrast black and white  
+          Parameters: contrast (1.0-3.0), brightness (-0.5-0.5)
+    
+    ✨ Stylistic Effects:
+        - vhs_look: Retro VHS tape aesthetic
+          Parameters: noise_level (0.0-20.0), blur_amount (0.0-2.0), saturation (0.0-2.0)
+        - vignette: Dark edges for cinematic feel
+          Parameters: angle (0.0-6.28), x0 (0.0-1.0), y0 (0.0-1.0), mode ("forward"/"backward")
+    
+    🌫️ Blur Effects:  
+        - gaussian_blur: Smooth blur effect
+          Parameters: sigma (0.1-20.0), steps (1-10)
+    
+    🔀 Distortion Effects:
+        - chromatic_aberration: RGB channel separation
+          Parameters: red_offset_x (-10-10), blue_offset_x (-10-10), intensity (0.0-2.0)
+    
+    🔒 Privacy Effects:
+        - face_blur: Automatic face detection and blurring
+          Parameters: blur_strength (5.0-50.0), detection_confidence (0.3-0.95)
+          
+    Example Usage:
+        apply_video_effect(
+            file_id="file_12345678",
+            effect_name="vintage_color",
+            parameters={"intensity": 1.2, "warmth": 0.3}
+        )
+        
+        apply_video_effect(
+            file_id="file_12345678", 
+            effect_name="gaussian_blur",
+            parameters={"sigma": 8.0}
+        )
+    """
+    try:
+        return await effect_processor.apply_effect(file_id, effect_name, parameters)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply video effect: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_video_effect_chain(file_id: str, effects_chain: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """📹 VIDEO EFFECTS - Apply multiple effects in sequence with chaining
+    
+    Stack multiple video effects to create complex looks and styles. Effects are applied
+    sequentially, with each effect processing the output of the previous effect.
+    
+    Args:
+        file_id: Source video file ID from list_files()
+        effects_chain: List of effect steps, each containing:
+            - effect: Effect name from get_available_video_effects()
+            - parameters: Effect-specific parameters (optional)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating complete chain processing
+        - final_output_file_id: File ID of the final processed video
+        - applied_effects: Details of each effect step with output file IDs
+        - total_steps: Number of effects applied
+        
+    Effect Stacking Examples:
+    
+    🎬 Cinematic Grade:
+        [
+            {"effect": "vintage_color", "parameters": {"intensity": 0.8, "warmth": 0.2}},
+            {"effect": "vignette", "parameters": {"angle": 1.57}},
+            {"effect": "gaussian_blur", "parameters": {"sigma": 1.0}}
+        ]
+    
+    📱 Social Media Ready:
+        [
+            {"effect": "vintage_color", "parameters": {"saturation": 1.3}},
+            {"effect": "vhs_look", "parameters": {"noise_level": 3.0}}
+        ]
+        
+    🔒 Privacy Protection:
+        [
+            {"effect": "face_blur", "parameters": {"blur_strength": 20.0}},
+            {"effect": "vintage_color", "parameters": {"intensity": 0.5}}
+        ]
+        
+    🎨 Film Emulation:
+        [
+            {"effect": "film_noir", "parameters": {"contrast": 1.5}},
+            {"effect": "chromatic_aberration", "parameters": {"intensity": 0.3}}
+        ]
+    
+    Performance Notes:
+        - Each effect adds processing time (see get_available_video_effects for estimates)
+        - Order matters: blur effects should typically come last
+        - Color effects work well together when applied in sequence
+        - Privacy effects (face_blur) should be applied early in the chain
+        
+    Example Usage:
+        apply_video_effect_chain(
+            file_id="file_12345678",
+            effects_chain=[
+                {"effect": "vintage_color", "parameters": {"intensity": 1.0}},
+                {"effect": "vignette", "parameters": {"angle": 1.57}},
+                {"effect": "gaussian_blur", "parameters": {"sigma": 2.0}}
+            ]
+        )
+    """
+    try:
+        return await effect_processor.apply_effect_chain(file_id, effects_chain)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply video effect chain: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def estimate_effect_processing_time(file_id: str, effects_chain: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """📹 VIDEO EFFECTS - Estimate processing time for effects chain
+    
+    Get accurate processing time estimates before applying effects. Helps with planning
+    batch operations and understanding performance impact of different effect combinations.
+    
+    Args:
+        file_id: Source video file ID to analyze
+        effects_chain: List of effect steps to estimate (same format as apply_video_effect_chain)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating estimation completion
+        - video_duration: Duration of source video in seconds
+        - total_estimated_time: Total processing time estimate in seconds
+        - effect_estimates: Per-effect processing estimates with performance tiers
+        - time_per_effect: Average time per effect
+        
+    Performance Tiers:
+        🚀 fast: Real-time or near real-time processing (< 1s per video second)
+        ⚡ medium: Moderate processing time (1-5s per video second)  
+        🐌 slow: Intensive processing (> 5s per video second)
+        
+    Estimation Factors:
+        - Video duration and resolution
+        - Effect complexity and provider (FFmpeg vs OpenCV vs PIL)
+        - Hardware capabilities (CPU vs GPU acceleration where available)
+        - Parameter settings (higher blur = longer processing)
+        
+    Use Cases:
+        - Plan batch processing workflows
+        - Compare different effect combinations
+        - Estimate completion times for long videos
+        - Optimize effect order for better performance
+        
+    Example Usage:
+        estimate_effect_processing_time(
+            file_id="file_12345678", 
+            effects_chain=[
+                {"effect": "vintage_color"},
+                {"effect": "gaussian_blur", "parameters": {"sigma": 10.0}},
+                {"effect": "face_blur"}
+            ]
+        )
+    """
+    try:
+        return effect_processor.estimate_processing_time(file_id, effects_chain)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to estimate processing time: {str(e)}"
         }
 
 
