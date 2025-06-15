@@ -30,8 +30,8 @@ class TestVideoEffects:
             "processing_time": 5.2
         })
         
-        file_manager_mock.get_file_path.return_value = Path("/tmp/test_video.mp4")
-        file_manager_mock.register_temp_file.return_value = "file_output_123"
+        file_manager_mock.resolve_id.return_value = Path("/tmp/test_video.mp4")
+        file_manager_mock.register_file.return_value = "file_output_123"
         
         processor = EffectProcessor(ffmpeg_mock, file_manager_mock)
         return processor
@@ -89,8 +89,8 @@ class TestVideoEffects:
     @pytest.mark.asyncio
     async def test_apply_ffmpeg_effect(self, effect_processor):
         """Test applying FFmpeg-based effects"""
-        with patch.object(effect_processor.file_manager, 'get_file_path', return_value=Path("/tmp/test.mp4")):
-            with patch.object(effect_processor.file_manager, 'register_temp_file', return_value="file_output_456"):
+        with patch.object(effect_processor.file_manager, 'resolve_id', return_value=Path("/tmp/test.mp4")):
+            with patch.object(effect_processor.file_manager, 'register_file', return_value="file_output_456"):
                 result = await effect_processor.apply_effect(
                     file_id="file_123",
                     effect_name="vintage_color",
@@ -151,7 +151,7 @@ class TestVideoEffects:
     
     def test_processing_time_estimation(self, effect_processor):
         """Test processing time estimation"""
-        with patch.object(effect_processor.file_manager, 'get_file_path', return_value=Path("/tmp/test.mp4")):
+        with patch.object(effect_processor.file_manager, 'resolve_id', return_value=Path("/tmp/test.mp4")):
             # Mock ffprobe output for duration
             mock_ffprobe_output = '{"format": {"duration": "30.0"}}'
             with patch('subprocess.run') as mock_subprocess:
@@ -249,33 +249,44 @@ class TestEffectIntegration:
         from src.ffmpeg_wrapper import FFMPEGWrapper
         from src.file_manager import FileManager
         from src.config import SecurityConfig
+        import shutil
         
-        # Create real components (not mocked)
-        ffmpeg = FFMPEGWrapper(SecurityConfig.FFMPEG_PATH)
-        file_manager = FileManager()
-        effect_processor = EffectProcessor(ffmpeg, file_manager)
+        # Copy temp file to allowed source directory
+        source_dir = Path(SecurityConfig.SOURCE_DIR)
+        source_dir.mkdir(exist_ok=True)
+        allowed_file = source_dir / "test_video_effects.mp4"
+        shutil.copy2(temp_video_file, allowed_file)
         
-        # Register the test file
-        file_id = file_manager.register_file(temp_video_file)
-        
-        # Test a simple effect
-        result = asyncio.run(effect_processor.apply_effect(
-            file_id=file_id,
-            effect_name="vintage_color", 
-            parameters={"intensity": 0.8}
-        ))
-        
-        if result["success"]:
-            # Verify output file exists
-            output_path = Path(result["output_path"])
-            assert output_path.exists()
-            assert output_path.stat().st_size > 0
+        try:
+            # Create real components (not mocked)
+            ffmpeg = FFMPEGWrapper(SecurityConfig.FFMPEG_PATH)
+            file_manager = FileManager()
+            effect_processor = EffectProcessor(ffmpeg, file_manager)
             
-            # Cleanup output
-            output_path.unlink(missing_ok=True)
-        else:
-            # Log the error for debugging
-            print(f"Effect processing failed: {result.get('error')}")
+            # Register the test file
+            file_id = file_manager.register_file(allowed_file)
+            
+            # Test a simple effect
+            result = asyncio.run(effect_processor.apply_effect(
+                file_id=file_id,
+                effect_name="vintage_color", 
+                parameters={"intensity": 0.8}
+            ))
+            
+            if result["success"]:
+                # Verify output file exists
+                output_path = Path(result["output_path"])
+                assert output_path.exists()
+                assert output_path.stat().st_size > 0
+                
+                # Cleanup output
+                output_path.unlink(missing_ok=True)
+            else:
+                # Log the error for debugging
+                print(f"Effect processing failed: {result.get('error')}")
+        finally:
+            # Cleanup test file
+            allowed_file.unlink(missing_ok=True)
 
 
 class TestPresetSystem:

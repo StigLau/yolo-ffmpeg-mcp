@@ -577,11 +577,11 @@ async def batch_process(operations: List[Dict[str, Any]]) -> Dict[str, Any]:
         current_file_id = None
         
         for i, op in enumerate(operations):
-            # Use previous output as input for chaining (if input_file_id is 'CHAIN')
+            # Use previous output as input for chaining (if input_file_id is 'OUTPUT_PREVIOUS')
             input_id = op.get('input_file_id')
-            if input_id == 'CHAIN' and current_file_id:
+            if input_id in ['OUTPUT_PREVIOUS', 'CHAIN'] and current_file_id:
                 input_id = current_file_id
-            elif input_id == 'CHAIN' and not current_file_id:
+            elif input_id in ['OUTPUT_PREVIOUS', 'CHAIN'] and not current_file_id:
                 return {"success": False, "error": f"Operation {i}: Cannot chain - no previous output"}
             
             operation = op.get('operation')
@@ -3822,6 +3822,182 @@ async def apply_video_effect_chain(file_id: str, effects_chain: List[Dict[str, A
         return {
             "success": False,
             "error": f"Failed to apply video effect chain: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def suggest_efficient_workflow(goal_description: str, available_files: List[str] = None) -> Dict[str, Any]:
+    """🎯 WORKFLOW OPTIMIZATION - Get optimized workflow suggestions to minimize function calls
+    
+    This tool analyzes your goal and suggests the most efficient combination of MCP tools to achieve it,
+    reducing the number of function calls from 20+ down to 3-5 calls by using atomic operations and batch processing.
+    
+    Args:
+        goal_description: What you want to create (e.g., "music video with effects", "batch convert videos")
+        available_files: Optional list of file names/IDs you want to work with
+    
+    Returns:
+        Dictionary containing:
+        - recommended_workflow: Step-by-step optimized workflow
+        - efficiency_score: Estimated function call reduction
+        - atomic_functions: Single-call solutions when available
+        - batch_operations: Multi-step operations in minimal calls
+        - fallback_manual: Manual step-by-step if atomic functions fail
+    
+    Efficiency Examples:
+        Instead of: 25+ individual calls
+        Use: 3-5 optimized calls with batch_process() and atomic functions
+        
+        Instead of: apply_video_effect() → apply_video_effect() → apply_video_effect()
+        Use: apply_video_effect_chain() - single call for multiple effects
+        
+        Instead of: Individual trim/resize/audio operations
+        Use: batch_process() with OUTPUT_PREVIOUS chaining
+    
+    Goal Types Optimized:
+        🎬 "Create music video" → create_video_from_description() (1 call)
+        ✨ "Apply multiple effects" → apply_video_effect_chain() (1 call)  
+        🔗 "Multi-step processing" → batch_process() (1 call)
+        📱 "Social media format" → Optimized resize + effects batch
+        🎵 "Add music to videos" → Audio workflow with minimal steps
+    """
+    try:
+        goal = goal_description.lower()
+        
+        # Analyze goal and suggest optimal workflow
+        if any(keyword in goal for keyword in ['music video', 'create video', 'video from']):
+            return {
+                "success": True,
+                "recommended_workflow": "atomic_single_call",
+                "efficiency_score": "95% reduction (25+ calls → 1 call)",
+                "atomic_functions": [
+                    {
+                        "function": "create_video_from_description",
+                        "description": "Single atomic call for complete video creation",
+                        "parameters": {
+                            "description": goal_description,
+                            "title": "Generated Video",
+                            "execution_mode": "full"
+                        },
+                        "why_efficient": "Combines file discovery, komposition generation, build planning, and processing in one call"
+                    }
+                ],
+                "fallback_manual": [
+                    "1. list_files() - discover available media",
+                    "2. generate_komposition_from_description() - create structure", 
+                    "3. process_komposition_file() - execute creation"
+                ],
+                "estimated_calls": 1,
+                "efficiency_tips": [
+                    "Use execution_mode='plan_only' to preview without processing",
+                    "Add custom_resolution='600x800' for social media formats",
+                    "Include BPM and effects in description for better results"
+                ]
+            }
+            
+        elif any(keyword in goal for keyword in ['effects', 'filter', 'apply', 'style']):
+            return {
+                "success": True,
+                "recommended_workflow": "effect_chain_batch",
+                "efficiency_score": "80% reduction (10+ calls → 2 calls)",
+                "atomic_functions": [
+                    {
+                        "function": "get_available_video_effects",
+                        "description": "Discover all effects and parameters",
+                        "parameters": {},
+                        "why_efficient": "Single call to see all 12 effects with parameter specs"
+                    },
+                    {
+                        "function": "apply_video_effect_chain",
+                        "description": "Apply multiple effects in one operation",
+                        "parameters": {
+                            "file_id": "target_file_id",
+                            "effects_chain": [
+                                {"effect": "vintage_color", "parameters": {"intensity": 1.0}},
+                                {"effect": "vignette", "parameters": {"angle": 1.57}}
+                            ]
+                        },
+                        "why_efficient": "Chains multiple effects without intermediate files"
+                    }
+                ],
+                "batch_operations": [
+                    {
+                        "description": "If you need different effects on different files",
+                        "use": "batch_process with video effects operations"
+                    }
+                ],
+                "estimated_calls": 2,
+                "popular_effect_chains": {
+                    "cinematic": ["vintage_color", "vignette", "gaussian_blur"],
+                    "social_media": ["social_media_pack", "warm_cinematic"],
+                    "retro": ["vhs_look", "chromatic_aberration"],
+                    "professional": ["film_noir", "dreamy_soft"]
+                }
+            }
+            
+        elif any(keyword in goal for keyword in ['batch', 'multiple', 'convert', 'resize']):
+            return {
+                "success": True,
+                "recommended_workflow": "batch_processing",
+                "efficiency_score": "90% reduction (20+ calls → 2-3 calls)",
+                "atomic_functions": [
+                    {
+                        "function": "batch_process",
+                        "description": "Process multiple operations with OUTPUT_PREVIOUS chaining",
+                        "parameters": {
+                            "operations": [
+                                {"input_file_id": "file_123", "operation": "trim", "output_extension": "mp4", "params": "start=0 duration=10"},
+                                {"input_file_id": "OUTPUT_PREVIOUS", "operation": "resize", "output_extension": "mp4", "params": "width=1920 height=1080"},
+                                {"input_file_id": "OUTPUT_PREVIOUS", "operation": "to_mp3", "output_extension": "mp3"}
+                            ]
+                        },
+                        "why_efficient": "Chains multiple operations atomically with proper file passing"
+                    }
+                ],
+                "chaining_tips": [
+                    "Use 'OUTPUT_PREVIOUS' as input_file_id to chain operations",
+                    "Each operation processes the output of the previous one",
+                    "Batch stops on first failure with detailed error reporting",
+                    "Final output file_id returned for further processing"
+                ],
+                "estimated_calls": 1,
+                "common_chains": {
+                    "social_media_prep": ["trim", "resize", "to_mp3"],
+                    "quality_improve": ["normalize_audio", "convert", "resize"],
+                    "format_standardize": ["convert", "resize", "extract_audio"]
+                }
+            }
+            
+        else:
+            # General workflow optimization
+            return {
+                "success": True,
+                "recommended_workflow": "optimized_general",
+                "efficiency_score": "70% reduction (15+ calls → 4-5 calls)",
+                "general_principles": [
+                    "1. Always start with list_files() to see available media and get smart suggestions",
+                    "2. Use atomic functions when available (create_video_from_description, apply_video_effect_chain)",
+                    "3. Use batch_process() for multi-step operations with OUTPUT_PREVIOUS chaining",
+                    "4. Use list_generated_files() to track outputs and cleanup_temp_files() to clean up",
+                    "5. Prefer single comprehensive calls over multiple individual operations"
+                ],
+                "atomic_first_strategy": [
+                    "Try create_video_from_description() for video creation goals",
+                    "Try apply_video_effect_chain() for multiple effects",
+                    "Try batch_process() for multi-step workflows"
+                ],
+                "manual_fallback": [
+                    "If atomic functions fail, use individual process_file() calls",
+                    "Chain outputs manually: output_file_id from step 1 → input_file_id for step 2",
+                    "Always verify success before proceeding to next step"
+                ],
+                "estimated_calls": "4-5 vs 15-25 manual calls"
+            }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to generate workflow suggestions: {str(e)}"
         }
 
 

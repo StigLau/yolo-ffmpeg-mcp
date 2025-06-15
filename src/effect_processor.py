@@ -361,7 +361,7 @@ class EffectProcessor:
     async def _apply_ffmpeg_effect(self, file_id: str, effect: EffectDefinition, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Apply FFmpeg-based effect"""
         # Get source file path
-        source_path = self.file_manager.get_file_path(file_id)
+        source_path = self.file_manager.resolve_id(file_id)
         if not source_path:
             return {"success": False, "error": f"File not found: {file_id}"}
         
@@ -386,7 +386,7 @@ class EffectProcessor:
         
         if result["success"]:
             # Register output file
-            output_file_id = self.file_manager.register_temp_file(output_path)
+            output_file_id = self.file_manager.register_file(output_path)
             return {
                 "success": True,
                 "input_file_id": file_id,
@@ -424,7 +424,7 @@ class EffectProcessor:
         except ImportError:
             return {"success": False, "error": "OpenCV not available. Install with: pip install opencv-python"}
         
-        source_path = self.file_manager.get_file_path(file_id)
+        source_path = self.file_manager.resolve_id(file_id)
         if not source_path:
             return {"success": False, "error": f"File not found: {file_id}"}
         
@@ -474,7 +474,7 @@ class EffectProcessor:
         out.release()
         
         # Register output file
-        output_file_id = self.file_manager.register_temp_file(output_path)
+        output_file_id = self.file_manager.register_file(output_path)
         
         return {
             "success": True,
@@ -496,7 +496,7 @@ class EffectProcessor:
         except ImportError:
             return {"success": False, "error": "PIL or OpenCV not available"}
         
-        source_path = self.file_manager.get_file_path(file_id)
+        source_path = self.file_manager.resolve_id(file_id)
         if not source_path:
             return {"success": False, "error": f"File not found: {file_id}"}
         
@@ -549,7 +549,7 @@ class EffectProcessor:
         out.release()
         
         # Register output file
-        output_file_id = self.file_manager.register_temp_file(output_path)
+        output_file_id = self.file_manager.register_file(output_path)
         
         return {
             "success": True,
@@ -564,7 +564,7 @@ class EffectProcessor:
     def estimate_processing_time(self, file_id: str, effects_chain: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Estimate total processing time for effects chain"""
         # Get video duration
-        source_path = self.file_manager.get_file_path(file_id)
+        source_path = self.file_manager.resolve_id(file_id)
         if not source_path:
             return {"success": False, "error": f"File not found: {file_id}"}
         
