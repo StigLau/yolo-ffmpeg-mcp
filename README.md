@@ -1,3 +1,8 @@
+# Summary
+
+PoC of wrapping FFMPEG and packaging it as Music Video scriptable from natural language. IE, how one can leverage existing libraries and APIs to be accessible to LLMs, do API discovery and find new use cases.
+Working with a developer-LLM (Claude Code) which has access to the project, it can easily append functionality to the system, while running in "standard mode" - The end user talks to Claude Desktop which in turn talks to the MCP server, wrapping FFMPEG and other libraries. Standard mode is restricted by the functionality that was created up until now, but the LLM/Claude Desktop can find new usages of the provided functinality
+
 # FFMPEG MCP Server 🎬
 
 An intelligent video editing MCP server with AI-powered content analysis, speech detection, and automated music video creation.
