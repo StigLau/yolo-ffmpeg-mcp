@@ -168,35 +168,35 @@ jobs:
       run: |
         # Create lightweight Alpine Dockerfile
         cat > Dockerfile.alpine << 'EOF'
-FROM python:3.13-alpine
-
-# Install system dependencies (minimal Alpine packages)
-RUN apk add --no-cache \
-    ffmpeg \
-    ffmpeg-dev \
-    bash \
-    gcc \
-    musl-dev \
-    linux-headers
-
-# Install UV (fastest Python package manager)
-RUN pip install --no-cache-dir uv
-
-WORKDIR /app
-COPY src/ ./src/
-COPY scripts/verify_container_components.py ./verify.py
-
-# Install minimal dependencies for verification
-RUN uv pip install --system --no-cache \
-    fastmcp \
-    mcp \
-    pydantic
-
-ENV PYTHONPATH=/app:/app/src
-
-# Quick verification command
-CMD ["python", "verify.py"]
-EOF
+        FROM python:3.13-alpine
+        
+        # Install system dependencies (minimal Alpine packages)
+        RUN apk add --no-cache \
+            ffmpeg \
+            ffmpeg-dev \
+            bash \
+            gcc \
+            musl-dev \
+            linux-headers
+        
+        # Install UV (fastest Python package manager)
+        RUN pip install --no-cache-dir uv
+        
+        WORKDIR /app
+        COPY src/ ./src/
+        COPY scripts/verify_container_components.py ./verify.py
+        
+        # Install minimal dependencies for verification
+        RUN uv pip install --system --no-cache \
+            fastmcp \
+            mcp \
+            pydantic
+        
+        ENV PYTHONPATH=/app:/app/src
+        
+        # Quick verification command
+        CMD ["python", "verify.py"]
+        EOF
 
         # Build Alpine container (much faster than Ubuntu)
         podman build -f Dockerfile.alpine -t ffmpeg-mcp-alpine:latest .
