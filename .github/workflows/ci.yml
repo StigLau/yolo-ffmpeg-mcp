@@ -123,7 +123,6 @@ jobs:
   test-docker:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    if: false  # DISABLED: Docker tests are misbehaving
     
     steps:
     - name: Checkout code
@@ -258,7 +257,7 @@ jobs:
   # Summary job
   ci-summary:
     runs-on: ubuntu-latest
-    needs: [test-unit-integration, test-e2e-video, test-performance-security, test-documentation]
+    needs: [test-unit-integration, test-e2e-video, test-docker, test-performance-security, test-documentation]
     if: always()
     
     steps:
@@ -267,12 +266,13 @@ jobs:
         echo "🎉 CI/CD Pipeline Complete!"
         echo "Unit/Integration: ${{ needs.test-unit-integration.result }}"
         echo "E2E Video: ${{ needs.test-e2e-video.result }}"  
-        # echo "Docker: ${{ needs.test-docker.result }}"  # DISABLED
+        echo "Docker: ${{ needs.test-docker.result }}"
         echo "Performance/Security: ${{ needs.test-performance-security.result }}"
         echo "Documentation: ${{ needs.test-documentation.result }}"
         
         if [[ "${{ needs.test-unit-integration.result }}" == "success" && 
               "${{ needs.test-e2e-video.result }}" == "success" && 
+              "${{ needs.test-docker.result }}" == "success" && 
               "${{ needs.test-documentation.result }}" == "success" ]]; then
           echo "🎊 All critical tests passed!"
         else
