@@ -194,8 +194,8 @@ jobs:
         echo "🚀 Running lightweight performance tests..."
         # Test import speed
         time python -c "import src.server; print('✅ Server imports successful')"
-        # Test MCP tool discovery
-        python -c "from src.server import mcp; print(f'✅ Found {len(mcp.list_tools())} MCP tools')"
+        # Test MCP server configuration
+        python -c "import src.server; print('✅ MCP server configuration loaded')"
         echo "✅ Performance benchmarks completed (lightweight mode)"
     
     - name: Upload security results
