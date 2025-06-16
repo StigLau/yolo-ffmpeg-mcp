@@ -89,7 +89,7 @@ class EffectProcessor:
                 EffectParameter("warmth", "float", 0.2, -0.5, 0.5, "Color temperature adjustment"),
                 EffectParameter("saturation", "float", 0.85, 0.0, 2.0, "Color saturation")
             ],
-            filter_chain="eq=saturation={saturation}:contrast=1.1,colorbalance=shadows={warmth}:highlights={warmth}",
+            filter_chain="eq=saturation={saturation}:contrast=1.1,colorbalance=rs={warmth}:rh={warmth}",
             performance_tier="fast",
             estimated_time_per_second=0.05
         )
@@ -185,6 +185,89 @@ class EffectProcessor:
             processing_function="process_chromatic_aberration",
             performance_tier="medium",
             estimated_time_per_second=0.5
+        )
+        
+        # Additional effects to match API
+        self.effects_registry["social_media_pack"] = EffectDefinition(
+            name="social_media_pack",
+            provider=EffectProvider.FFMPEG,
+            category="stylistic",
+            description="Optimized effects pack for social media content with increased saturation and contrast",
+            parameters=[
+                EffectParameter("saturation", "float", 1.3, 0.5, 2.0, "Color saturation boost"),
+                EffectParameter("contrast", "float", 1.2, 0.8, 2.0, "Contrast enhancement"),
+                EffectParameter("brightness", "float", 0.05, -0.2, 0.2, "Brightness adjustment"),
+                EffectParameter("sharpness", "float", 0.8, 0.0, 2.0, "Sharpening intensity")
+            ],
+            filter_chain="eq=saturation={saturation}:contrast={contrast}:brightness={brightness},unsharp=5:5:{sharpness}:5:5:0.0",
+            performance_tier="fast",
+            estimated_time_per_second=0.1
+        )
+        
+        self.effects_registry["warm_cinematic"] = EffectDefinition(
+            name="warm_cinematic",
+            provider=EffectProvider.FFMPEG,
+            category="color",
+            description="Warm cinematic look with orange/teal color grading",
+            parameters=[
+                EffectParameter("orange_push", "float", 0.1, -0.3, 0.3, "Orange tint in shadows"),
+                EffectParameter("midtone_warmth", "float", 0.05, -0.2, 0.2, "Midtone warmth"),
+                EffectParameter("highlight_cool", "float", -0.05, -0.2, 0.2, "Cool highlights"),
+                EffectParameter("saturation", "float", 1.1, 0.0, 2.0, "Overall saturation"),
+                EffectParameter("contrast", "float", 1.05, 0.5, 2.0, "Contrast adjustment")
+            ],
+            filter_chain="eq=saturation={saturation}:contrast={contrast},colorbalance=rs={orange_push}:rm={midtone_warmth}:rh={highlight_cool}",
+            performance_tier="fast",
+            estimated_time_per_second=0.08
+        )
+        
+        self.effects_registry["glitch_aesthetic"] = EffectDefinition(
+            name="glitch_aesthetic",
+            provider=EffectProvider.FFMPEG,
+            category="distortion",
+            description="Digital glitch effect with noise and RGB separation",
+            parameters=[
+                EffectParameter("noise_strength", "float", 15.0, 0.0, 50.0, "Digital noise intensity"),
+                EffectParameter("red_shift", "int", 3, -10, 10, "Red channel horizontal shift"),
+                EffectParameter("blue_shift", "int", -3, -10, 10, "Blue channel horizontal shift")
+            ],
+            filter_chain="noise=alls={noise_strength},rgbashift=rh={red_shift}:bh={blue_shift}",
+            performance_tier="medium",
+            estimated_time_per_second=0.3
+        )
+        
+        self.effects_registry["dreamy_soft"] = EffectDefinition(
+            name="dreamy_soft",
+            provider=EffectProvider.FFMPEG,
+            category="stylistic",
+            description="Soft dreamy effect with gentle blur and brightness",
+            parameters=[
+                EffectParameter("blur_sigma", "float", 1.5, 0.1, 5.0, "Soft blur amount"),
+                EffectParameter("brightness", "float", 0.1, -0.3, 0.3, "Dreamy brightness boost"),
+                EffectParameter("saturation", "float", 0.9, 0.0, 2.0, "Subtle desaturation"),
+                EffectParameter("negative_sharpen", "float", -0.3, -1.0, 1.0, "Reverse sharpening for softness")
+            ],
+            filter_chain="gblur=sigma={blur_sigma},eq=saturation={saturation}:brightness={brightness},unsharp=5:5:{negative_sharpen}:5:5:0.0",
+            performance_tier="medium",
+            estimated_time_per_second=0.2
+        )
+        
+        self.effects_registry["horror_desaturated"] = EffectDefinition(
+            name="horror_desaturated",
+            provider=EffectProvider.FFMPEG,
+            category="color",
+            description="Horror movie aesthetic with desaturation and cool tones",
+            parameters=[
+                EffectParameter("saturation", "float", 0.3, 0.0, 1.0, "Heavy desaturation"),
+                EffectParameter("contrast", "float", 1.4, 1.0, 2.5, "High contrast"),
+                EffectParameter("brightness", "float", -0.1, -0.5, 0.0, "Darker overall tone"),
+                EffectParameter("shadow_cool", "float", -0.1, -0.3, 0.0, "Cool shadows"),
+                EffectParameter("midtone_cool", "float", -0.05, -0.2, 0.0, "Cool midtones"),
+                EffectParameter("highlight_cool", "float", -0.03, -0.2, 0.0, "Cool highlights")
+            ],
+            filter_chain="eq=saturation={saturation}:contrast={contrast}:brightness={brightness},colorbalance=rs={shadow_cool}:rm={midtone_cool}:rh={highlight_cool}",
+            performance_tier="fast",
+            estimated_time_per_second=0.12
         )
     
     def _register_external_effects(self, effects_data: Dict[str, Any]):
@@ -374,15 +457,15 @@ class EffectProcessor:
             filter_chain = filter_chain.replace(f"{{{param_name}}}", str(param_value))
         
         # Execute FFmpeg command
-        result = await self.ffmpeg.execute_command(
-            [
-                "-i", str(source_path),
-                "-vf", filter_chain,
-                "-c:a", "copy",  # Copy audio stream unchanged
-                "-y",
-                str(output_path)
-            ]
-        )
+        command = [
+            self.ffmpeg.ffmpeg_path,
+            "-i", str(source_path),
+            "-vf", filter_chain,
+            "-c:a", "copy",  # Copy audio stream unchanged
+            "-y",
+            str(output_path)
+        ]
+        result = await self.ffmpeg.execute_command(command)
         
         if result["success"]:
             # Register output file
