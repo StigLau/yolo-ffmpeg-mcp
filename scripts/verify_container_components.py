@@ -66,6 +66,16 @@ def verify_python_modules():
         import sys
         import os
         sys.path.insert(0, '/app')
+        sys.path.insert(0, '/app/src')
+        
+        # Test basic Python imports first
+        print(f"      Testing basic imports...")
+        import src.file_manager
+        print(f"      ✓ file_manager imported")
+        import src.config
+        print(f"      ✓ config imported")
+        
+        # Now test full server
         import src.server
         print(f"   ✅ src.server")
     except ImportError as e:
@@ -73,6 +83,7 @@ def verify_python_modules():
         print(f"      Python path: {sys.path}")
         print(f"      Working dir: {os.getcwd()}")
         print(f"      App contents: {os.listdir('/app') if os.path.exists('/app') else 'N/A'}")
+        print(f"      Src contents: {os.listdir('/app/src') if os.path.exists('/app/src') else 'N/A'}")
         return False
     
     for module, description in modules:
