@@ -26,7 +26,8 @@ RUN uv pip install --system --no-cache \
     jsonschema>=4.0.0 \
     psutil>=5.9.0 \
     pillow>=10.0.0 \
-    numpy>=1.24.0
+    numpy>=1.24.0 \
+    pyyaml>=6.0.0
 
 # Copy minimal project files (excludes large test files due to .dockerignore)
 COPY . .

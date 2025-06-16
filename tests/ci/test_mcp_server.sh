@@ -42,9 +42,14 @@ call_mcp_method() {
 import sys
 import json
 import asyncio
+import os
 sys.path.insert(0, '$MCP_SERVER_DIR/src')
+sys.path.insert(0, '$MCP_SERVER_DIR')
+os.chdir('$MCP_SERVER_DIR')
 
-from server import mcp
+# Import as module to avoid relative import issues
+import src.server as server_module
+mcp = server_module.mcp
 
 async def test_method():
     try:
@@ -142,9 +147,14 @@ cat > "$TEST_OUTPUT_DIR/get_file_ids.py" << 'EOF'
 import sys
 import json
 import asyncio
+import os
 sys.path.insert(0, '$MCP_SERVER_DIR/src')
+sys.path.insert(0, '$MCP_SERVER_DIR')
+os.chdir('$MCP_SERVER_DIR')
 
-from server import mcp
+# Import as module to avoid relative import issues
+import src.server as server_module
+mcp = server_module.mcp
 
 async def get_file_ids():
     try:
@@ -327,8 +337,11 @@ test-mcp-quick: ## Run basic MCP server connectivity test
 	@cd $(shell pwd) && PYTHONPATH=$(shell pwd) .venv/bin/python -c "
 import asyncio
 import sys
+import os
 sys.path.insert(0, 'src')
-from server import mcp
+os.chdir('.')
+import src.server as server_module
+mcp = server_module.mcp
 async def test():
     result = await mcp.call_tool('list_files', {})
     print(f'✅ MCP server responding - found {len(result.get(\"files\", []))} files')
