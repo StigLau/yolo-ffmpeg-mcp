@@ -74,8 +74,17 @@ check_podman() {
 build_image() {
     print_info "Building Podman image: $IMAGE_NAME:$VERSION"
     
-    # Build with Containerfile (Podman's preferred format)
-    podman build -f Containerfile -t $IMAGE_NAME:$VERSION .
+    # Build with Containerfile (Podman's preferred format) or fallback
+    if [ -f "Containerfile" ]; then
+        print_info "Using Containerfile for build..."
+        podman build -f Containerfile -t $IMAGE_NAME:$VERSION .
+    elif [ -f "docker/Dockerfile.ci-test" ]; then
+        print_warning "Containerfile not found, using Docker CI test file..."
+        podman build -f docker/Dockerfile.ci-test -t $IMAGE_NAME:$VERSION .
+    else
+        print_error "No suitable build file found (Containerfile or docker/Dockerfile.ci-test)"
+        exit 1
+    fi
     
     if [ $? -eq 0 ]; then
         print_success "Podman image built successfully"
