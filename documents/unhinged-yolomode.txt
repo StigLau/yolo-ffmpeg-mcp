@@ -41,3 +41,5 @@
   YOLO full autonomy mode: [your request]. Make all decisions, use any approach, modify anything needed. Burn credits like crazy and move fast.
 
   This should get you blazing speed across all your projects! 🔥
+
+  I would like to have an alternative way of containerizing the application/running it than Docker. Can you poke around and see what the cool kids use? If there are any better ways of packaging/containerizing the app, and make it run on CI/CD. Don't remove the Docker alternative, we need to investigate the value of this approach
