@@ -70,9 +70,9 @@ docker-compose*.yml
 .dockerignore
 
 # Large test files (keep structure but exclude large media)
-tests/files/*.mp4
-tests/files/*.mov
-tests/files/*.avi
+# tests/files/*.mp4  # Commented out to allow CI testing
+# tests/files/*.mov  # Commented out to allow CI testing  
+# tests/files/*.avi  # Commented out to allow CI testing
 !tests/files/small-*.mp4
 
 # Generated output directories (will be created by container)
