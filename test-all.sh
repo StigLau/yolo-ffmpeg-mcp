@@ -5,8 +5,8 @@ echo "🚀 FFMPEG MCP Server - Complete Test Suite"
 echo "=========================================="
 echo ""
 
-# Check if Docker is available
-if command -v docker >/dev/null 2>&1; then
+# Check if Docker is available and running
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     echo "🐳 Running tests in Docker (clean environment)..."
     
     # Build Docker image
@@ -39,6 +39,19 @@ if command -v docker >/dev/null 2>&1; then
     echo "💡 For detailed output, run: ./test-ci-local.sh"
     echo "💡 For specific tests, run: docker run --rm ffmpeg-mcp-test:latest python -m pytest [test-file] -v"
     
+elif command -v uv >/dev/null 2>&1; then
+    echo "⚡ Running tests with UV (ultra-fast Python package manager)..."
+    
+    echo ""
+    echo "📋 Test Results:"
+    echo "----------------"
+    
+    # Run tests with UV
+    uv run pytest tests/ci/ -v --tb=short
+    
+    echo ""
+    echo "✅ UV tests completed!"
+
 elif command -v python3 >/dev/null 2>&1 && command -v pytest >/dev/null 2>&1; then
     echo "🐍 Running tests locally (using system Python)..."
     
