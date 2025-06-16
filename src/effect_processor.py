@@ -374,7 +374,7 @@ class EffectProcessor:
             filter_chain = filter_chain.replace(f"{{{param_name}}}", str(param_value))
         
         # Execute FFmpeg command
-        result = await self.ffmpeg.run_ffmpeg_command(
+        result = await self.ffmpeg.execute_command(
             [
                 "-i", str(source_path),
                 "-vf", filter_chain,
