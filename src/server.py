@@ -21,6 +21,7 @@ try:
     from .komposition_build_planner import KompositionBuildPlanner
     from .komposition_generator import KompositionGenerator
     from .effect_processor import EffectProcessor
+    from .format_manager import FormatManager, COMMON_PRESETS
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -35,6 +36,7 @@ except ImportError:
     from komposition_build_planner import KompositionBuildPlanner
     from komposition_generator import KompositionGenerator
     from effect_processor import EffectProcessor
+    from format_manager import FormatManager, COMMON_PRESETS
 
 
 # Initialize MCP server
@@ -53,6 +55,7 @@ composition_planner = CompositionPlanner()
 komposition_build_planner = KompositionBuildPlanner()
 komposition_generator = KompositionGenerator()
 effect_processor = EffectProcessor(ffmpeg, file_manager)
+format_manager = FormatManager()
 
 
 class FileInfo(BaseModel):
@@ -4053,6 +4056,230 @@ async def estimate_effect_processing_time(file_id: str, effects_chain: List[Dict
         return {
             "success": False,
             "error": f"Failed to estimate processing time: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def analyze_video_formats(file_ids: List[str]) -> Dict[str, Any]:
+    """
+    Analyze aspect ratios of multiple videos and suggest optimal target format.
+    
+    Args:
+        file_ids: List of file IDs to analyze
+        
+    Returns:
+        Dictionary with format analysis and recommendations
+    """
+    try:
+        analyses = []
+        for file_id in file_ids:
+            file_path = file_manager.resolve_id(file_id)
+            analysis = format_manager.analyze_video_format(file_path, file_id)
+            analyses.append({
+                "file_id": file_id,
+                "resolution": f"{analysis.width}x{analysis.height}",
+                "aspect_ratio": f"{analysis.aspect_ratio:.2f}",
+                "orientation": analysis.orientation,
+                "suggested_crop_mode": analysis.suggested_crop_mode.value,
+                "crop_compatibility": analysis.crop_compatibility
+            })
+        
+        # Get format suggestion
+        video_analyses = [format_manager.analyze_video_format(file_manager.resolve_id(fid), fid) for fid in file_ids]
+        suggested_format = format_manager.suggest_target_format(video_analyses)
+        
+        return {
+            "success": True,
+            "video_analyses": analyses,
+            "suggested_format": {
+                "aspect_ratio": suggested_format.aspect_ratio.display_name,
+                "resolution": f"{suggested_format.width}x{suggested_format.height}",
+                "orientation": suggested_format.orientation,
+                "crop_mode": suggested_format.crop_mode.value
+            },
+            "common_presets": {name: {
+                "aspect_ratio": preset.aspect_ratio.display_name,
+                "resolution": f"{preset.width}x{preset.height}",
+                "crop_mode": preset.crop_mode.value
+            } for name, preset in COMMON_PRESETS.items()}
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to analyze video formats: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def preview_format_conversion(
+    file_id: str, 
+    target_format: str, 
+    crop_mode: str = "center_crop",
+    timestamp: float = 5.0
+) -> Dict[str, Any]:
+    """
+    Generate preview image showing how video will be cropped/fitted to target format.
+    
+    Args:
+        file_id: ID of the source video
+        target_format: Target format preset name or "custom"
+        crop_mode: Cropping strategy (center_crop, scale_letterbox, scale_blur_bg, etc.)
+        timestamp: Time in seconds to extract preview frame
+        
+    Returns:
+        Dictionary with preview image path and conversion details
+    """
+    try:
+        from .format_manager import CropMode, FormatSpec, AspectRatio
+    except ImportError:
+        from format_manager import CropMode, FormatSpec, AspectRatio
+        
+        # Get target format specification
+        if target_format in COMMON_PRESETS:
+            format_spec = COMMON_PRESETS[target_format]
+        else:
+            # Default format
+            format_spec = COMMON_PRESETS["youtube_landscape"]
+        
+        # Override crop mode if specified
+        try:
+            crop_mode_enum = CropMode(crop_mode)
+            format_spec = FormatSpec(format_spec.aspect_ratio, format_spec.resolution, crop_mode_enum)
+        except ValueError:
+            pass  # Use default crop mode
+        
+        # Generate preview
+        file_path = file_manager.resolve_id(file_id)
+        preview_path = format_manager.generate_preview_frame(file_path, format_spec, timestamp)
+        
+        # Get conversion analysis
+        analysis = format_manager.analyze_video_format(file_path, file_id)
+        conversion_plan = format_manager.create_format_conversion_plan([analysis], format_spec)
+        
+        return {
+            "success": True,
+            "preview_image": preview_path,
+            "conversion_details": conversion_plan["video_conversions"][0],
+            "quality_estimate": conversion_plan["estimated_quality_loss"],
+            "warnings": conversion_plan["warnings"]
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to generate preview: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def create_format_conversion_plan(
+    file_ids: List[str],
+    target_format: str = "auto",
+    crop_mode: str = "auto"
+) -> Dict[str, Any]:
+    """
+    Create detailed plan for converting multiple videos to consistent target format.
+    
+    Args:
+        file_ids: List of video file IDs to convert
+        target_format: Target format preset ("youtube_landscape", "instagram_square", etc.) or "auto"
+        crop_mode: Cropping strategy or "auto" for intelligent selection
+        
+    Returns:
+        Complete conversion plan with FFmpeg commands and quality estimates
+    """
+    try:
+        from .format_manager import CropMode, FormatSpec
+    except ImportError:
+        from format_manager import CropMode, FormatSpec
+        
+        # Analyze all videos
+        video_analyses = []
+        for file_id in file_ids:
+            file_path = file_manager.resolve_id(file_id)
+            analysis = format_manager.analyze_video_format(file_path, file_id)
+            video_analyses.append(analysis)
+        
+        # Determine target format
+        if target_format == "auto":
+            format_spec = format_manager.suggest_target_format(video_analyses)
+        elif target_format in COMMON_PRESETS:
+            format_spec = COMMON_PRESETS[target_format]
+        else:
+            format_spec = COMMON_PRESETS["youtube_landscape"]  # Fallback
+        
+        # Override crop mode if specified
+        if crop_mode != "auto":
+            try:
+                crop_mode_enum = CropMode(crop_mode)
+                format_spec = FormatSpec(format_spec.aspect_ratio, format_spec.resolution, crop_mode_enum)
+            except ValueError:
+                pass  # Use default crop mode
+        
+        # Create detailed conversion plan
+        conversion_plan = format_manager.create_format_conversion_plan(video_analyses, format_spec)
+        
+        return {
+            "success": True,
+            "conversion_plan": conversion_plan,
+            "execution_ready": True,
+            "estimated_processing_time": len(file_ids) * 30  # Rough estimate
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to create conversion plan: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def get_format_presets() -> Dict[str, Any]:
+    """
+    Get list of available format presets for different platforms and use cases.
+    
+    Returns:
+        Dictionary of format presets with their specifications
+    """
+    try:
+        presets = {}
+        for name, preset in COMMON_PRESETS.items():
+            presets[name] = {
+                "name": name,
+                "aspect_ratio": preset.aspect_ratio.display_name,
+                "resolution": f"{preset.width}x{preset.height}",
+                "orientation": preset.orientation,
+                "crop_mode": preset.crop_mode.value,
+                "description": {
+                    "youtube_landscape": "Standard YouTube video format (16:9 landscape)",
+                    "instagram_square": "Instagram square post format (1:1)",
+                    "instagram_story": "Instagram Story/Reels format (9:16 portrait)",
+                    "tiktok_vertical": "TikTok vertical video format (9:16 portrait)",
+                    "twitter_landscape": "Twitter video format (16:9 landscape)",
+                    "facebook_square": "Facebook square video format (1:1)",
+                    "cinema_wide": "Cinematic widescreen format (21:9)"
+                }.get(name, f"Format preset: {name}")
+            }
+        
+        return {
+            "success": True,
+            "presets": presets,
+            "crop_modes": {
+                "center_crop": "Crop from center, losing edges (good for symmetric content)",
+                "smart_crop": "AI-detected focal point cropping (best quality, slower)",
+                "scale_letterbox": "Fit with black bars (preserves all content)",
+                "scale_blur_bg": "Fit with blurred background (popular for social media)",
+                "scale_stretch": "Stretch to fit (may distort, not recommended)",
+                "top_crop": "Crop from top (good for portraits with people)",
+                "bottom_crop": "Crop from bottom"
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get format presets: {str(e)}"
         }
 
 

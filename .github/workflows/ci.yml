@@ -62,7 +62,7 @@ jobs:
         python -m pytest tests/ci/test_mcp_server.py -v --tb=short
         
     - name: Upload test artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-unit-integration
@@ -120,7 +120,7 @@ jobs:
         timeout 300 tests/ci/test_mcp_server.sh || echo "Shell test completed with timeout"
     
     - name: Upload video artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-videos-e2e
@@ -166,7 +166,7 @@ jobs:
           python tests/docker/test_lookin_docker.py || echo "Speech test completed"
     
     - name: Upload Docker test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: docker-test-results
@@ -213,7 +213,7 @@ jobs:
         python scripts/video_validator.py
     
     - name: Upload security results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-scan-results

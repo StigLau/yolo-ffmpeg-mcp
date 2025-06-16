@@ -1,8 +1,5 @@
-# FFMPEG MCP Server - Production Docker Image
-# Multi-stage build for optimized container size
-
-# Stage 1: Base system with FFmpeg and Python
-FROM python:3.13-slim-bookworm AS base
+# FFMPEG MCP Server - Alpine-based for smaller size and stability
+FROM python:3.11-alpine
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -10,111 +7,84 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Fix GPG keys and install system dependencies
-RUN apt-get update --allow-releaseinfo-change || true && \
-    apt-get update --allow-unauthenticated || true && \
-    apt-get install -y --allow-unauthenticated \
-    # FFmpeg and multimedia libraries
+# Install system dependencies
+RUN apk add --no-cache \
+    # Core utilities
+    bash \
+    curl \
+    netcat-openbsd \
+    # FFmpeg and multimedia
     ffmpeg \
-    # OpenCV dependencies
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    # Audio processing dependencies
-    libsndfile1 \
-    # Network and security
-    ca-certificates \
-    # Build tools (needed for some Python packages)
+    # Build tools and development libraries
     gcc \
     g++ \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-# Stage 2: Python dependencies
-FROM base AS python-deps
+    musl-dev \
+    linux-headers \
+    # OpenCV dependencies 
+    glib-dev \
+    # Audio processing
+    libsndfile-dev \
+    # Python development
+    python3-dev \
+    # For some pip packages
+    build-base
 
 # Install UV for fast Python package management
-RUN pip install uv
+RUN pip install --no-cache-dir uv
 
 # Create working directory
 WORKDIR /app
 
-# Copy dependency files
+# Copy dependency files first for better layer caching
 COPY pyproject.toml ./
 
-# Install Python dependencies using UV
-RUN uv pip install --system \
+# Install core Python dependencies (lightweight versions for Alpine)
+RUN uv pip install --system --no-cache \
     fastmcp>=2.7.1 \
     mcp>=1.9.3 \
-    opencv-python>=4.11.0.86 \
     pydantic>=2.11.5 \
-    scenedetect>=0.6.6 \
     # Testing dependencies
     pytest>=8.4.0 \
-    pytest-asyncio>=1.0.0
-
-# Install speech detection dependencies
-RUN uv pip install --system \
-    # Audio processing libraries
-    librosa>=0.10.0 \
-    pydub>=0.25.0 \
-    # Speech processing
-    torch>=2.0.0 \
-    torchaudio>=2.0.0 \
-    # Silero VAD for speech detection
-    silero-vad \
-    # JSON schema validation
+    pytest-asyncio>=1.0.0 \
+    # Minimal dependencies for Alpine
     jsonschema>=4.0.0 \
-    # Performance monitoring
-    psutil>=5.9.0
+    psutil>=5.9.0 \
+    # Video effects dependencies
+    opencv-python-headless>=4.8.0 \
+    pillow>=10.0.0 \
+    numpy>=1.24.0
 
-# Stage 3: Final production image
-FROM base AS production
-
-# Create non-root user for security
-RUN groupadd -r mcp && useradd -r -g mcp -s /bin/bash mcp
-
-# Copy Python dependencies from previous stage
-COPY --from=python-deps /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=python-deps /usr/local/bin /usr/local/bin
-
-# Create application directory
-WORKDIR /app
+# Create non-root user
+RUN addgroup -g 1000 mcp && adduser -u 1000 -G mcp -s /bin/bash -D mcp
 
 # Copy application code
 COPY src/ ./src/
 COPY tests/ ./tests/
-COPY pyproject.toml ./
 COPY README.md ./
 
 # Create directories for file processing
-RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/screenshots /tmp/music/metadata \
+RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/screenshots /tmp/music/metadata /tmp/music/finished \
     && chown -R mcp:mcp /app /tmp/music
 
 # Create health check script
-RUN echo '#!/bin/bash\npython -c "import src.server; print(\"MCP server imports successfully\")" || exit 1' > /app/healthcheck.sh \
+RUN echo '#!/bin/bash\npython -c "import src.server; print(\"✅ MCP server OK\")" || exit 1' > /app/healthcheck.sh \
     && chmod +x /app/healthcheck.sh \
     && chown mcp:mcp /app/healthcheck.sh
 
 # Switch to non-root user
 USER mcp
 
-# Expose MCP server port (standard MCP protocol)
+# Expose MCP server port
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD /app/healthcheck.sh
 
-# Default command - start MCP server
+# Default command
 CMD ["python", "-m", "src.server"]
 
-# Labels for container metadata
+# Labels
 LABEL maintainer="Stig Lau" \
       version="1.0.0" \
-      description="FFMPEG MCP Server with Intelligent Video Processing" \
-      org.opencontainers.image.source="https://github.com/stiglau/yolo-ffmpeg-mcp" \
-      org.opencontainers.image.title="FFMPEG MCP Server" \
-      org.opencontainers.image.description="Intelligent video processing with AI-powered content analysis"
+      description="FFMPEG MCP Server - Alpine Build"
