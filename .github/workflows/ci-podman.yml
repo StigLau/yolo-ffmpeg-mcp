@@ -210,18 +210,7 @@ jobs:
         podman run --rm ffmpeg-mcp-alpine:latest ffmpeg -version | head -1
         
         # Test our module imports (core functionality)
-        podman run --rm ffmpeg-mcp-alpine:latest python -c "
-import sys
-sys.path.insert(0, '/app')
-sys.path.insert(0, '/app/src')
-try:
-    import src.file_manager
-    import src.config
-    print('✅ Core modules import OK')
-except ImportError as e:
-    print(f'❌ Import failed: {e}')
-    exit(1)
-"
+        podman run --rm ffmpeg-mcp-alpine:latest python -c "import sys; sys.path.insert(0, '/app'); sys.path.insert(0, '/app/src'); import src.file_manager; import src.config; print('✅ Core modules import OK')"
         
         echo "🚀 Alpine container test completed successfully!"
 
