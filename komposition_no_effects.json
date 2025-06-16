@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "title": "Clean Video Demo - No Effects",
+    "bpm": 120,
+    "estimatedDuration": 24,
+    "resolution": "1280x720",
+    "renderStartBeat": 0,
+    "renderEndBeat": 48
+  },
+  "sources": {
+    "JJVtt947FfI_136.mp4": "JJVtt947FfI_136.mp4",
+    "PXL_20250306_132546255.mp4": "PXL_20250306_132546255.mp4", 
+    "_wZ5Hof5tXY_136.mp4": "_wZ5Hof5tXY_136.mp4"
+  },
+  "segments": [
+    {
+      "id": "intro_clean",
+      "startBeat": 0,
+      "endBeat": 16,
+      "duration": 8.0,
+      "sourceType": "video",
+      "sourceRef": "JJVtt947FfI_136.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 23.4,
+        "duration": 8.0
+      },
+      "effects": []
+    },
+    {
+      "id": "middle_clean", 
+      "startBeat": 16,
+      "endBeat": 32,
+      "duration": 8.0,
+      "sourceType": "video",
+      "sourceRef": "PXL_20250306_132546255.mp4",
+      "operation": "trim",
+      "params": {
+        "start": 0,
+        "duration": 8.0
+      },
+      "effects": []
+    },
+    {
+      "id": "outro_clean",
+      "startBeat": 32,
+      "endBeat": 48,
+      "duration": 8.0,
+      "sourceType": "video",
+      "sourceRef": "_wZ5Hof5tXY_136.mp4",
+      "operation": "trim", 
+      "params": {
+        "start": 0,
+        "duration": 8.0
+      },
+      "effects": []
+    }
+  ]
+}
