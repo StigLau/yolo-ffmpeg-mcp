@@ -182,7 +182,7 @@ jobs:
         COPY src/ ./src/
         COPY scripts/verify_container_components.py ./verify.py
         
-        # Install minimal dependencies for verification (skip OpenCV for Alpine)
+        # Install minimal dependencies for verification (truly minimal)
         RUN uv pip install --system --no-cache \
             fastmcp \
             mcp \
