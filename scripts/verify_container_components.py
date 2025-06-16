@@ -52,20 +52,33 @@ def verify_python_modules():
     print("🐍 Checking Python modules...")
     
     modules = [
-        "src.server",
-        "fastmcp", 
-        "mcp",
-        "pydantic",
-        "pytest",
-        "cv2",
-        "PIL",
-        "numpy"
+        ("fastmcp", "FastMCP framework"), 
+        ("mcp", "MCP protocol"),
+        ("pydantic", "Data validation"),
+        ("pytest", "Testing framework"),
+        ("cv2", "OpenCV"),
+        ("PIL", "Pillow imaging"),
+        ("numpy", "NumPy arrays")
     ]
     
-    for module in modules:
+    # Check src.server separately with better error handling
+    try:
+        import sys
+        import os
+        sys.path.insert(0, '/app')
+        import src.server
+        print(f"   ✅ src.server")
+    except ImportError as e:
+        print(f"   ❌ src.server: {e}")
+        print(f"      Python path: {sys.path}")
+        print(f"      Working dir: {os.getcwd()}")
+        print(f"      App contents: {os.listdir('/app') if os.path.exists('/app') else 'N/A'}")
+        return False
+    
+    for module, description in modules:
         try:
             __import__(module)
-            print(f"   ✅ {module}")
+            print(f"   ✅ {module} ({description})")
         except ImportError as e:
             print(f"   ❌ {module}: {e}")
             return False
