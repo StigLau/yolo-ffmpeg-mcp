@@ -16,7 +16,7 @@ WORKDIR /app
 # Copy only requirements first for better caching
 COPY pyproject.toml ./
 
-# Install Python dependencies first (cached layer)
+# Install Python dependencies first (fresh build with PyYAML)
 RUN uv pip install --system --no-cache \
     fastmcp>=2.7.1 \
     mcp>=1.9.3 \

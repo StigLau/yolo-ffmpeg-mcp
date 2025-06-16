@@ -138,8 +138,7 @@ jobs:
         file: ./docker/Dockerfile.ci-test
         tags: ffmpeg-mcp-ci:latest
         load: true
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        no-cache: true
     
     - name: Run Docker-based tests
       run: |
