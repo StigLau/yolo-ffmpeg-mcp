@@ -14,8 +14,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Test configuration
-MCP_SERVER_DIR="/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp"
-PYTHON_PATH="$MCP_SERVER_DIR/.venv/bin/python"
+MCP_SERVER_DIR="${GITHUB_WORKSPACE:-$(pwd)}"
+PYTHON_PATH="${PYTHON_PATH:-python3}"
 TEST_OUTPUT_DIR="/tmp/music/test_results"
 
 # Ensure output directory exists
@@ -142,7 +142,7 @@ cat > "$TEST_OUTPUT_DIR/get_file_ids.py" << 'EOF'
 import sys
 import json
 import asyncio
-sys.path.insert(0, '/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/src')
+sys.path.insert(0, '$MCP_SERVER_DIR/src')
 
 from server import mcp
 

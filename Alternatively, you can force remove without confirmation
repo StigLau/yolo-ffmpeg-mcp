@@ -1,0 +1,3 @@
+podman machine rm -f podman-machine-default
+podman machine init
+podman machine start
