@@ -147,7 +147,7 @@ class VideoValidator:
         try:
             # Sample frames for black frame detection
             frame_cmd = [
-                "ffmpeg",
+                ffmpeg_path,
                 "-i", str(video_path),
                 "-vf", "blackdetect=d=0.5:pix_th=0.1",
                 "-f", "null",
