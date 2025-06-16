@@ -90,7 +90,14 @@ jobs:
     
     - name: Build Podman image
       run: |
-        podman build -f Containerfile -t ffmpeg-mcp-podman:latest .
+        # Try Containerfile first, fallback to Docker CI file
+        if [[ -f "Containerfile" ]]; then
+          echo "Building with Containerfile..."
+          podman build -f Containerfile -t ffmpeg-mcp-podman:latest .
+        else
+          echo "Containerfile not found, using Docker CI test file..."
+          podman build -f docker/Dockerfile.ci-test -t ffmpeg-mcp-podman:latest .
+        fi
     
     - name: Run Podman container tests
       run: |
