@@ -49,7 +49,7 @@ def test_file_manager_basic_operations():
     test_files = list(Path("/tmp/music/source").glob("*.mp4"))
     if test_files:
         test_file = test_files[0]
-        file_id = fm.register_file(test_file.name, test_file)
+        file_id = fm.register_file(test_file)
         assert file_id.startswith("file_")
         
         # Test file retrieval
@@ -74,7 +74,7 @@ async def test_ffmpeg_wrapper_info():
     test_files = list(Path("/tmp/music/source").glob("*.mp4"))
     if test_files:
         test_file = test_files[0]
-        file_id = file_manager.register_file(test_file.name, test_file)
+        file_id = file_manager.register_file(test_file)
         info = await wrapper.get_file_info(file_id, file_manager)
         
         assert info["success"] is True
@@ -117,7 +117,7 @@ async def test_basic_video_operations():
         pytest.skip("No test video files available")
     
     test_file = test_files[0]
-    file_id = file_manager.register_file(test_file.name, test_file)
+    file_id = file_manager.register_file(test_file)
     
     # Test get info operation
     info = await wrapper.get_file_info(file_id, file_manager)

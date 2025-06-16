@@ -133,8 +133,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./Dockerfile.ci
-        target: ci-test
+        file: ./docker/Dockerfile.ci-test
         tags: ffmpeg-mcp-ci:latest
         load: true
         cache-from: type=gha
@@ -142,9 +141,7 @@ jobs:
     
     - name: Run Docker-based tests
       run: |
-        docker run --rm \
-          -v ${{ github.workspace }}/test-results:/app/test-results \
-          ffmpeg-mcp-ci:latest
+        docker run --rm ffmpeg-mcp-ci:latest
     
     - name: Test Docker speech detection
       run: |

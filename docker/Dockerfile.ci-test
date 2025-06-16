@@ -22,5 +22,8 @@ RUN python -m pip install --upgrade pip && \
 RUN mkdir -p /tmp/music/{source,temp,metadata,screenshots} && \
     cp tests/files/* /tmp/music/source/ 2>/dev/null || true
 
-# Default command runs all CI tests
-CMD ["python", "-m", "pytest", "tests/ci/", "-v", "--tb=short"]
+# Copy and setup test script
+RUN chmod +x scripts/run_ci_tests.sh
+
+# Default command runs all CI tests using our script  
+CMD ["./scripts/run_ci_tests.sh"]
