@@ -250,10 +250,12 @@ jobs:
         # Platform-specific virtual environment activation
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           source .venv/Scripts/activate
+          # Set UTF-8 encoding for Windows
+          export PYTHONIOENCODING=utf-8
         else
           source .venv/bin/activate
         fi
-        uv run python -c "import src.server; print('✅ Server imports OK')"
+        uv run python -c "import src.server; print('Server imports OK')"
       shell: bash
     
     - name: Platform-specific tests  
