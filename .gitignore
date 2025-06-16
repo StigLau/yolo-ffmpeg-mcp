@@ -72,3 +72,4 @@ logs/
 .aider.input.history
 .aider.tags.cache.*
 .aider/
+.aider*
