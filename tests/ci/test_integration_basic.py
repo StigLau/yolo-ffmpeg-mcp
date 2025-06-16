@@ -42,10 +42,8 @@ def test_ffmpeg_available():
 def test_file_manager_basic_operations():
     """Test file manager basic operations"""
     from file_manager import FileManager
-    from config import SecurityConfig
     
-    config = SecurityConfig()
-    fm = FileManager(config)
+    fm = FileManager()
     
     # Test file registration (using test video if available)
     test_files = list(Path("/tmp/music/source").glob("*.mp4"))
@@ -55,27 +53,29 @@ def test_file_manager_basic_operations():
         assert file_id.startswith("file_")
         
         # Test file retrieval
-        retrieved_path = fm.get_file_path(file_id)
-        assert retrieved_path == test_file
+        retrieved_path = fm.resolve_id(file_id)
+        assert retrieved_path == str(test_file)
         
         # Test file info
         info = fm.get_file_info(file_id)
         assert info["name"] == test_file.name
         assert info["size"] > 0
 
-def test_ffmpeg_wrapper_info():
+@pytest.mark.asyncio
+async def test_ffmpeg_wrapper_info():
     """Test FFMPEG wrapper file info functionality"""
     from ffmpeg_wrapper import FFMPEGWrapper
-    from config import SecurityConfig
+    from file_manager import FileManager
     
-    config = SecurityConfig()
-    wrapper = FFMPEGWrapper(config)
+    wrapper = FFMPEGWrapper()
+    file_manager = FileManager()
     
     # Test with available video file
     test_files = list(Path("/tmp/music/source").glob("*.mp4"))
     if test_files:
         test_file = test_files[0]
-        info = wrapper.get_file_info(test_file)
+        file_id = file_manager.register_file(test_file.name, test_file)
+        info = await wrapper.get_file_info(file_id, file_manager)
         
         assert info["success"] is True
         assert "duration" in info["info"]["format"]
@@ -102,13 +102,14 @@ async def test_mcp_server_basic():
     except Exception as e:
         pytest.skip(f"MCP server not available: {e}")
 
-def test_basic_video_operations():
+@pytest.mark.asyncio
+async def test_basic_video_operations():
     """Test basic video operations if files are available"""
     from ffmpeg_wrapper import FFMPEGWrapper
-    from config import SecurityConfig
+    from file_manager import FileManager
     
-    config = SecurityConfig()
-    wrapper = FFMPEGWrapper(config)
+    wrapper = FFMPEGWrapper()
+    file_manager = FileManager()
     
     # Find test video
     test_files = list(Path("/tmp/music/source").glob("*.mp4"))
@@ -116,9 +117,10 @@ def test_basic_video_operations():
         pytest.skip("No test video files available")
     
     test_file = test_files[0]
+    file_id = file_manager.register_file(test_file.name, test_file)
     
     # Test get info operation
-    info = wrapper.get_file_info(test_file)
+    info = await wrapper.get_file_info(file_id, file_manager)
     assert info["success"] is True
     
     # Verify video properties
