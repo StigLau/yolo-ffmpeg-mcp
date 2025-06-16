@@ -144,6 +144,12 @@ class VideoValidator:
             "content_valid": True
         }
         
+        # Find ffmpeg path
+        ffmpeg_path = self._find_ffmpeg_path()
+        if not ffmpeg_path:
+            content_result["content_warnings"].append("FFmpeg not found - skipping content analysis")
+            return content_result
+        
         try:
             # Sample frames for black frame detection
             frame_cmd = [
@@ -193,21 +199,44 @@ class VideoValidator:
         
         return content_result
     
+    def _find_ffmpeg_path(self) -> str:
+        """Find FFmpeg executable in various locations"""
+        import shutil
+        
+        # First try PATH
+        ffmpeg_path = shutil.which("ffmpeg")
+        if ffmpeg_path:
+            return ffmpeg_path
+        
+        # Try common locations
+        common_paths = [
+            "/opt/homebrew/bin/ffmpeg",  # Homebrew on Apple Silicon
+            "/usr/local/bin/ffmpeg",     # Homebrew on Intel Mac / Linux
+            "/usr/bin/ffmpeg",           # System package on Linux
+            "/snap/bin/ffmpeg",          # Snap package on Linux
+            "/usr/local/opt/ffmpeg/bin/ffmpeg",  # Homebrew alternative
+        ]
+        
+        for path in common_paths:
+            if Path(path).exists():
+                return path
+        
+        return None
+    
     def create_test_video(self, output_path: Path, duration: float = 2.0) -> bool:
         """Create a test video for validation testing"""
         try:
-            # Find ffmpeg in PATH or use common locations
-            import shutil
-            ffmpeg_path = shutil.which("ffmpeg")
-            if not ffmpeg_path:
-                # Try common locations
-                for path in ["/opt/homebrew/bin/ffmpeg", "/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg"]:
-                    if Path(path).exists():
-                        ffmpeg_path = path
-                        break
-            
+            # Find ffmpeg path
+            ffmpeg_path = self._find_ffmpeg_path()
             if not ffmpeg_path:
                 print("❌ FFmpeg not found in PATH or common locations")
+                print("   Searched locations:")
+                print("   - System PATH")
+                print("   - /opt/homebrew/bin/ffmpeg (Homebrew Apple Silicon)")
+                print("   - /usr/local/bin/ffmpeg (Homebrew Intel/Linux)")
+                print("   - /usr/bin/ffmpeg (System package)")
+                print("   - /snap/bin/ffmpeg (Snap package)")
+                print("   Please install FFmpeg or ensure it's in your PATH")
                 return False
             
             # First try with libx264

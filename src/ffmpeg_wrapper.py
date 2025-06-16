@@ -3,6 +3,7 @@ from typing import Dict, List, Any
 import asyncio
 import os
 import re
+import shutil
 
 
 class FFMPEGWrapper:
@@ -85,7 +86,7 @@ class FFMPEGWrapper:
     }
 
     def __init__(self, ffmpeg_path: str = None):
-        self.ffmpeg_path = ffmpeg_path or os.getenv("FFMPEG_PATH", "ffmpeg")
+        self.ffmpeg_path = ffmpeg_path or self._find_ffmpeg_path() or "ffmpeg"
         
     def build_command(self, operation: str, input_path: Path, output_path: Path, **params) -> List[str]:
         """Build safe FFMPEG command"""
@@ -130,6 +131,33 @@ class FFMPEGWrapper:
         ]
         
         return command
+    
+    def _find_ffmpeg_path(self) -> str:
+        """Find FFmpeg executable in various locations"""
+        # Check environment variable first
+        env_path = os.getenv("FFMPEG_PATH")
+        if env_path and Path(env_path).exists():
+            return env_path
+        
+        # Try PATH
+        ffmpeg_path = shutil.which("ffmpeg")
+        if ffmpeg_path:
+            return ffmpeg_path
+        
+        # Try common locations
+        common_paths = [
+            "/opt/homebrew/bin/ffmpeg",  # Homebrew on Apple Silicon
+            "/usr/local/bin/ffmpeg",     # Homebrew on Intel Mac / Linux
+            "/usr/bin/ffmpeg",           # System package on Linux
+            "/snap/bin/ffmpeg",          # Snap package on Linux
+            "/usr/local/opt/ffmpeg/bin/ffmpeg",  # Homebrew alternative
+        ]
+        
+        for path in common_paths:
+            if Path(path).exists():
+                return path
+        
+        return None
         
     async def has_audio_stream(self, file_path: Path, file_manager=None, file_id: str = None) -> bool:
         """Check if a video file has an audio stream (with caching)"""
