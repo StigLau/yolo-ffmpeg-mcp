@@ -20,7 +20,12 @@ RUN python -m pip install --upgrade pip && \
 
 # Create test directories (same as CI)
 RUN mkdir -p /tmp/music/{source,temp,metadata,screenshots} && \
-    cp tests/files/* /tmp/music/source/ 2>/dev/null || true
+    ls -la tests/files/ && \
+    cp tests/files/*.mp4 /tmp/music/source/ 2>/dev/null || echo "No MP4 files found" && \
+    cp tests/files/*.jpeg /tmp/music/source/ 2>/dev/null || echo "No JPEG files found" && \
+    cp tests/files/*.flac /tmp/music/source/ 2>/dev/null || echo "No FLAC files found" && \
+    cp tests/files/*.mp3 /tmp/music/source/ 2>/dev/null || echo "No MP3 files found" && \
+    ls -la /tmp/music/source/
 
 # Copy and setup test script
 RUN chmod +x scripts/run_ci_tests.sh

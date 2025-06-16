@@ -1,8 +1,7 @@
-{
-  "mcpServers": {
-    "ffmpeg-mcp": {
-      "command": "uv",
-      "args": ["run", "python", "-m", "src.server"]
+ {
+    "mcpServers": {
+      "ffmpeg-mcp": {
+        "command": "uv", "args": ["run", "python", "-m", "src.server"], "cwd": "/Users/stiglau/utvikling/privat/yolo-ffmpeg-mcp"
+      }
     }
   }
-}

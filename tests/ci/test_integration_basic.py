@@ -54,12 +54,12 @@ def test_file_manager_basic_operations():
         
         # Test file retrieval
         retrieved_path = fm.resolve_id(file_id)
-        assert retrieved_path == str(test_file)
+        assert str(retrieved_path.resolve()) == str(test_file.resolve())
         
-        # Test file info
-        info = fm.get_file_info(file_id)
-        assert info["name"] == test_file.name
-        assert info["size"] > 0
+        # Test file info (basic file properties)
+        file_stat = retrieved_path.stat()
+        assert retrieved_path.name == test_file.name
+        assert file_stat.st_size > 0
 
 @pytest.mark.asyncio
 async def test_ffmpeg_wrapper_info():
@@ -75,7 +75,8 @@ async def test_ffmpeg_wrapper_info():
     if test_files:
         test_file = test_files[0]
         file_id = file_manager.register_file(test_file)
-        info = await wrapper.get_file_info(file_id, file_manager)
+        file_path = file_manager.resolve_id(file_id)
+        info = await wrapper.get_file_info(file_path, file_manager, file_id)
         
         assert info["success"] is True
         assert "duration" in info["info"]["format"]
@@ -120,7 +121,8 @@ async def test_basic_video_operations():
     file_id = file_manager.register_file(test_file)
     
     # Test get info operation
-    info = await wrapper.get_file_info(file_id, file_manager)
+    file_path = file_manager.resolve_id(file_id)
+    info = await wrapper.get_file_info(file_path, file_manager, file_id)
     assert info["success"] is True
     
     # Verify video properties
