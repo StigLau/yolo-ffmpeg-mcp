@@ -173,13 +173,7 @@ jobs:
         # Install system dependencies (minimal Alpine packages)
         RUN apk add --no-cache \
             ffmpeg \
-            ffmpeg-dev \
-            bash \
-            gcc \
-            musl-dev \
-            linux-headers \
-            libgcc \
-            libstdc++
+            bash
         
         # Install UV (fastest Python package manager)
         RUN pip install --no-cache-dir uv
@@ -188,13 +182,11 @@ jobs:
         COPY src/ ./src/
         COPY scripts/verify_container_components.py ./verify.py
         
-        # Install minimal dependencies for verification
+        # Install minimal dependencies for verification (skip OpenCV for Alpine)
         RUN uv pip install --system --no-cache \
             fastmcp \
             mcp \
             pydantic \
-            numpy \
-            opencv-python-headless \
             pyyaml
         
         ENV PYTHONPATH=/app:/app/src
@@ -214,8 +206,8 @@ jobs:
         podman run --rm ffmpeg-mcp-alpine:latest python -c "print('✅ Python OK')"
         podman run --rm ffmpeg-mcp-alpine:latest ffmpeg -version | head -1
         
-        # Test our module imports (core functionality)
-        podman run --rm ffmpeg-mcp-alpine:latest python -c "import sys; sys.path.insert(0, '/app'); sys.path.insert(0, '/app/src'); import src.file_manager; import src.config; print('✅ Core modules import OK')"
+        # Test our module imports (core functionality, skip server due to OpenCV)
+        podman run --rm ffmpeg-mcp-alpine:latest python -c "import sys; sys.path.insert(0, '/app'); sys.path.insert(0, '/app/src'); import src.file_manager; import src.config; print('✅ Core modules import OK (Alpine minimal test)')"
         
         echo "🚀 Alpine container test completed successfully!"
 
