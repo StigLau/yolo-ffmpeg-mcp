@@ -25,7 +25,7 @@ class TestVideoEffects:
         file_manager_mock = Mock(spec=FileManager)
         
         # Configure mocks
-        ffmpeg_mock.run_ffmpeg_command = AsyncMock(return_value={
+        ffmpeg_mock.execute_command = AsyncMock(return_value={
             "success": True,
             "processing_time": 5.2
         })
