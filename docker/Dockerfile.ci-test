@@ -5,22 +5,18 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     mediainfo \
     libsndfile1 \
-    libopencv-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Install UV for package management (before copying code for better caching)
+RUN pip install --no-cache-dir uv
 
 # Set working directory
 WORKDIR /app
 
-# Copy project files
-COPY . .
+# Copy only requirements first for better caching
+COPY pyproject.toml ./
 
-# Make verification script executable
-RUN chmod +x scripts/verify_container_components.py
-
-# Install UV for package management
-RUN pip install --no-cache-dir uv
-
-# Install Python dependencies using UV (faster and matches main Containerfile)
+# Install Python dependencies first (cached layer)
 RUN uv pip install --system --no-cache \
     fastmcp>=2.7.1 \
     mcp>=1.9.3 \
@@ -29,14 +25,13 @@ RUN uv pip install --system --no-cache \
     pytest-asyncio>=1.0.0 \
     jsonschema>=4.0.0 \
     psutil>=5.9.0 \
-    opencv-python-headless>=4.8.0 \
     pillow>=10.0.0 \
     numpy>=1.24.0
 
-# Set Python path for module imports
-ENV PYTHONPATH=/app:/app/src
+# Copy minimal project files (excludes large test files due to .dockerignore)
+COPY . .
 
-# Create test directories (same as CI)
+# Create test directories and copy test files (same as CI)
 RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/metadata /tmp/music/screenshots && \
     echo "📁 Available test files:" && \
     ls -la tests/files/ && \
@@ -49,8 +44,11 @@ RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/metadata /tmp/music/sc
     ls -la /tmp/music/source/ && \
     echo "📊 Total files: $(ls /tmp/music/source/ | wc -l)"
 
-# Copy and setup test script
-RUN chmod +x scripts/run_ci_tests.sh
+# Set Python path for module imports
+ENV PYTHONPATH=/app:/app/src
+
+# Make scripts executable
+RUN chmod +x scripts/verify_container_components.py scripts/run_ci_tests.sh
 
 # Default command runs all CI tests using our script  
 CMD ["./scripts/run_ci_tests.sh"]
