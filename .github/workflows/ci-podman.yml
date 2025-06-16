@@ -177,7 +177,9 @@ jobs:
             bash \
             gcc \
             musl-dev \
-            linux-headers
+            linux-headers \
+            libgcc \
+            libstdc++
         
         # Install UV (fastest Python package manager)
         RUN pip install --no-cache-dir uv
@@ -190,7 +192,10 @@ jobs:
         RUN uv pip install --system --no-cache \
             fastmcp \
             mcp \
-            pydantic
+            pydantic \
+            numpy \
+            opencv-python-headless \
+            pyyaml
         
         ENV PYTHONPATH=/app:/app/src
         
