@@ -168,7 +168,7 @@ class VideoValidator:
             
             # Audio silence detection
             silence_cmd = [
-                "ffmpeg", 
+                ffmpeg_path, 
                 "-i", str(video_path),
                 "-af", "silencedetect=noise=-50dB:d=1",
                 "-f", "null",
@@ -196,9 +196,23 @@ class VideoValidator:
     def create_test_video(self, output_path: Path, duration: float = 2.0) -> bool:
         """Create a test video for validation testing"""
         try:
+            # Find ffmpeg in PATH or use common locations
+            import shutil
+            ffmpeg_path = shutil.which("ffmpeg")
+            if not ffmpeg_path:
+                # Try common locations
+                for path in ["/opt/homebrew/bin/ffmpeg", "/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg"]:
+                    if Path(path).exists():
+                        ffmpeg_path = path
+                        break
+            
+            if not ffmpeg_path:
+                print("❌ FFmpeg not found in PATH or common locations")
+                return False
+            
             # First try with libx264
             cmd = [
-                "ffmpeg",
+                ffmpeg_path,
                 "-f", "lavfi",
                 "-i", f"testsrc=duration={duration}:size=320x240:rate=30",
                 "-f", "lavfi", 
@@ -218,7 +232,7 @@ class VideoValidator:
             
             # Fallback: try with default codec
             cmd_fallback = [
-                "ffmpeg",
+                ffmpeg_path,
                 "-f", "lavfi",
                 "-i", f"testsrc=duration={duration}:size=320x240:rate=30",
                 "-t", str(duration),
