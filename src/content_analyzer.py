@@ -20,8 +20,16 @@ import cv2
 import numpy as np
 
 # PySceneDetect imports
-from scenedetect import detect, ContentDetector, AdaptiveDetector
-from scenedetect.video_splitter import split_video_ffmpeg
+try:
+    from scenedetect import detect, ContentDetector, AdaptiveDetector
+    from scenedetect.video_splitter import split_video_ffmpeg # Not used in this file currently
+    SCENEDETECT_AVAILABLE = True
+    print("INFO: PySceneDetect imported successfully. Full scene detection capabilities enabled.")
+except ImportError:
+    SCENEDETECT_AVAILABLE = False
+    # Define placeholders for type hinting or if accessed directly elsewhere (though current usage is guarded)
+    detect, ContentDetector, AdaptiveDetector, split_video_ffmpeg = None, None, None, None
+    print("WARNING: PySceneDetect not found. Scene detection will use a fallback mechanism (single scene).")
 
 try:
     from .config import SecurityConfig
@@ -117,9 +125,21 @@ class VideoContentAnalyzer:
     async def _detect_scenes(self, video_path: Path) -> List[Tuple[float, float]]:
         """Detect scene boundaries using PySceneDetect"""
         print(f"  Detecting scenes in {video_path.name}...")
+
+        if not SCENEDETECT_AVAILABLE:
+            print("  PySceneDetect not available. Using fallback: single scene for the video.")
+            # Fallback: create a single scene for the entire video.
+            # The existing fallback assumes 60s; a future improvement could be to get actual video duration.
+            return [(0.0, 60.0)] 
         
         try:
             # Use ContentDetector for general scene changes
+            # Ensure scenedetect components are available (they should be if SCENEDETECT_AVAILABLE is True)
+            if not detect or not ContentDetector:
+                # This case should ideally not be reached if SCENEDETECT_AVAILABLE is True
+                # and imports were successful.
+                raise ImportError("PySceneDetect components (detect or ContentDetector) are not available even though SCENEDETECT_AVAILABLE is True.")
+            
             scene_list = detect(str(video_path), ContentDetector(threshold=30.0))
             
             # Convert to list of (start, end) tuples in seconds
@@ -133,7 +153,7 @@ class VideoContentAnalyzer:
             return scenes
             
         except Exception as e:
-            print(f"  Scene detection failed: {e}")
+            print(f"  Scene detection using PySceneDetect failed: {e}")
             # Fallback: create a single scene for the entire video
             return [(0.0, 60.0)]  # Assume max 60 seconds if we can't detect properly
     
