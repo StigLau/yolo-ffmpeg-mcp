@@ -107,7 +107,7 @@ jobs:
         
         # Run comprehensive component verification
         echo "🏥 Running component verification..."
-        podman run --rm ffmpeg-mcp-podman:latest python /app/verify_components.py
+        podman run --rm ffmpeg-mcp-podman:latest python scripts/verify_container_components.py
         
         # Test file system setup
         podman run --rm ffmpeg-mcp-podman:latest ls -la /tmp/music/source/

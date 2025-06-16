@@ -14,6 +14,9 @@ WORKDIR /app
 # Copy project files
 COPY . .
 
+# Make verification script executable
+RUN chmod +x scripts/verify_container_components.py
+
 # Install Python dependencies (same as CI)
 RUN python -m pip install --upgrade pip && \
     pip install -e .[dev]
