@@ -57,6 +57,14 @@ def main():
             print(f"FFMPEG version: {first_line}")
         else:
             print("❌ FFMPEG not found")
+            # Debug: Check what's in PATH
+            try:
+                which_result = subprocess.run(["which", "ffmpeg"], capture_output=True, text=True)
+                print(f"which ffmpeg: {which_result.stdout.strip() if which_result.stdout else 'not found'}")
+                if which_result.stderr:
+                    print(f"which ffmpeg error: {which_result.stderr.strip()}")
+            except Exception as e:
+                print(f"which ffmpeg failed: {e}")
             return 1
             
         # Check test data
