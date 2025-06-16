@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel
+# Pydantic BaseModel is now in models.py, but FileInfo and ProcessResult are imported directly
+# from pydantic import BaseModel # No longer needed here if all models are imported
 
 try:
     from .file_manager import FileManager
@@ -23,6 +24,8 @@ try:
     from .effect_processor import EffectProcessor
     from .audio_effect_processor import AudioEffectProcessor
     from .format_manager import FormatManager, COMMON_PRESETS
+    from .models import FileInfo, ProcessResult # Import models
+    from .video_operations import execute_core_processing # Import core processing logic
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -39,6 +42,8 @@ except ImportError:
     from effect_processor import EffectProcessor
     from audio_effect_processor import AudioEffectProcessor
     from format_manager import FormatManager, COMMON_PRESETS
+    from models import FileInfo, ProcessResult # Import models
+    from video_operations import execute_core_processing # Import core processing logic
 
 
 # Initialize MCP server
@@ -60,20 +65,7 @@ effect_processor = EffectProcessor(ffmpeg, file_manager)
 audio_effect_processor = AudioEffectProcessor(ffmpeg, file_manager)
 format_manager = FormatManager()
 
-
-class FileInfo(BaseModel):
-    id: str
-    name: str
-    size: int
-    extension: str
-
-
-class ProcessResult(BaseModel):
-    success: bool
-    message: str
-    output_file_id: str = None
-    logs: str = None
-
+# FileInfo and ProcessResult classes are now in models.py
 
 @mcp.tool()
 async def list_files() -> Dict[str, Any]:
@@ -230,7 +222,7 @@ async def process_file(
     input_file_id: str,
     operation: str,  # Available: convert, extract_audio, trim, resize, normalize_audio, to_mp3, replace_audio, concatenate_simple, image_to_video, reverse
     output_extension: str = "mp4",  # Common: mp4, mp3, wav, mov, avi
-    params: str = ""
+    params: str = ""  # This is params_str for execute_core_processing
 ) -> ProcessResult:
     """🎬 CORE WORKFLOW - Process a file using FFMPEG with specified operation
     
@@ -253,111 +245,15 @@ async def process_file(
         → batch_process() - Chain multiple operations
         → get_file_info() - Check output metadata
     """
-    
-    # Resolve input file
-    input_path = file_manager.resolve_id(input_file_id)
-    if not input_path:
-        return ProcessResult(
-            success=False,
-            message=f"Input file ID '{input_file_id}' not found"
-        )
-        
-    if not input_path.exists():
-        return ProcessResult(
-            success=False,
-            message=f"Input file no longer exists: {input_path.name}"
-        )
-    
-    # Validate file size
-    if not SecurityConfig.validate_file_size(input_path):
-        return ProcessResult(
-            success=False,
-            message=f"File too large (max {SecurityConfig.MAX_FILE_SIZE} bytes)"
-        )
-    
-    try:
-        # Validate operation requirements
-        required_params = {
-            'trim': ['start', 'duration'],
-            'resize': ['width', 'height'],
-            'replace_audio': ['audio_file'],
-            'concatenate_simple': ['second_video'],
-            'trim_and_replace_audio': ['start', 'duration', 'audio_file'],
-            'image_to_video': ['duration']
-        }
-        
-        # Parse params string into dict
-        parsed_params = {}
-        if params:
-            for param in params.split():
-                if '=' in param:
-                    key, value = param.split('=', 1)
-                    # If the value looks like a file ID, resolve it to a path
-                    if value.startswith('file_') and key in ['audio_file', 'second_video']:
-                        file_path = file_manager.resolve_id(value)
-                        if file_path and file_path.exists():
-                            parsed_params[key] = str(file_path)
-                        else:
-                            return ProcessResult(
-                                success=False,
-                                message=f"File ID '{value}' not found"
-                            )
-                    else:
-                        parsed_params[key] = value
-        
-        # Check for required parameters
-        if operation in required_params:
-            missing = [p for p in required_params[operation] if p not in parsed_params]
-            if missing:
-                examples = {
-                    'trim': 'start=10 duration=15',
-                    'resize': 'width=1280 height=720', 
-                    'replace_audio': 'audio_file=file_12345678',
-                    'concatenate_simple': 'second_video=file_87654321',
-                    'trim_and_replace_audio': 'start=10 duration=15 audio_file=file_12345678',
-                    'image_to_video': 'duration=2'
-                }
-                return ProcessResult(
-                    success=False,
-                    message=f"Missing required parameters: {missing}. Example: {examples.get(operation, '')}"
-                )
-        
-        # Create output file
-        output_file_id, output_path = file_manager.create_temp_file(output_extension)
-        
-        # Build and execute command
-        if operation == 'concatenate_simple':
-            # Use smart concatenation that handles videos with/without audio
-            second_video_path = Path(parsed_params['second_video'])
-            command = await ffmpeg.build_smart_concat_command(input_path, second_video_path, output_path, file_manager)
-        else:
-            command = ffmpeg.build_command(operation, input_path, output_path, **parsed_params)
-        result = await ffmpeg.execute_command(command, SecurityConfig.PROCESS_TIMEOUT)
-        
-        if result["success"]:
-            return ProcessResult(
-                success=True,
-                message=f"Successfully processed {input_path.name}",
-                output_file_id=output_file_id,
-                logs=result.get("stderr", "")
-            )
-        else:
-            return ProcessResult(
-                success=False,
-                message=f"FFMPEG failed: {result.get('error', 'Unknown error')}",
-                logs=result.get("stderr", "")
-            )
-            
-    except ValueError as e:
-        return ProcessResult(
-            success=False,
-            message=f"Invalid operation or parameters: {str(e)}"
-        )
-    except Exception as e:
-        return ProcessResult(
-            success=False,
-            message=f"Unexpected error: {str(e)}"
-        )
+    # Delegate to the core processing logic in video_operations.py
+    return await execute_core_processing(
+        input_file_id=input_file_id,
+        operation=operation,
+        output_extension=output_extension,
+        params_str=params, # Pass the original 'params' string here
+        file_manager=file_manager, # Pass the global instance
+        ffmpeg=ffmpeg             # Pass the global instance
+    )
 
 
 @mcp.tool()
@@ -1973,6 +1869,7 @@ def _suggest_quality_improvements() -> str:
 3. Use extract_audio + replace_audio workflow for audio cleanup
 4. Consider resize operation if source resolution is inconsistent"""
 
+# process_file_internal and process_file_as_finished functions are now moved to video_operations.py
 
 @mcp.tool()
 async def process_komposition_file(komposition_path: str) -> Dict[str, Any]:
@@ -2010,79 +1907,7 @@ async def process_komposition_file(komposition_path: str) -> Dict[str, Any]:
             "error": f"Failed to process komposition: {str(e)}"
         }
 
-
-async def process_file_internal(input_file_id: str, operation: str, output_extension: str, params: str = "") -> str:
-    """Internal helper for komposition processor to use MCP operations"""
-    try:
-        # Parse params string into dict
-        param_dict = {}
-        if params:
-            for param in params.split():
-                if "=" in param:
-                    key, value = param.split("=", 1)
-                    param_dict[key] = value
-        
-        result = await process_file(input_file_id, operation, output_extension, params)
-        
-        if result["success"]:
-            return result["output_file_id"]
-        else:
-            raise Exception(f"Operation failed: {result.get('message', 'Unknown error')}")
-            
-    except Exception as e:
-        raise Exception(f"Internal process_file failed: {str(e)}")
-
-
-async def process_file_as_finished(input_file_id: str, operation: str, output_extension: str, params: str = "", title: str = None) -> str:
-    """Process file and create output in finished directory instead of temp"""
-    # Resolve input file
-    input_path = file_manager.resolve_id(input_file_id)
-    if not input_path:
-        raise Exception(f"Input file ID '{input_file_id}' not found")
-        
-    if not input_path.exists():
-        raise Exception(f"Input file no longer exists: {input_path.name}")
-    
-    # Validate file size
-    if not SecurityConfig.validate_file_size(input_path):
-        raise Exception(f"File too large (max {SecurityConfig.MAX_FILE_SIZE} bytes)")
-    
-    # Parse parameters
-    parsed_params = {}
-    if params:
-        for param in params.split():
-            if "=" in param:
-                key, value = param.split("=", 1)
-                # Convert file IDs to paths
-                if key in ['second_video', 'audio_file'] and value.startswith('file_'):
-                    file_path = file_manager.resolve_id(value)
-                    if file_path:
-                        parsed_params[key] = str(file_path)
-                    else:
-                        raise Exception(f"File ID '{value}' not found")
-                else:
-                    parsed_params[key] = value
-    
-    # Create finished output file
-    output_file_id, output_path = file_manager.create_finished_file(output_extension, title)
-    
-    # Build and execute command
-    if operation == 'concatenate_simple':
-        # Use smart concatenation that handles videos with/without audio
-        second_video_path = Path(parsed_params['second_video'])
-        command = await ffmpeg.build_smart_concat_command(input_path, second_video_path, output_path, file_manager)
-    else:
-        command = ffmpeg.build_command(operation, input_path, output_path, **parsed_params)
-    
-    result = await ffmpeg.execute_command(command, SecurityConfig.PROCESS_TIMEOUT)
-    
-    if result["success"]:
-        return output_file_id
-    else:
-        # Clean up failed output file
-        output_path.unlink(missing_ok=True)
-        raise Exception(f"Operation failed: {result.get('message', 'Unknown error')}")
-
+# process_file_internal and process_file_as_finished functions are now moved to video_operations.py
 
 @mcp.tool()
 async def process_transition_effects_komposition(komposition_path: str) -> Dict[str, Any]:

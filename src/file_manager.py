@@ -123,6 +123,14 @@ class FileManager:
         """Remove cached properties for a file"""
         self.property_cache.pop(file_id, None)
         self.cache_timestamps.pop(file_id, None)
+
+    def invalidate_file_id(self, file_id: str):
+        """Remove a file_id from the map, typically if its creation failed or file is removed."""
+        if file_id in self.file_map:
+            del self.file_map[file_id]
+        # Also remove from property cache if it exists
+        self.property_cache.pop(file_id, None)
+        self.cache_timestamps.pop(file_id, None)
         
     def cleanup_temp_files(self):
         """Remove all temporary files and their cache entries"""

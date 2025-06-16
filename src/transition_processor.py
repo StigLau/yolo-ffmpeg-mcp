@@ -155,15 +155,17 @@ class TransitionProcessor:
         
         # Apply gradient wipe using FFmpeg xfade
         try:
-            from .server import process_file_internal
+            from .video_operations import process_file_internal
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_internal
         
         result = await process_file_internal(
-            first_clip,
-            "gradient_wipe", 
-            "mp4",
-            f"second_video={second_clip} duration={duration_seconds} offset={offset_seconds}"
+            input_file_id=first_clip,
+            operation="gradient_wipe", 
+            output_extension="mp4",
+            params_str=f"second_video={second_clip} duration={duration_seconds} offset={offset_seconds}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper
         )
         
         return result
@@ -181,18 +183,20 @@ class TransitionProcessor:
         # Calculate timing
         duration_beats = parameters.get("duration_beats", 2) 
         duration_seconds = duration_beats / beats_per_second
-        offset_seconds = parameters.get("offset_seconds", 0)
+        offset_seconds = parameters.get("offset_seconds", 0) # This param might not be used by crossfade_transition op
         
         try:
-            from .server import process_file_internal
+            from .video_operations import process_file_internal
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_internal
         
         result = await process_file_internal(
-            first_clip,
-            "crossfade_transition",
-            "mp4", 
-            f"second_video={second_clip} duration={duration_seconds} offset={offset_seconds}"
+            input_file_id=first_clip,
+            operation="crossfade_transition", # Assuming this operation exists and handles these params
+            output_extension="mp4", 
+            params_str=f"second_video={second_clip} duration={duration_seconds} offset={offset_seconds}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper
         )
         
         return result
@@ -208,17 +212,20 @@ class TransitionProcessor:
         second_clip = await self.resolve_applies_to(applies_to[1], segment_clips)
         
         opacity = parameters.get("opacity", 0.5)
+        # Note: duration/offset might be relevant for opacity transitions too, depending on FFMPEG op
         
         try:
-            from .server import process_file_internal
+            from .video_operations import process_file_internal
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_internal
         
         result = await process_file_internal(
-            first_clip,
-            "opacity_transition",
-            "mp4",
-            f"second_video={second_clip} opacity={opacity}"
+            input_file_id=first_clip,
+            operation="opacity_transition", # Assuming this operation exists
+            output_extension="mp4",
+            params_str=f"second_video={second_clip} opacity={opacity}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper
         )
         
         return result
@@ -245,16 +252,18 @@ class TransitionProcessor:
         """Extract and potentially stretch a video segment"""
         
         try:
-            from .server import process_file_internal
+            from .video_operations import process_file_internal
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_internal
         
         # Step 1: Extract the segment
         extracted = await process_file_internal(
-            source_file_id,
-            "trim",
-            "mp4", 
-            f"start={start_seconds} duration={duration_seconds}"
+            input_file_id=source_file_id,
+            operation="trim",
+            output_extension="mp4", 
+            params_str=f"start={start_seconds} duration={duration_seconds}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper
         )
         
         # Step 2: Stretch if needed
@@ -262,10 +271,12 @@ class TransitionProcessor:
             speed_factor = duration_seconds / target_duration
             
             stretched = await process_file_internal(
-                extracted,
-                "convert",
-                "mp4",
-                f"-vf 'setpts={speed_factor}*PTS' -af 'atempo={1/speed_factor}'"
+                input_file_id=extracted,
+                operation="convert", # Assuming 'convert' can take filter params like this
+                output_extension="mp4",
+                params_str=f"-vf 'setpts={speed_factor}*PTS' -af 'atempo={1/speed_factor}'",
+                file_manager=self.file_manager,
+                ffmpeg=self.ffmpeg_wrapper
             )
             return stretched
             
@@ -307,28 +318,32 @@ class TransitionProcessor:
             return clip_ids[0] if clip_ids else None
             
         try:
-            from .server import process_file_internal
+            from .video_operations import process_file_internal
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_internal
         
         # Start with first two clips
-        result = await process_file_internal(
-            clip_ids[0],
-            "concatenate_simple",
-            "mp4",
-            f"second_video={clip_ids[1]}"
+        current_result = await process_file_internal(
+            input_file_id=clip_ids[0],
+            operation="concatenate_simple",
+            output_extension="mp4",
+            params_str=f"second_video={clip_ids[1]}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper
         )
         
         # Add remaining clips
         for i in range(2, len(clip_ids)):
-            result = await process_file_internal(
-                result,
-                "concatenate_simple", 
-                "mp4",
-                f"second_video={clip_ids[i]}"
+            current_result = await process_file_internal(
+                input_file_id=current_result,
+                operation="concatenate_simple", 
+                output_extension="mp4",
+                params_str=f"second_video={clip_ids[i]}",
+                file_manager=self.file_manager,
+                ffmpeg=self.ffmpeg_wrapper
             )
         
-        return result
+        return current_result
     
     async def apply_to_segments(self, applies_to: List[Dict[str, Any]], segment_clips: Dict[str, Any]) -> str:
         """Apply effect to specified segments"""
