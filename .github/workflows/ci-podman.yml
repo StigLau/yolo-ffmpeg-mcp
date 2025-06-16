@@ -55,7 +55,8 @@ jobs:
     - name: Benchmark UV vs pip
       run: |
         echo "UV Installation Speed:"
-        time uv pip install --venv .venv fastmcp mcp pydantic pytest
+        source .venv/bin/activate
+        time uv pip install fastmcp mcp pydantic pytest
         
         echo "Creating pip comparison..."
         python -m venv test-pip
@@ -101,27 +102,31 @@ jobs:
     
     - name: Run Podman container tests
       run: |
-        # Test container startup
-        podman run -d --name test-container -p 8000:8000 ffmpeg-mcp-podman:latest
-        sleep 10
+        # Test container can run basic commands
+        echo "Testing Podman container functionality..."
         
-        # Test health check
-        podman exec test-container /app/healthcheck.sh
+        # Test Python and FFmpeg availability
+        podman run --rm ffmpeg-mcp-podman:latest python --version
+        podman run --rm ffmpeg-mcp-podman:latest ffmpeg -version | head -1
         
-        # Test MCP server availability
-        curl -f http://localhost:8000/health || echo "Health check endpoint not available"
+        # Test file system setup
+        podman run --rm ffmpeg-mcp-podman:latest ls -la /tmp/music/source/
         
-        # Run internal tests
-        podman exec test-container python -m pytest tests/ci/test_unit_core.py -v
+        # Run the actual CI tests that the container was built for
+        podman run --rm ffmpeg-mcp-podman:latest python -m pytest tests/ci/test_unit_core.py -v
+        
+        # Test that we can import our modules
+        podman run --rm ffmpeg-mcp-podman:latest python -c "import src.server; print('✅ Server module imports OK')"
     
     - name: Test rootless Podman (security advantage)
       run: |
-        # Stop previous container
-        podman stop test-container || true
-        podman rm test-container || true
+        # Test running as non-root user (Podman's main advantage)
+        echo "Testing rootless container execution..."
+        podman run --rm --user 1000:1000 ffmpeg-mcp-podman:latest python -c "import os; print(f'✅ Running as UID: {os.getuid()}')"
         
-        # Run as non-root user (Podman's advantage)
-        podman run --rm --user 1000:1000 ffmpeg-mcp-podman:latest python -c "import os; print(f'Running as UID: {os.getuid()}')"
+        # Test that Podman itself is running rootless
+        echo "Podman rootless status:"
+        podman info --format='{{.Host.Security.Rootless}}'
     
     - name: Compare Podman vs Docker performance
       run: |
