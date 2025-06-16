@@ -43,7 +43,7 @@ jobs:
     
     - name: Create test directories
       run: |
-        mkdir -p /tmp/music/{source,temp,metadata,screenshots}
+        mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/metadata /tmp/music/screenshots
         cp tests/files/* /tmp/music/source/ || true
     
     - name: Run tests with UV

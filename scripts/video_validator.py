@@ -196,6 +196,7 @@ class VideoValidator:
     def create_test_video(self, output_path: Path, duration: float = 2.0) -> bool:
         """Create a test video for validation testing"""
         try:
+            # First try with libx264
             cmd = [
                 "ffmpeg",
                 "-f", "lavfi",
@@ -209,9 +210,34 @@ class VideoValidator:
             ]
             
             result = subprocess.run(cmd, capture_output=True, timeout=30)
-            return result.returncode == 0 and output_path.exists()
+            if result.returncode == 0 and output_path.exists():
+                return True
             
-        except Exception:
+            print(f"⚠️  libx264 failed, trying fallback codec...")
+            print(f"   FFMPEG error: {result.stderr}")
+            
+            # Fallback: try with default codec
+            cmd_fallback = [
+                "ffmpeg",
+                "-f", "lavfi",
+                "-i", f"testsrc=duration={duration}:size=320x240:rate=30",
+                "-t", str(duration),
+                "-y",
+                str(output_path)
+            ]
+            
+            result_fallback = subprocess.run(cmd_fallback, capture_output=True, timeout=30)
+            if result_fallback.returncode == 0 and output_path.exists():
+                return True
+                
+            print(f"❌ Fallback codec also failed: {result_fallback.stderr}")
+            return False
+            
+        except subprocess.TimeoutExpired:
+            print("❌ FFMPEG timeout during test video creation")
+            return False
+        except Exception as e:
+            print(f"❌ Exception during test video creation: {e}")
             return False
     
     def run_comprehensive_validation(self) -> bool:

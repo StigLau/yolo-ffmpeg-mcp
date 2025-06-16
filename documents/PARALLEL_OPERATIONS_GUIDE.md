@@ -5,6 +5,310 @@
 ### Core Principle: Single Message, Multiple Tool Calls
 Claude Code allows multiple tool invocations within a single message. This dramatically reduces latency and improves workflow efficiency.
 
+## User Prompting Strategies for Maximum Parallelization
+
+### 🎯 Optimal: Single Instance, Compound Commands
+
+#### ✅ Best Practice: Batch Multiple Requests in One Message
+```
+"Analyze the codebase: check git status, read the main config files, 
+search for TODO comments, and list recent commits"
+```
+
+This triggers Claude to execute in parallel:
+- `Bash(git status)`
+- `Read(config.json) + Read(pyproject.toml) + Read(CLAUDE.md)`  
+- `Grep("TODO", include="*.py")`
+- `Bash(git log --oneline -10)`
+
+#### ✅ Advanced: Multi-Domain Compound Requests
+```
+"Fix the CI failures: check test results, analyze failing files, 
+and also optimize the video processing workflow by listing available 
+operations and analyzing the test videos"
+```
+
+Claude will automatically parallelize across both domains:
+- CI Analysis: `Read(.github/workflows/ci.yml) + Bash(pytest --collect-only)`
+- Video Processing: `mcp__list_files() + mcp__analyze_video_content()`
+
+### 🚫 Suboptimal: Multiple CLI Windows
+
+#### ❌ Avoid: Separate Claude Instances for Related Tasks
+```
+Window 1: "Check git status"
+Window 2: "Read the config file"  
+Window 3: "Run tests"
+```
+
+**Problems:**
+- No shared context between instances
+- 3x slower due to sequential processing
+- Duplicate analysis and redundant operations
+- Context switching overhead
+
+#### ❌ Avoid: Fragmented Sequential Commands
+```
+User: "Check git status"
+Claude: [shows git status]
+User: "Now read package.json"  
+Claude: [reads package.json]
+User: "Run the tests"
+Claude: [runs tests]
+```
+
+### 💡 Prompting Techniques for Maximum Efficiency
+
+#### 1. **Scope Bundling**: Group Related Operations
+```
+❌ "Fix the tests" → "Update docs" → "Check CI"
+✅ "Fix tests, update related docs, and verify CI passes"
+```
+
+#### 2. **Context Anticipation**: Include Supporting Info Requests
+```
+❌ "Fix this error: [error message]"
+✅ "Fix this error by reading the relevant files, checking recent changes, 
+    and examining similar code patterns: [error message]"
+```
+
+#### 3. **Dependency Specification**: Clarify Sequential vs Parallel Parts
+```
+✅ "Analyze these videos in parallel, then create a single composition 
+    using the best scenes from each"
+```
+
+#### 4. **Multi-Modal Requests**: Combine Different Tool Types
+```
+✅ "Check the video processing system: verify MCP server status, 
+    list available files, analyze video content, and validate the 
+    Docker containers are working"
+```
+
+### 🔧 Advanced Prompting Patterns
+
+#### Pattern 1: Investigation + Action
+```
+"Investigate the failing CI tests by reading logs and config files, 
+then fix the identified issues"
+```
+
+Triggers:
+1. Parallel investigation: `Read(logs) + Read(configs) + Bash(test status)`
+2. Sequential fix based on findings
+
+#### Pattern 2: Analysis + Comparison
+```
+"Compare our video processing performance with the benchmark: 
+analyze our current metrics, check the benchmark data, and run 
+a quick performance test"
+```
+
+#### Pattern 3: Multi-Environment Validation
+```
+"Verify the deployment works across environments: test locally with UV, 
+check Docker containers, and validate Podman compatibility"
+```
+
+### 🎨 Prompt Engineering for Parallelization
+
+#### Effective Prompt Structure:
+```
+[Action Verb] [Multiple Targets]: [Specific Operations] [, and] [Related Tasks]
+
+Examples:
+- "Analyze the codebase: read configs, check git status, and run tests"
+- "Debug the video system: list files, analyze content, and check operations"  
+- "Optimize the CI: review workflows, test locally, and validate containers"
+```
+
+#### Keywords That Trigger Parallel Execution:
+- **"and"** - signals multiple parallel operations
+- **"check both"** - parallel validation
+- **"analyze all"** - parallel analysis
+- **"compare"** - parallel information gathering
+- **"investigate"** - comprehensive parallel research
+
+### 🔤 Natural Language Notation for Parallel Operations
+
+#### ❌ Don't Use Technical Notation
+```
+# Avoid programmer syntax - Claude interprets this literally
+"Read(server.py) + Read(config.json) + Bash(git status)"
+"Execute: list_files() && analyze_video_content() && get_operations()"
+```
+
+#### ✅ Use Natural Language Connectors
+
+##### Best: Conjunction Words
+```
+"Read server.py AND config.json AND check git status"
+"List files, analyze video content, AND check available operations"
+"Investigate the CI: read workflow files AND run tests AND check Docker status"
+```
+
+##### Alternative: List Structure  
+```
+"Do these in parallel:
+- Read the main server file
+- Check git status  
+- Run the test suite
+- Analyze video files"
+```
+
+##### Comma Separation with Context
+```
+"Analyze the system: read configs, check git status, run tests, validate Docker"
+"Debug video processing: list files, analyze content, check operations, test MCP server"
+```
+
+#### 🎯 Parallel Signal Phrases
+
+##### Explicit Parallel Instructions:
+```
+✅ "Simultaneously check..."
+✅ "In parallel, analyze..."  
+✅ "At the same time, verify..."
+✅ "Concurrently examine..."
+```
+
+##### Batch Operation Phrases:
+```
+✅ "Gather information about: [list items]"
+✅ "Get a complete picture by: [list actions]"
+✅ "Investigate all aspects: [list areas]"
+✅ "Comprehensive analysis of: [list targets]"
+```
+
+#### 📝 Parallel Prompting Templates
+
+##### Template 1: Investigation Pattern
+```
+"Investigate [PROBLEM]: 
+read [FILE1] and [FILE2], 
+check [SYSTEM_STATE], 
+and analyze [DATA_SOURCE]"
+
+Example:
+"Investigate CI failures: 
+read workflow configs and test results, 
+check git status, 
+and analyze error logs"
+```
+
+##### Template 2: Multi-Domain Pattern  
+```
+"[ACTION] the [SYSTEM1] and [SYSTEM2]: 
+[OPERATION1] and [OPERATION2] and [OPERATION3]"
+
+Example:
+"Optimize the video system and CI pipeline: 
+analyze video files and check test status and review Docker containers"
+```
+
+##### Template 3: Context + Action Pattern
+```
+"[GATHER_CONTEXT], then [ACTION]"
+
+Example:
+"Read all config files and check system status, then fix the deployment issues"
+```
+
+#### ⚡ Power User Shortcuts
+
+##### Compressed Parallel Syntax:
+```
+✅ "Status check: git + configs + tests + Docker"
+✅ "Video analysis: files + content + operations + MCP"  
+✅ "Debug CI: logs + configs + tests + containers"
+```
+
+##### Ampersand for Technical Users:
+```
+✅ "Analyze: server.py & config.json & git status & test results"
+✅ "Check: video files & MCP operations & Docker status & test suite"
+```
+
+#### 🚫 Anti-Patterns to Avoid
+
+##### Sequential Language (Forces Series):
+```
+❌ "First read server.py, then check git status, then run tests"
+❌ "After reading configs, check Docker, then analyze videos"
+❌ "Step 1: X, Step 2: Y, Step 3: Z"
+```
+
+##### Ambiguous Scope:
+```
+❌ "Check everything" (too vague)
+❌ "Fix the issues" (no specific targets)
+❌ "Look at the code" (no parallel operations implied)
+```
+
+### 🎨 Style Guide for Parallel Prompts
+
+#### Recommended Structure:
+```
+[INTENT]: [PARALLEL_OPERATION_1] and [PARALLEL_OPERATION_2] and [PARALLEL_OPERATION_3]
+
+Examples:
+• "Debug the system: read error logs and check configurations and test the API"
+• "Prepare for deployment: validate tests and build containers and check dependencies"
+• "Analyze performance: profile the code and check resource usage and review metrics"
+```
+
+#### Natural Flow Examples:
+```
+✅ "I need to understand the video system - can you read the main files, 
+    check what operations are available, and analyze the test videos?"
+
+✅ "Help me debug the CI: look at the workflow configs, check test results, 
+    and see if Docker containers are working properly"
+
+✅ "Let's optimize this: analyze the current performance, check for bottlenecks, 
+    and review the system configurations"
+```
+
+**Key Insight**: Claude naturally recognizes parallel intent from context and conjunctions. No special notation needed - just clear, natural language with "and" or comma-separated operations!
+
+### 🚀 Performance Comparison
+
+#### Single Instance, Parallel Prompting:
+```
+Time to completion: ~200ms (5 tools in parallel)
+Context preservation: 100%
+Analysis quality: Comprehensive
+Decision accuracy: High (full context)
+```
+
+#### Multiple Windows, Sequential:
+```
+Time to completion: ~1000ms (5 tools sequential)
+Context preservation: 0% (isolated instances)
+Analysis quality: Fragmented  
+Decision accuracy: Low (missing context)
+```
+
+### 📋 CLI User Checklist
+
+Before sending a message, ask yourself:
+- [ ] Can I combine multiple requests into one message?
+- [ ] Are there related files/operations I need context from?
+- [ ] Should I include both analysis and action in one request?
+- [ ] Am I providing enough context for intelligent parallelization?
+
+#### Example Transformation:
+```
+❌ Inefficient (3 separate messages):
+"What files are in src/?"
+"Read the server.py file"  
+"Check if tests are passing"
+
+✅ Efficient (1 compound message):
+"Understand the server architecture: list files in src/, read server.py, 
+and check if tests are passing"
+```
+
 ## High-Impact Batching Patterns
 
 ### 1. Information Gathering (Research Phase)
