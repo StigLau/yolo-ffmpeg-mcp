@@ -9,11 +9,19 @@ dependencies = [
     "mcp>=1.9.3",
     "opencv-python>=4.11.0.86",
     "pydantic>=2.11.5",
+    "pyyaml>=6.0.0",
     "scenedetect>=0.6.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.0",
+    "pytest-asyncio>=1.0.0",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.4.0",
     "pytest-asyncio>=1.0.0",
+    "pyyaml>=6.0.2",
 ]

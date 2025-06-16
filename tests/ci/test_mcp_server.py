@@ -28,7 +28,11 @@ async def test_mcp_server_startup():
         
         # Parse operations list
         if hasattr(result[0], 'text'):
-            operations = json.loads(result[0].text)
+            response = json.loads(result[0].text)
+            assert isinstance(response, dict)
+            assert "operations" in response
+            
+            operations = response["operations"]
             assert isinstance(operations, dict)
             assert len(operations) > 0
             
@@ -146,8 +150,8 @@ def test_configuration_validation():
     assert "metadata" in str(metadata_dir)
     
     # Test security settings
-    assert config.MAX_FILE_SIZE_MB > 0
-    assert config.PROCESS_TIMEOUT_SEC > 0
+    assert config.MAX_FILE_SIZE > 0
+    assert config.PROCESS_TIMEOUT > 0
     assert len(config.ALLOWED_EXTENSIONS) > 0
 
 if __name__ == "__main__":

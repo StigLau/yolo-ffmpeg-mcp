@@ -1,0 +1,37 @@
+name: "Rock Mastering Profile"
+description: "Professional rock mastering with punch and clarity for streaming platforms"
+category: "mastering"
+genre: "rock"
+target_platforms: ["spotify", "apple_music", "youtube"]
+effects_chain:
+  - effect: "high_pass_filter"
+    parameters:
+      frequency: 35  # Remove sub-bass rumble
+      rolloff: 12   # dB per octave
+  - effect: "equalizer"
+    parameters:
+      bands:
+        - frequency: 80
+          gain: 1.5    # Kick drum punch
+          q: 0.8
+        - frequency: 350
+          gain: -1.2   # Reduce muddiness
+          q: 1.5
+        - frequency: 2500
+          gain: 1.8    # Vocal/guitar presence
+          q: 1.0
+        - frequency: 10000
+          gain: 2.0    # Air and sparkle
+          q: 0.6
+  - effect: "compressor"
+    parameters:
+      threshold: -18    # dB
+      ratio: 2.5
+      attack: 25        # ms
+      release: 150      # ms
+      knee: 2.0
+  - effect: "loudness_normalize"
+    parameters:
+      target_lufs: -9   # Competitive rock loudness
+      true_peak: -1.0   # dBTP ceiling
+      lra: 6            # Loudness range

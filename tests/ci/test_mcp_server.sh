@@ -14,8 +14,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Test configuration
-MCP_SERVER_DIR="/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp"
-PYTHON_PATH="$MCP_SERVER_DIR/.venv/bin/python"
+MCP_SERVER_DIR="${GITHUB_WORKSPACE:-$(pwd)}"
+PYTHON_PATH="${PYTHON_PATH:-python3}"
 TEST_OUTPUT_DIR="/tmp/music/test_results"
 
 # Ensure output directory exists
@@ -42,9 +42,14 @@ call_mcp_method() {
 import sys
 import json
 import asyncio
+import os
 sys.path.insert(0, '$MCP_SERVER_DIR/src')
+sys.path.insert(0, '$MCP_SERVER_DIR')
+os.chdir('$MCP_SERVER_DIR')
 
-from server import mcp
+# Import as module to avoid relative import issues
+import src.server as server_module
+mcp = server_module.mcp
 
 async def test_method():
     try:
@@ -142,9 +147,14 @@ cat > "$TEST_OUTPUT_DIR/get_file_ids.py" << 'EOF'
 import sys
 import json
 import asyncio
-sys.path.insert(0, '/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/src')
+import os
+sys.path.insert(0, '$MCP_SERVER_DIR/src')
+sys.path.insert(0, '$MCP_SERVER_DIR')
+os.chdir('$MCP_SERVER_DIR')
 
-from server import mcp
+# Import as module to avoid relative import issues
+import src.server as server_module
+mcp = server_module.mcp
 
 async def get_file_ids():
     try:
@@ -327,8 +337,11 @@ test-mcp-quick: ## Run basic MCP server connectivity test
 	@cd $(shell pwd) && PYTHONPATH=$(shell pwd) .venv/bin/python -c "
 import asyncio
 import sys
+import os
 sys.path.insert(0, 'src')
-from server import mcp
+os.chdir('.')
+import src.server as server_module
+mcp = server_module.mcp
 async def test():
     result = await mcp.call_tool('list_files', {})
     print(f'✅ MCP server responding - found {len(result.get(\"files\", []))} files')

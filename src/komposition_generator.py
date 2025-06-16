@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
+import difflib
 
 try:
     from .file_manager import FileManager
@@ -163,7 +164,13 @@ class KompositionGenerator:
             intent = await self._parse_intent(description, title, available_sources)
             
             # Step 2: Match source files
-            matched_sources = await self._match_source_files(intent)
+            match_result = await self._match_source_files(intent)
+            
+            # Check if file matching failed
+            if not match_result.get("success", True):
+                return match_result  # Return error with suggestions
+            
+            matched_sources = match_result.get("matched_sources", match_result)
             
             # Step 3: Generate segment structure
             segments = await self._generate_segments(intent, matched_sources)
@@ -239,11 +246,9 @@ class KompositionGenerator:
                 intent.resolution = handler(match)
                 break
         
-        # Extract mentioned video sources
+        # Extract mentioned video sources with intelligent matching
         if available_sources:
-            for source in available_sources:
-                if source.lower() in description.lower() or any(part in description.lower() for part in source.lower().split('.')):
-                    intent.video_sources.append(source)
+            intent.video_sources = self._extract_mentioned_files(description, available_sources)
         
         # Enhanced musical structure recognition
         intent.musical_structure = self._detect_musical_structure(description)
@@ -312,42 +317,90 @@ class KompositionGenerator:
         # Default simple structure
         return ["intro", "main", "outro"]
     
-    async def _match_source_files(self, intent: CompositionIntent) -> Dict[str, str]:
-        """Match intent requirements to available source files"""
+    async def _match_source_files(self, intent: CompositionIntent) -> Dict[str, Any]:
+        """Match intent requirements to available source files with validation"""
         matched_sources = {}
+        failed_matches = []
         
-        # Get all available files
-        all_files = []
-        for source_file in Path("/tmp/music/source").glob("*"):
-            if source_file.is_file() and source_file.suffix.lower() in ['.mp4', '.avi', '.mov', '.mkv']:
-                all_files.append(source_file.name)
+        # Get all available files (security: only from allowed directory)
+        all_files = self.get_available_sources()
+        video_files = [f for f in all_files if f.split('.')[-1].lower() in ['mp4', 'avi', 'mov', 'mkv']]
         
-        # If specific sources mentioned, try to match them
-        for mentioned_source in intent.video_sources:
-            for available_file in all_files:
-                if mentioned_source.lower() in available_file.lower():
-                    matched_sources[mentioned_source] = available_file
-                    break
+        # If specific sources mentioned, validate them and map to musical roles
+        if intent.video_sources:
+            # Create role-based mapping when specific files are mentioned
+            musical_roles = intent.musical_structure if intent.musical_structure else ["intro", "main", "outro"]
+            
+            for i, mentioned_source in enumerate(intent.video_sources):
+                # Try exact match first
+                exact_match = next((f for f in video_files if f.lower() == mentioned_source.lower()), None)
+                if exact_match:
+                    role = musical_roles[i] if i < len(musical_roles) else f"segment_{i+1}"
+                    matched_sources[role] = exact_match
+                    print(f"   ✅ Matched '{mentioned_source}' → '{exact_match}' (role: {role})")
+                    continue
+                
+                # Try partial match (without extension)
+                base_name = mentioned_source.split('.')[0].lower()
+                partial_match = next((f for f in video_files if base_name in f.lower().split('.')[0]), None)
+                if partial_match:
+                    role = musical_roles[i] if i < len(musical_roles) else f"segment_{i+1}"
+                    matched_sources[role] = partial_match
+                    print(f"   🔍 Partial matched '{mentioned_source}' → '{partial_match}' (role: {role})")
+                    continue
+                
+                # Try fuzzy match
+                suggestions = self._suggest_similar_files(mentioned_source, video_files)
+                if suggestions:
+                    role = musical_roles[i] if i < len(musical_roles) else f"segment_{i+1}"
+                    matched_sources[role] = suggestions[0]  # Use best suggestion
+                    print(f"   🔍 Fuzzy matched '{mentioned_source}' → '{suggestions[0]}' (role: {role})")
+                    continue
+                
+                # File not found - collect for error reporting
+                failed_matches.append(mentioned_source)
         
-        # Auto-match based on patterns if no specific sources
-        if not matched_sources and all_files:
+        # Auto-match based on patterns if no specific sources matched
+        if not matched_sources and video_files:
+            print(f"   🔄 Auto-matching with patterns (no specific files found)")
             for category, patterns in self.video_patterns.items():
                 for pattern in patterns:
-                    for available_file in all_files:
+                    for available_file in video_files:
                         if pattern in available_file.lower() and category not in matched_sources:
                             matched_sources[category] = available_file
+                            print(f"      Pattern '{pattern}' matched '{available_file}' for category '{category}'")
                             break
+        elif matched_sources:
+            print(f"   ✅ Using matched specific sources: {list(matched_sources.keys())}")
         
         # Fallback: use first available files
-        if not matched_sources and all_files:
-            for i, file in enumerate(all_files[:3]):  # Use first 3 files
+        if not matched_sources and video_files:
+            for i, file in enumerate(video_files[:3]):  # Use first 3 files
                 matched_sources[f"segment_{i+1}"] = file
+        
+        # Return error if specific files couldn't be matched
+        if failed_matches:
+            error_info = {
+                "success": False,
+                "error": f"Could not find requested video files: {', '.join(failed_matches)}",
+                "failed_files": failed_matches,
+                "available_videos": video_files[:5],  # Limit for security
+                "suggestions": {}
+            }
+            
+            # Add suggestions for each failed file
+            for failed_file in failed_matches:
+                suggestions = self._suggest_similar_files(failed_file, video_files)
+                if suggestions:
+                    error_info["suggestions"][failed_file] = suggestions[:3]
+            
+            return error_info
         
         print(f"   📂 Matched sources: {len(matched_sources)} files")
         for category, filename in matched_sources.items():
             print(f"      {category}: {filename}")
         
-        return matched_sources
+        return {"success": True, "matched_sources": matched_sources}
     
     async def _generate_segments(
         self, 
@@ -758,3 +811,107 @@ class KompositionGenerator:
                     sources.append(file_path.name)
         
         return sources
+    
+    def _extract_mentioned_files(self, description: str, available_sources: List[str]) -> List[str]:
+        """Extract video files mentioned in description with intelligent matching"""
+        mentioned_files = []
+        desc_lower = description.lower()
+        
+        # Look for explicit filename patterns (like "lookin.mp4" or "panning.mp4")
+        filename_pattern = r'\b(\w+(?:\s+\w+)*\.(?:mp4|avi|mov|mkv))\b'
+        explicit_files = re.findall(filename_pattern, desc_lower, re.IGNORECASE)
+        
+        for explicit_file in explicit_files:
+            # Try exact match
+            exact_match = next((f for f in available_sources if f.lower() == explicit_file.lower()), None)
+            if exact_match:
+                mentioned_files.append(exact_match)
+                continue
+            
+            # Try fuzzy match for the full filename
+            suggestions = self._suggest_similar_files(explicit_file, available_sources)
+            if suggestions:
+                mentioned_files.append(suggestions[0])
+        
+        # Look for partial names mentioned (like "lookin" referring to "lookin.mp4")
+        video_files = [f for f in available_sources if f.split('.')[-1].lower() in ['mp4', 'avi', 'mov', 'mkv']]
+        tokens = re.findall(r'\b\w+\b', desc_lower)
+        
+        for token in tokens:
+            if len(token) < 3:  # Skip very short tokens
+                continue
+                
+            # Find all potential matches for this token
+            exact_matches = []
+            word_matches = []
+            prefix_matches = []
+            
+            for video_file in video_files:
+                base_name = video_file.split('.')[0].lower()
+                # Normalize base_name by replacing separators with spaces
+                normalized_base = base_name.replace('_', ' ').replace('-', ' ')
+                
+                # Check for exact match of token to base name
+                if token == base_name:
+                    exact_matches.append(video_file)
+                    continue
+                        
+                # Check if token is a complete word in the normalized filename  
+                words_in_base = normalized_base.split()
+                if token in words_in_base:
+                    word_matches.append(video_file)
+                    continue
+                        
+                # Check if token matches start of base name and is substantial portion (70%+)
+                if base_name.startswith(token) and len(token) >= len(base_name) * 0.7:
+                    prefix_matches.append(video_file)
+            
+            # Add matches in priority order: exact > word > prefix
+            # But prefer shorter filenames when multiple matches exist
+            for match_list, match_type in [(exact_matches, "Exact"), (word_matches, "Word"), (prefix_matches, "Prefix")]:
+                if match_list:
+                    # Sort by filename length to prefer shorter, more specific matches
+                    match_list.sort(key=lambda f: len(f.split('.')[0]))
+                    best_match = match_list[0]
+                    if best_match not in mentioned_files:
+                        mentioned_files.append(best_match)
+                        print(f"   🎯 {match_type} match '{token}' → '{best_match}'")
+                        break  # Only take the first (best) match type for this token
+        
+        return mentioned_files
+    
+    def _suggest_similar_files(self, user_mentioned: str, available_sources: List[str]) -> List[str]:
+        """Suggest similar filenames when exact match fails"""
+        suggestions = []
+        
+        # Use difflib for fuzzy string matching
+        close_matches = difflib.get_close_matches(
+            user_mentioned.lower(), 
+            [f.lower() for f in available_sources], 
+            n=3, 
+            cutoff=0.4
+        )
+        
+        # Map back to original filenames
+        for match in close_matches:
+            for original in available_sources:
+                if original.lower() == match:
+                    suggestions.append(original)
+                    break
+        
+        return suggestions
+    
+    def _create_file_not_found_error(self, user_mentioned: str, available_sources: List[str]) -> Dict[str, Any]:
+        """Create helpful error message when files cannot be found"""
+        suggestions = self._suggest_similar_files(user_mentioned, available_sources)
+        
+        # Filter to only video files for suggestions
+        video_files = [f for f in available_sources if f.split('.')[-1].lower() in ['mp4', 'avi', 'mov', 'mkv']]
+        
+        return {
+            "success": False,
+            "error": f"Could not find file '{user_mentioned}' in available sources",
+            "available_video_files": video_files[:5],  # Limit to 5 for security
+            "suggestions": suggestions[:3] if suggestions else [],
+            "help": "Try using exact filenames or check the available files list"
+        }

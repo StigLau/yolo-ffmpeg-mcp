@@ -123,14 +123,17 @@ class KompositionProcessor:
         
         # Step 1: Extract the segment from source video
         try:
-            from .server import process_file_internal  # Import MCP operation
+            from .video_operations import process_file_internal
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_internal
+            
         extracted_clip = await process_file_internal(
-            source_file_id,
-            "trim",
-            "mp4",
-            f"start={original_start} duration={original_duration}"
+            input_file_id=source_file_id,
+            operation="trim",
+            output_extension="mp4",
+            params_str=f"start={original_start} duration={original_duration}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper
         )
         
         # Step 2: Calculate speed factor to fit target duration
@@ -140,10 +143,12 @@ class KompositionProcessor:
         if abs(speed_factor - 1.0) > 0.01:  # Only adjust if significant difference
             # Use setpts filter for video speed adjustment
             speed_adjusted = await process_file_internal(
-                extracted_clip,
-                "convert",
-                "mp4",
-                f"-vf 'setpts={speed_factor}*PTS' -af 'atempo={1/speed_factor}'"
+                input_file_id=extracted_clip,
+                operation="convert",
+                output_extension="mp4",
+                params_str=f"-vf 'setpts={speed_factor}*PTS' -af 'atempo={1/speed_factor}'",
+                file_manager=self.file_manager,
+                ffmpeg=self.ffmpeg_wrapper
             )
             return speed_adjusted
         
@@ -152,58 +157,136 @@ class KompositionProcessor:
     async def create_image_video(self, image_file_id: str, duration: float) -> str:
         """Convert image to video clip of specified duration"""
         try:
-            from .server import process_file_internal
+            from .video_operations import process_file_internal
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_internal
         
         return await process_file_internal(
-            image_file_id,
-            "image_to_video",
-            "mp4", 
-            f"duration={duration}"
+            input_file_id=image_file_id,
+            operation="image_to_video",
+            output_extension="mp4", 
+            params_str=f"duration={duration}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper
         )
     
     async def concatenate_segments(self, segment_clips: List[Dict[str, Any]]) -> str:
         """Concatenate all processed segments into final video"""
         try:
-            from .server import process_file_internal
+            from .video_operations import process_file_internal, process_file_as_finished
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_internal, process_file_as_finished
         
         if len(segment_clips) < 2:
             return segment_clips[0]["clip_id"] if segment_clips else None
         
-        # Start with first two clips
+        # Start with first two clips (temp processing)
         current_result = await process_file_internal(
-            segment_clips[0]["clip_id"],
-            "concatenate_simple",
-            "mp4",
-            f"second_video={segment_clips[1]['clip_id']}"
+            input_file_id=segment_clips[0]["clip_id"],
+            operation="concatenate_simple",
+            output_extension="mp4",
+            params_str=f"second_video={segment_clips[1]['clip_id']}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper
         )
         
-        # Add remaining clips one by one
-        for i in range(2, len(segment_clips)):
+        # Add remaining clips one by one (temp processing)
+        for i in range(2, len(segment_clips) - 1): # Iterate up to the second to last
             current_result = await process_file_internal(
-                current_result,
-                "concatenate_simple", 
-                "mp4",
-                f"second_video={segment_clips[i]['clip_id']}"
+                input_file_id=current_result,
+                operation="concatenate_simple", 
+                output_extension="mp4",
+                params_str=f"second_video={segment_clips[i]['clip_id']}",
+                file_manager=self.file_manager,
+                ffmpeg=self.ffmpeg_wrapper
             )
         
-        return current_result
+        # Final concatenation goes to finished directory
+        # If there are more than 2 segments, current_result holds the concatenation of first N-1 segments
+        # The last segment is segment_clips[-1]['clip_id']
+        # If there are exactly 2 segments, current_result is already the concatenation of these two.
+        # The logic needs to handle the case where len(segment_clips) == 2 separately for the final step.
+
+        if len(segment_clips) > 1: # Ensure there's at least one concatenation to make final
+            # If len is 2, current_result is already the combination of the two.
+            # If len > 2, current_result is combo of first N-1, and we add the last one.
+            input_for_final = current_result
+            second_video_for_final = segment_clips[-1]['clip_id']
+            
+            if len(segment_clips) == 2: # current_result is already the result of concatenating the two.
+                                        # We need to re-process them into the finished directory.
+                input_for_final = segment_clips[0]['clip_id']
+                second_video_for_final = segment_clips[1]['clip_id']
+
+
+            final_result = await process_file_as_finished(
+                input_file_id=input_for_final,
+                operation="concatenate_simple",
+                output_extension="mp4",
+                params_str=f"second_video={second_video_for_final}",
+                file_manager=self.file_manager,
+                ffmpeg=self.ffmpeg_wrapper,
+                title="music_video"
+            )
+        else: # Only one segment, no concatenation needed, but should be "finished"
+             # This case should ideally be handled by the caller, but for robustness:
+             # We can't just use process_file_as_finished without an operation.
+             # A "copy" or "convert" operation would be needed.
+             # For now, assume len(segment_clips) >= 1 and if 1, it's returned by the initial check.
+             # If the goal is to ensure the single clip is in "finished", it needs a different path.
+             # The current logic implies concatenation, so a single clip means no concat.
+             # Let's stick to the original logic: if len < 2, returns the clip_id (which is temp).
+             # The caller (process_komposition) then handles audio addition which uses process_file_as_finished.
+             # So, this function should primarily return a temp file if intermediate,
+             # or the final file if it's the last step of concatenation.
+             # The current logic for process_komposition seems to expect the *final concatenated video* (silent)
+             # to be returned from here, which then has audio added.
+             # The original code's final concatenation step was always to `process_file_as_finished`.
+             # Let's simplify: if only one segment, it's not concatenated. If multiple, the final step is _as_finished.
+
+            # Re-evaluating: The loop for i in range(2, len(segment_clips) -1) is for intermediate.
+            # The final step should always use process_file_as_finished.
+            if len(segment_clips) == 2: # Concatenate first two directly to finished
+                 final_result = await process_file_as_finished(
+                    input_file_id=segment_clips[0]["clip_id"],
+                    operation="concatenate_simple",
+                    output_extension="mp4",
+                    params_str=f"second_video={segment_clips[1]['clip_id']}",
+                    file_manager=self.file_manager,
+                    ffmpeg=self.ffmpeg_wrapper,
+                    title="music_video"
+                )
+            elif len(segment_clips) > 2: # More than 2, current_result is temp, concat with last one to finished
+                final_result = await process_file_as_finished(
+                    input_file_id=current_result, # This is temp from previous concats
+                    operation="concatenate_simple",
+                    output_extension="mp4",
+                    params_str=f"second_video={segment_clips[-1]['clip_id']}",
+                    file_manager=self.file_manager,
+                    ffmpeg=self.ffmpeg_wrapper,
+                    title="music_video"
+                )
+            else: # len(segment_clips) must be 1 or 0, handled by initial check
+                final_result = segment_clips[0]["clip_id"] if segment_clips else None
+
+
+        return final_result
     
     async def add_audio_track(self, video_file_id: str, audio_file_id: str, timing: BeatTiming) -> str:
         """Add audio track to video, trimming audio to video length"""
         try:
-            from .server import process_file_internal
+            from .video_operations import process_file_as_finished
         except ImportError:
-            from server import process_file_internal
+            from video_operations import process_file_as_finished
         
-        return await process_file_internal(
-            video_file_id,
-            "replace_audio",
-            "mp4",
-            f"audio_file={audio_file_id}"
+        return await process_file_as_finished(
+            input_file_id=video_file_id,
+            operation="replace_audio",
+            output_extension="mp4",
+            params_str=f"audio_file={audio_file_id}",
+            file_manager=self.file_manager,
+            ffmpeg=self.ffmpeg_wrapper,
+            title="music_video_with_audio"
         )
     
     async def smart_match_segment_to_source(self, segment: Dict[str, Any], sources: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:

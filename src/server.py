@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel
+# Pydantic BaseModel is now in models.py, but FileInfo and ProcessResult are imported directly
+# from pydantic import BaseModel # No longer needed here if all models are imported
 
 try:
     from .file_manager import FileManager
@@ -20,6 +21,11 @@ try:
     from .composition_planner import CompositionPlanner
     from .komposition_build_planner import KompositionBuildPlanner
     from .komposition_generator import KompositionGenerator
+    from .effect_processor import EffectProcessor
+    from .audio_effect_processor import AudioEffectProcessor
+    from .format_manager import FormatManager, COMMON_PRESETS
+    from .models import FileInfo, ProcessResult # Import models
+    from .video_operations import execute_core_processing # Import core processing logic
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -33,6 +39,11 @@ except ImportError:
     from composition_planner import CompositionPlanner
     from komposition_build_planner import KompositionBuildPlanner
     from komposition_generator import KompositionGenerator
+    from effect_processor import EffectProcessor
+    from audio_effect_processor import AudioEffectProcessor
+    from format_manager import FormatManager, COMMON_PRESETS
+    from models import FileInfo, ProcessResult # Import models
+    from video_operations import execute_core_processing # Import core processing logic
 
 
 # Initialize MCP server
@@ -50,21 +61,11 @@ enhanced_speech_analyzer = EnhancedSpeechAnalyzer()
 composition_planner = CompositionPlanner()
 komposition_build_planner = KompositionBuildPlanner()
 komposition_generator = KompositionGenerator()
+effect_processor = EffectProcessor(ffmpeg, file_manager)
+audio_effect_processor = AudioEffectProcessor(ffmpeg, file_manager)
+format_manager = FormatManager()
 
-
-class FileInfo(BaseModel):
-    id: str
-    name: str
-    size: int
-    extension: str
-
-
-class ProcessResult(BaseModel):
-    success: bool
-    message: str
-    output_file_id: str = None
-    logs: str = None
-
+# FileInfo and ProcessResult classes are now in models.py
 
 @mcp.tool()
 async def list_files() -> Dict[str, Any]:
@@ -221,7 +222,7 @@ async def process_file(
     input_file_id: str,
     operation: str,  # Available: convert, extract_audio, trim, resize, normalize_audio, to_mp3, replace_audio, concatenate_simple, image_to_video, reverse
     output_extension: str = "mp4",  # Common: mp4, mp3, wav, mov, avi
-    params: str = ""
+    params: str = ""  # This is params_str for execute_core_processing
 ) -> ProcessResult:
     """🎬 CORE WORKFLOW - Process a file using FFMPEG with specified operation
     
@@ -244,111 +245,15 @@ async def process_file(
         → batch_process() - Chain multiple operations
         → get_file_info() - Check output metadata
     """
-    
-    # Resolve input file
-    input_path = file_manager.resolve_id(input_file_id)
-    if not input_path:
-        return ProcessResult(
-            success=False,
-            message=f"Input file ID '{input_file_id}' not found"
-        )
-        
-    if not input_path.exists():
-        return ProcessResult(
-            success=False,
-            message=f"Input file no longer exists: {input_path.name}"
-        )
-    
-    # Validate file size
-    if not SecurityConfig.validate_file_size(input_path):
-        return ProcessResult(
-            success=False,
-            message=f"File too large (max {SecurityConfig.MAX_FILE_SIZE} bytes)"
-        )
-    
-    try:
-        # Validate operation requirements
-        required_params = {
-            'trim': ['start', 'duration'],
-            'resize': ['width', 'height'],
-            'replace_audio': ['audio_file'],
-            'concatenate_simple': ['second_video'],
-            'trim_and_replace_audio': ['start', 'duration', 'audio_file'],
-            'image_to_video': ['duration']
-        }
-        
-        # Parse params string into dict
-        parsed_params = {}
-        if params:
-            for param in params.split():
-                if '=' in param:
-                    key, value = param.split('=', 1)
-                    # If the value looks like a file ID, resolve it to a path
-                    if value.startswith('file_') and key in ['audio_file', 'second_video']:
-                        file_path = file_manager.resolve_id(value)
-                        if file_path and file_path.exists():
-                            parsed_params[key] = str(file_path)
-                        else:
-                            return ProcessResult(
-                                success=False,
-                                message=f"File ID '{value}' not found"
-                            )
-                    else:
-                        parsed_params[key] = value
-        
-        # Check for required parameters
-        if operation in required_params:
-            missing = [p for p in required_params[operation] if p not in parsed_params]
-            if missing:
-                examples = {
-                    'trim': 'start=10 duration=15',
-                    'resize': 'width=1280 height=720', 
-                    'replace_audio': 'audio_file=file_12345678',
-                    'concatenate_simple': 'second_video=file_87654321',
-                    'trim_and_replace_audio': 'start=10 duration=15 audio_file=file_12345678',
-                    'image_to_video': 'duration=2'
-                }
-                return ProcessResult(
-                    success=False,
-                    message=f"Missing required parameters: {missing}. Example: {examples.get(operation, '')}"
-                )
-        
-        # Create output file
-        output_file_id, output_path = file_manager.create_temp_file(output_extension)
-        
-        # Build and execute command
-        if operation == 'concatenate_simple':
-            # Use smart concatenation that handles videos with/without audio
-            second_video_path = Path(parsed_params['second_video'])
-            command = await ffmpeg.build_smart_concat_command(input_path, second_video_path, output_path, file_manager)
-        else:
-            command = ffmpeg.build_command(operation, input_path, output_path, **parsed_params)
-        result = await ffmpeg.execute_command(command, SecurityConfig.PROCESS_TIMEOUT)
-        
-        if result["success"]:
-            return ProcessResult(
-                success=True,
-                message=f"Successfully processed {input_path.name}",
-                output_file_id=output_file_id,
-                logs=result.get("stderr", "")
-            )
-        else:
-            return ProcessResult(
-                success=False,
-                message=f"FFMPEG failed: {result.get('error', 'Unknown error')}",
-                logs=result.get("stderr", "")
-            )
-            
-    except ValueError as e:
-        return ProcessResult(
-            success=False,
-            message=f"Invalid operation or parameters: {str(e)}"
-        )
-    except Exception as e:
-        return ProcessResult(
-            success=False,
-            message=f"Unexpected error: {str(e)}"
-        )
+    # Delegate to the core processing logic in video_operations.py
+    return await execute_core_processing(
+        input_file_id=input_file_id,
+        operation=operation,
+        output_extension=output_extension,
+        params_str=params, # Pass the original 'params' string here
+        file_manager=file_manager, # Pass the global instance
+        ffmpeg=ffmpeg             # Pass the global instance
+    )
 
 
 @mcp.tool()
@@ -574,11 +479,11 @@ async def batch_process(operations: List[Dict[str, Any]]) -> Dict[str, Any]:
         current_file_id = None
         
         for i, op in enumerate(operations):
-            # Use previous output as input for chaining (if input_file_id is 'CHAIN')
+            # Use previous output as input for chaining (if input_file_id is 'OUTPUT_PREVIOUS')
             input_id = op.get('input_file_id')
-            if input_id == 'CHAIN' and current_file_id:
+            if input_id in ['OUTPUT_PREVIOUS', 'CHAIN'] and current_file_id:
                 input_id = current_file_id
-            elif input_id == 'CHAIN' and not current_file_id:
+            elif input_id in ['OUTPUT_PREVIOUS', 'CHAIN'] and not current_file_id:
                 return {"success": False, "error": f"Operation {i}: Cannot chain - no previous output"}
             
             operation = op.get('operation')
@@ -1964,6 +1869,7 @@ def _suggest_quality_improvements() -> str:
 3. Use extract_audio + replace_audio workflow for audio cleanup
 4. Consider resize operation if source resolution is inconsistent"""
 
+# process_file_internal and process_file_as_finished functions are now moved to video_operations.py
 
 @mcp.tool()
 async def process_komposition_file(komposition_path: str) -> Dict[str, Any]:
@@ -2001,28 +1907,7 @@ async def process_komposition_file(komposition_path: str) -> Dict[str, Any]:
             "error": f"Failed to process komposition: {str(e)}"
         }
 
-
-async def process_file_internal(input_file_id: str, operation: str, output_extension: str, params: str = "") -> str:
-    """Internal helper for komposition processor to use MCP operations"""
-    try:
-        # Parse params string into dict
-        param_dict = {}
-        if params:
-            for param in params.split():
-                if "=" in param:
-                    key, value = param.split("=", 1)
-                    param_dict[key] = value
-        
-        result = await process_file(input_file_id, operation, output_extension, params)
-        
-        if result["success"]:
-            return result["output_file_id"]
-        else:
-            raise Exception(f"Operation failed: {result.get('message', 'Unknown error')}")
-            
-    except Exception as e:
-        raise Exception(f"Internal process_file failed: {str(e)}")
-
+# process_file_internal and process_file_as_finished functions are now moved to video_operations.py
 
 @mcp.tool()
 async def process_transition_effects_komposition(komposition_path: str) -> Dict[str, Any]:
@@ -3582,6 +3467,983 @@ async def create_video_from_description(
             "success": False,
             "error": f"Atomic video creation failed: {str(e)}",
             "workflow_results": workflow_results if 'workflow_results' in locals() else {}
+        }
+
+
+@mcp.tool()
+async def get_available_video_effects(category: str = None, provider: str = None) -> Dict[str, Any]:
+    """📹 VIDEO EFFECTS - List all available video effects with parameter discovery
+    
+    This tool provides comprehensive information about available video effects including:
+    - Parameter specifications with types, ranges, and defaults
+    - Performance estimates and provider information  
+    - Category-based filtering for easy discovery
+    - Parameter validation rules and constraints
+    
+    Args:
+        category: Filter by effect category ("color", "stylistic", "blur", "distortion", "privacy")
+        provider: Filter by provider ("ffmpeg", "opencv", "pil")
+    
+    Returns:
+        Dictionary containing:
+        - effects: Complete effect specifications with parameters
+        - categories: Available effect categories
+        - providers: Available effect providers  
+        - effects_count: Total number of available effects
+        
+    Categories:
+        🎨 color: Color grading, curves, film looks (vintage, noir)
+        ✨ stylistic: Visual effects (VHS, vignette, neon glow)
+        🌫️ blur: Gaussian blur, motion blur variants
+        🔀 distortion: Chromatic aberration, glitch effects
+        🔒 privacy: Face detection and blurring
+        
+    Providers:
+        🎬 ffmpeg: High-performance native video filters
+        👁️ opencv: AI-powered computer vision effects
+        🖼️ pil: Image processing effects
+        
+    Example Usage:
+        get_available_video_effects()  # All effects
+        get_available_video_effects(category="color")  # Color effects only
+        get_available_video_effects(provider="ffmpeg")  # FFmpeg effects only
+    """
+    try:
+        return effect_processor.get_available_effects(category=category, provider=provider)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get available effects: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_video_effect(file_id: str, effect_name: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    """📹 VIDEO EFFECTS - Apply single video effect with parameter control
+    
+    Apply professional video effects to your videos with precise parameter control.
+    Each effect preserves audio streams and provides performance estimates.
+    
+    Args:
+        file_id: Source video file ID from list_files()
+        effect_name: Effect name from get_available_video_effects()
+        parameters: Effect-specific parameters (optional, uses defaults if not provided)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating processing completion
+        - output_file_id: New file ID for the processed video
+        - processing_time: Actual processing duration
+        - effect_applied: Details of the effect and parameters used
+        
+    Popular Effects:
+    
+    🎨 Color Effects:
+        - vintage_color: Warm nostalgic film look
+          Parameters: intensity (0.0-2.0), warmth (-0.5-0.5), saturation (0.0-2.0)
+        - film_noir: High contrast black and white  
+          Parameters: contrast (1.0-3.0), brightness (-0.5-0.5)
+    
+    ✨ Stylistic Effects:
+        - vhs_look: Retro VHS tape aesthetic
+          Parameters: noise_level (0.0-20.0), blur_amount (0.0-2.0), saturation (0.0-2.0)
+        - vignette: Dark edges for cinematic feel
+          Parameters: angle (0.0-6.28), x0 (0.0-1.0), y0 (0.0-1.0), mode ("forward"/"backward")
+    
+    🌫️ Blur Effects:  
+        - gaussian_blur: Smooth blur effect
+          Parameters: sigma (0.1-20.0), steps (1-10)
+    
+    🔀 Distortion Effects:
+        - chromatic_aberration: RGB channel separation
+          Parameters: red_offset_x (-10-10), blue_offset_x (-10-10), intensity (0.0-2.0)
+    
+    🔒 Privacy Effects:
+        - face_blur: Automatic face detection and blurring
+          Parameters: blur_strength (5.0-50.0), detection_confidence (0.3-0.95)
+          
+    Example Usage:
+        apply_video_effect(
+            file_id="file_12345678",
+            effect_name="vintage_color",
+            parameters={"intensity": 1.2, "warmth": 0.3}
+        )
+        
+        apply_video_effect(
+            file_id="file_12345678", 
+            effect_name="gaussian_blur",
+            parameters={"sigma": 8.0}
+        )
+    """
+    try:
+        return await effect_processor.apply_effect(file_id, effect_name, parameters)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply video effect: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_video_effect_chain(file_id: str, effects_chain: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """📹 VIDEO EFFECTS - Apply multiple effects in sequence with chaining
+    
+    Stack multiple video effects to create complex looks and styles. Effects are applied
+    sequentially, with each effect processing the output of the previous effect.
+    
+    Args:
+        file_id: Source video file ID from list_files()
+        effects_chain: List of effect steps, each containing:
+            - effect: Effect name from get_available_video_effects()
+            - parameters: Effect-specific parameters (optional)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating complete chain processing
+        - final_output_file_id: File ID of the final processed video
+        - applied_effects: Details of each effect step with output file IDs
+        - total_steps: Number of effects applied
+        
+    Effect Stacking Examples:
+    
+    🎬 Cinematic Grade:
+        [
+            {"effect": "vintage_color", "parameters": {"intensity": 0.8, "warmth": 0.2}},
+            {"effect": "vignette", "parameters": {"angle": 1.57}},
+            {"effect": "gaussian_blur", "parameters": {"sigma": 1.0}}
+        ]
+    
+    📱 Social Media Ready:
+        [
+            {"effect": "vintage_color", "parameters": {"saturation": 1.3}},
+            {"effect": "vhs_look", "parameters": {"noise_level": 3.0}}
+        ]
+        
+    🔒 Privacy Protection:
+        [
+            {"effect": "face_blur", "parameters": {"blur_strength": 20.0}},
+            {"effect": "vintage_color", "parameters": {"intensity": 0.5}}
+        ]
+        
+    🎨 Film Emulation:
+        [
+            {"effect": "film_noir", "parameters": {"contrast": 1.5}},
+            {"effect": "chromatic_aberration", "parameters": {"intensity": 0.3}}
+        ]
+    
+    Performance Notes:
+        - Each effect adds processing time (see get_available_video_effects for estimates)
+        - Order matters: blur effects should typically come last
+        - Color effects work well together when applied in sequence
+        - Privacy effects (face_blur) should be applied early in the chain
+        
+    Example Usage:
+        apply_video_effect_chain(
+            file_id="file_12345678",
+            effects_chain=[
+                {"effect": "vintage_color", "parameters": {"intensity": 1.0}},
+                {"effect": "vignette", "parameters": {"angle": 1.57}},
+                {"effect": "gaussian_blur", "parameters": {"sigma": 2.0}}
+            ]
+        )
+    """
+    try:
+        return await effect_processor.apply_effect_chain(file_id, effects_chain)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply video effect chain: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def suggest_efficient_workflow(goal_description: str, available_files: List[str] = None) -> Dict[str, Any]:
+    """🎯 WORKFLOW OPTIMIZATION - Get optimized workflow suggestions to minimize function calls
+    
+    This tool analyzes your goal and suggests the most efficient combination of MCP tools to achieve it,
+    reducing the number of function calls from 20+ down to 3-5 calls by using atomic operations and batch processing.
+    
+    Args:
+        goal_description: What you want to create (e.g., "music video with effects", "batch convert videos")
+        available_files: Optional list of file names/IDs you want to work with
+    
+    Returns:
+        Dictionary containing:
+        - recommended_workflow: Step-by-step optimized workflow
+        - efficiency_score: Estimated function call reduction
+        - atomic_functions: Single-call solutions when available
+        - batch_operations: Multi-step operations in minimal calls
+        - fallback_manual: Manual step-by-step if atomic functions fail
+    
+    Efficiency Examples:
+        Instead of: 25+ individual calls
+        Use: 3-5 optimized calls with batch_process() and atomic functions
+        
+        Instead of: apply_video_effect() → apply_video_effect() → apply_video_effect()
+        Use: apply_video_effect_chain() - single call for multiple effects
+        
+        Instead of: Individual trim/resize/audio operations
+        Use: batch_process() with OUTPUT_PREVIOUS chaining
+    
+    Goal Types Optimized:
+        🎬 "Create music video" → create_video_from_description() (1 call)
+        ✨ "Apply multiple effects" → apply_video_effect_chain() (1 call)  
+        🔗 "Multi-step processing" → batch_process() (1 call)
+        📱 "Social media format" → Optimized resize + effects batch
+        🎵 "Add music to videos" → Audio workflow with minimal steps
+    """
+    try:
+        goal = goal_description.lower()
+        
+        # Analyze goal and suggest optimal workflow
+        if any(keyword in goal for keyword in ['music video', 'create video', 'video from']):
+            return {
+                "success": True,
+                "recommended_workflow": "atomic_single_call",
+                "efficiency_score": "95% reduction (25+ calls → 1 call)",
+                "atomic_functions": [
+                    {
+                        "function": "create_video_from_description",
+                        "description": "Single atomic call for complete video creation",
+                        "parameters": {
+                            "description": goal_description,
+                            "title": "Generated Video",
+                            "execution_mode": "full"
+                        },
+                        "why_efficient": "Combines file discovery, komposition generation, build planning, and processing in one call"
+                    }
+                ],
+                "fallback_manual": [
+                    "1. list_files() - discover available media",
+                    "2. generate_komposition_from_description() - create structure", 
+                    "3. process_komposition_file() - execute creation"
+                ],
+                "estimated_calls": 1,
+                "efficiency_tips": [
+                    "Use execution_mode='plan_only' to preview without processing",
+                    "Add custom_resolution='600x800' for social media formats",
+                    "Include BPM and effects in description for better results"
+                ]
+            }
+            
+        elif any(keyword in goal for keyword in ['effects', 'filter', 'apply', 'style']):
+            return {
+                "success": True,
+                "recommended_workflow": "effect_chain_batch",
+                "efficiency_score": "80% reduction (10+ calls → 2 calls)",
+                "atomic_functions": [
+                    {
+                        "function": "get_available_video_effects",
+                        "description": "Discover all effects and parameters",
+                        "parameters": {},
+                        "why_efficient": "Single call to see all 12 effects with parameter specs"
+                    },
+                    {
+                        "function": "apply_video_effect_chain",
+                        "description": "Apply multiple effects in one operation",
+                        "parameters": {
+                            "file_id": "target_file_id",
+                            "effects_chain": [
+                                {"effect": "vintage_color", "parameters": {"intensity": 1.0}},
+                                {"effect": "vignette", "parameters": {"angle": 1.57}}
+                            ]
+                        },
+                        "why_efficient": "Chains multiple effects without intermediate files"
+                    }
+                ],
+                "batch_operations": [
+                    {
+                        "description": "If you need different effects on different files",
+                        "use": "batch_process with video effects operations"
+                    }
+                ],
+                "estimated_calls": 2,
+                "popular_effect_chains": {
+                    "cinematic": ["vintage_color", "vignette", "gaussian_blur"],
+                    "social_media": ["social_media_pack", "warm_cinematic"],
+                    "retro": ["vhs_look", "chromatic_aberration"],
+                    "professional": ["film_noir", "dreamy_soft"]
+                }
+            }
+            
+        elif any(keyword in goal for keyword in ['batch', 'multiple', 'convert', 'resize']):
+            return {
+                "success": True,
+                "recommended_workflow": "batch_processing",
+                "efficiency_score": "90% reduction (20+ calls → 2-3 calls)",
+                "atomic_functions": [
+                    {
+                        "function": "batch_process",
+                        "description": "Process multiple operations with OUTPUT_PREVIOUS chaining",
+                        "parameters": {
+                            "operations": [
+                                {"input_file_id": "file_123", "operation": "trim", "output_extension": "mp4", "params": "start=0 duration=10"},
+                                {"input_file_id": "OUTPUT_PREVIOUS", "operation": "resize", "output_extension": "mp4", "params": "width=1920 height=1080"},
+                                {"input_file_id": "OUTPUT_PREVIOUS", "operation": "to_mp3", "output_extension": "mp3"}
+                            ]
+                        },
+                        "why_efficient": "Chains multiple operations atomically with proper file passing"
+                    }
+                ],
+                "chaining_tips": [
+                    "Use 'OUTPUT_PREVIOUS' as input_file_id to chain operations",
+                    "Each operation processes the output of the previous one",
+                    "Batch stops on first failure with detailed error reporting",
+                    "Final output file_id returned for further processing"
+                ],
+                "estimated_calls": 1,
+                "common_chains": {
+                    "social_media_prep": ["trim", "resize", "to_mp3"],
+                    "quality_improve": ["normalize_audio", "convert", "resize"],
+                    "format_standardize": ["convert", "resize", "extract_audio"]
+                }
+            }
+            
+        else:
+            # General workflow optimization
+            return {
+                "success": True,
+                "recommended_workflow": "optimized_general",
+                "efficiency_score": "70% reduction (15+ calls → 4-5 calls)",
+                "general_principles": [
+                    "1. Always start with list_files() to see available media and get smart suggestions",
+                    "2. Use atomic functions when available (create_video_from_description, apply_video_effect_chain)",
+                    "3. Use batch_process() for multi-step operations with OUTPUT_PREVIOUS chaining",
+                    "4. Use list_generated_files() to track outputs and cleanup_temp_files() to clean up",
+                    "5. Prefer single comprehensive calls over multiple individual operations"
+                ],
+                "atomic_first_strategy": [
+                    "Try create_video_from_description() for video creation goals",
+                    "Try apply_video_effect_chain() for multiple effects",
+                    "Try batch_process() for multi-step workflows"
+                ],
+                "manual_fallback": [
+                    "If atomic functions fail, use individual process_file() calls",
+                    "Chain outputs manually: output_file_id from step 1 → input_file_id for step 2",
+                    "Always verify success before proceeding to next step"
+                ],
+                "estimated_calls": "4-5 vs 15-25 manual calls"
+            }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to generate workflow suggestions: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def estimate_effect_processing_time(file_id: str, effects_chain: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """📹 VIDEO EFFECTS - Estimate processing time for effects chain
+    
+    Get accurate processing time estimates before applying effects. Helps with planning
+    batch operations and understanding performance impact of different effect combinations.
+    
+    Args:
+        file_id: Source video file ID to analyze
+        effects_chain: List of effect steps to estimate (same format as apply_video_effect_chain)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating estimation completion
+        - video_duration: Duration of source video in seconds
+        - total_estimated_time: Total processing time estimate in seconds
+        - effect_estimates: Per-effect processing estimates with performance tiers
+        - time_per_effect: Average time per effect
+        
+    Performance Tiers:
+        🚀 fast: Real-time or near real-time processing (< 1s per video second)
+        ⚡ medium: Moderate processing time (1-5s per video second)  
+        🐌 slow: Intensive processing (> 5s per video second)
+        
+    Estimation Factors:
+        - Video duration and resolution
+        - Effect complexity and provider (FFmpeg vs OpenCV vs PIL)
+        - Hardware capabilities (CPU vs GPU acceleration where available)
+        - Parameter settings (higher blur = longer processing)
+        
+    Use Cases:
+        - Plan batch processing workflows
+        - Compare different effect combinations
+        - Estimate completion times for long videos
+        - Optimize effect order for better performance
+        
+    Example Usage:
+        estimate_effect_processing_time(
+            file_id="file_12345678", 
+            effects_chain=[
+                {"effect": "vintage_color"},
+                {"effect": "gaussian_blur", "parameters": {"sigma": 10.0}},
+                {"effect": "face_blur"}
+            ]
+        )
+    """
+    try:
+        return effect_processor.estimate_processing_time(file_id, effects_chain)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to estimate processing time: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def analyze_video_formats(file_ids: List[str]) -> Dict[str, Any]:
+    """
+    Analyze aspect ratios of multiple videos and suggest optimal target format.
+    
+    Args:
+        file_ids: List of file IDs to analyze
+        
+    Returns:
+        Dictionary with format analysis and recommendations
+    """
+    try:
+        analyses = []
+        for file_id in file_ids:
+            file_path = file_manager.resolve_id(file_id)
+            analysis = format_manager.analyze_video_format(file_path, file_id)
+            analyses.append({
+                "file_id": file_id,
+                "resolution": f"{analysis.width}x{analysis.height}",
+                "aspect_ratio": f"{analysis.aspect_ratio:.2f}",
+                "orientation": analysis.orientation,
+                "suggested_crop_mode": analysis.suggested_crop_mode.value,
+                "crop_compatibility": analysis.crop_compatibility
+            })
+        
+        # Get format suggestion
+        video_analyses = [format_manager.analyze_video_format(file_manager.resolve_id(fid), fid) for fid in file_ids]
+        suggested_format = format_manager.suggest_target_format(video_analyses)
+        
+        return {
+            "success": True,
+            "video_analyses": analyses,
+            "suggested_format": {
+                "aspect_ratio": suggested_format.aspect_ratio.display_name,
+                "resolution": f"{suggested_format.width}x{suggested_format.height}",
+                "orientation": suggested_format.orientation,
+                "crop_mode": suggested_format.crop_mode.value
+            },
+            "common_presets": {name: {
+                "aspect_ratio": preset.aspect_ratio.display_name,
+                "resolution": f"{preset.width}x{preset.height}",
+                "crop_mode": preset.crop_mode.value
+            } for name, preset in COMMON_PRESETS.items()}
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to analyze video formats: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def preview_format_conversion(
+    file_id: str, 
+    target_format: str, 
+    crop_mode: str = "center_crop",
+    timestamp: float = 5.0
+) -> Dict[str, Any]:
+    """
+    Generate preview image showing how video will be cropped/fitted to target format.
+    
+    Args:
+        file_id: ID of the source video
+        target_format: Target format preset name or "custom"
+        crop_mode: Cropping strategy (center_crop, scale_letterbox, scale_blur_bg, etc.)
+        timestamp: Time in seconds to extract preview frame
+        
+    Returns:
+        Dictionary with preview image path and conversion details
+    """
+    try:
+        from .format_manager import CropMode, FormatSpec, AspectRatio
+    except ImportError:
+        from format_manager import CropMode, FormatSpec, AspectRatio
+        
+        # Get target format specification
+        if target_format in COMMON_PRESETS:
+            format_spec = COMMON_PRESETS[target_format]
+        else:
+            # Default format
+            format_spec = COMMON_PRESETS["youtube_landscape"]
+        
+        # Override crop mode if specified
+        try:
+            crop_mode_enum = CropMode(crop_mode)
+            format_spec = FormatSpec(format_spec.aspect_ratio, format_spec.resolution, crop_mode_enum)
+        except ValueError:
+            pass  # Use default crop mode
+        
+        # Generate preview
+        file_path = file_manager.resolve_id(file_id)
+        preview_path = format_manager.generate_preview_frame(file_path, format_spec, timestamp)
+        
+        # Get conversion analysis
+        analysis = format_manager.analyze_video_format(file_path, file_id)
+        conversion_plan = format_manager.create_format_conversion_plan([analysis], format_spec)
+        
+        return {
+            "success": True,
+            "preview_image": preview_path,
+            "conversion_details": conversion_plan["video_conversions"][0],
+            "quality_estimate": conversion_plan["estimated_quality_loss"],
+            "warnings": conversion_plan["warnings"]
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to generate preview: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def create_format_conversion_plan(
+    file_ids: List[str],
+    target_format: str = "auto",
+    crop_mode: str = "auto"
+) -> Dict[str, Any]:
+    """
+    Create detailed plan for converting multiple videos to consistent target format.
+    
+    Args:
+        file_ids: List of video file IDs to convert
+        target_format: Target format preset ("youtube_landscape", "instagram_square", etc.) or "auto"
+        crop_mode: Cropping strategy or "auto" for intelligent selection
+        
+    Returns:
+        Complete conversion plan with FFmpeg commands and quality estimates
+    """
+    try:
+        from .format_manager import CropMode, FormatSpec
+    except ImportError:
+        from format_manager import CropMode, FormatSpec
+        
+        # Analyze all videos
+        video_analyses = []
+        for file_id in file_ids:
+            file_path = file_manager.resolve_id(file_id)
+            analysis = format_manager.analyze_video_format(file_path, file_id)
+            video_analyses.append(analysis)
+        
+        # Determine target format
+        if target_format == "auto":
+            format_spec = format_manager.suggest_target_format(video_analyses)
+        elif target_format in COMMON_PRESETS:
+            format_spec = COMMON_PRESETS[target_format]
+        else:
+            format_spec = COMMON_PRESETS["youtube_landscape"]  # Fallback
+        
+        # Override crop mode if specified
+        if crop_mode != "auto":
+            try:
+                crop_mode_enum = CropMode(crop_mode)
+                format_spec = FormatSpec(format_spec.aspect_ratio, format_spec.resolution, crop_mode_enum)
+            except ValueError:
+                pass  # Use default crop mode
+        
+        # Create detailed conversion plan
+        conversion_plan = format_manager.create_format_conversion_plan(video_analyses, format_spec)
+        
+        return {
+            "success": True,
+            "conversion_plan": conversion_plan,
+            "execution_ready": True,
+            "estimated_processing_time": len(file_ids) * 30  # Rough estimate
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to create conversion plan: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def get_format_presets() -> Dict[str, Any]:
+    """
+    Get list of available format presets for different platforms and use cases.
+    
+    Returns:
+        Dictionary of format presets with their specifications
+    """
+    try:
+        presets = {}
+        for name, preset in COMMON_PRESETS.items():
+            presets[name] = {
+                "name": name,
+                "aspect_ratio": preset.aspect_ratio.display_name,
+                "resolution": f"{preset.width}x{preset.height}",
+                "orientation": preset.orientation,
+                "crop_mode": preset.crop_mode.value,
+                "description": {
+                    "youtube_landscape": "Standard YouTube video format (16:9 landscape)",
+                    "instagram_square": "Instagram square post format (1:1)",
+                    "instagram_story": "Instagram Story/Reels format (9:16 portrait)",
+                    "tiktok_vertical": "TikTok vertical video format (9:16 portrait)",
+                    "twitter_landscape": "Twitter video format (16:9 landscape)",
+                    "facebook_square": "Facebook square video format (1:1)",
+                    "cinema_wide": "Cinematic widescreen format (21:9)"
+                }.get(name, f"Format preset: {name}")
+            }
+        
+        return {
+            "success": True,
+            "presets": presets,
+            "crop_modes": {
+                "center_crop": "Crop from center, losing edges (good for symmetric content)",
+                "smart_crop": "AI-detected focal point cropping (best quality, slower)",
+                "scale_letterbox": "Fit with black bars (preserves all content)",
+                "scale_blur_bg": "Fit with blurred background (popular for social media)",
+                "scale_stretch": "Stretch to fit (may distort, not recommended)",
+                "top_crop": "Crop from top (good for portraits with people)",
+                "bottom_crop": "Crop from bottom"
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get format presets: {str(e)}"
+        }
+
+
+# Audio Effects Tools
+
+@mcp.tool()
+async def get_available_audio_effects(category: Optional[str] = None) -> Dict[str, Any]:
+    """🎵 AUDIO EFFECTS - List all available audio effects with parameter discovery
+    
+    This tool provides comprehensive information about available audio effects including:
+    - Parameter specifications with types, ranges, and defaults
+    - Performance estimates and provider information  
+    - Category-based filtering for easy discovery
+    - Parameter validation rules and constraints
+    
+    Args:
+        category: Filter by effect category ("eq", "dynamics", "loudness", "spatial", "filter")
+    
+    Returns:
+        Dictionary containing:
+        - effects: Complete effect specifications with parameters
+        - categories: Available effect categories
+        - effects_count: Total number of available effects
+        
+    Categories:
+        🎛️ eq: Equalizers and frequency shaping
+        🎚️ dynamics: Compressors, limiters, gates
+        📊 loudness: LUFS normalization and metering
+        🌊 spatial: Stereo width and positioning
+        🔊 filter: High-pass, low-pass, band filters
+        
+    Example Usage:
+        get_available_audio_effects()  # All effects
+        get_available_audio_effects(category="dynamics")  # Compressors/limiters only
+    """
+    try:
+        return audio_effect_processor.get_available_effects(category=category)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get available audio effects: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_audio_effect(file_id: str, effect_name: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    """🎵 AUDIO EFFECTS - Apply single audio effect with parameter control
+    
+    Apply professional audio effects to your audio files with precise parameter control.
+    Each effect preserves original quality and provides performance estimates.
+    
+    Args:
+        file_id: Source audio/video file ID from list_files()
+        effect_name: Effect name from get_available_audio_effects()
+        parameters: Effect-specific parameters (optional, uses defaults if not provided)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating processing completion
+        - output_file_id: New file ID for the processed audio
+        - processing_time: Actual processing duration
+        - effect_applied: Details of the effect and parameters used
+        
+    Popular Audio Effects:
+    
+    🎛️ EQ Effects:
+        - equalizer: Multi-band parametric EQ
+          Parameters: bands [{"frequency": Hz, "gain": dB, "q": width}]
+        - high_pass_filter: Remove low frequencies
+          Parameters: frequency (10-1000 Hz), rolloff (6-48 dB/oct)
+    
+    🎚️ Dynamics:
+        - compressor: Dynamic range control
+          Parameters: threshold (-60-0 dB), ratio (1-20), attack/release (ms)
+        - limiter: Peak limiting for output control
+          Parameters: ceiling (-3-0 dBTP), release (1-1000 ms)
+        - de_esser: Sibilance control
+          Parameters: frequency (2000-12000 Hz), threshold, ratio
+    
+    📊 Loudness:
+        - loudness_normalize: EBU R128 normalization
+          Parameters: target_lufs (-30 to -6), true_peak (-3 to 0)
+    
+    🌊 Spatial:
+        - stereo_widener: Stereo field control
+          Parameters: width (0.0-2.0), frequency_range [low, high]
+        - mono_bass: Make low frequencies mono
+          Parameters: frequency (50-300 Hz)
+          
+    Example Usage:
+        apply_audio_effect(
+            file_id="file_12345678",
+            effect_name="compressor",
+            parameters={"threshold": -18, "ratio": 3.0, "attack": 20, "release": 150}
+        )
+        
+        apply_audio_effect(
+            file_id="file_12345678", 
+            effect_name="loudness_normalize",
+            parameters={"target_lufs": -16, "true_peak": -1.0}
+        )
+    """
+    try:
+        return await audio_effect_processor.apply_effect(file_id, effect_name, parameters)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply audio effect: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_audio_effect_chain(file_id: str, effects_chain: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """🎵 AUDIO EFFECTS - Apply multiple audio effects in sequence with chaining
+    
+    Stack multiple audio effects to create professional mastering chains. Effects are applied
+    sequentially, with each effect processing the output of the previous effect.
+    
+    Args:
+        file_id: Source audio/video file ID from list_files()
+        effects_chain: List of effect steps, each containing:
+            - effect: Effect name from get_available_audio_effects()
+            - parameters: Effect-specific parameters (optional)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating complete chain processing
+        - final_output_file_id: File ID of the final processed audio
+        - applied_effects: Details of each effect step with output file IDs
+        - total_steps: Number of effects applied
+        
+    Professional Mastering Chain Examples:
+    
+    🎸 Rock Mastering:
+        [
+            {"effect": "high_pass_filter", "parameters": {"frequency": 35}},
+            {"effect": "equalizer", "parameters": {"bands": [
+                {"frequency": 80, "gain": 1.5, "q": 0.8},
+                {"frequency": 2500, "gain": 1.8, "q": 1.0}
+            ]}},
+            {"effect": "compressor", "parameters": {"threshold": -18, "ratio": 2.5}},
+            {"effect": "loudness_normalize", "parameters": {"target_lufs": -9}}
+        ]
+    
+    🎧 EDM Mastering:
+        [
+            {"effect": "mono_bass", "parameters": {"frequency": 120}},
+            {"effect": "compressor", "parameters": {"threshold": -15, "ratio": 4.0}},
+            {"effect": "stereo_widener", "parameters": {"width": 1.3}},
+            {"effect": "limiter", "parameters": {"ceiling": -1.0}}
+        ]
+        
+    🎤 Podcast Enhancement:
+        [
+            {"effect": "high_pass_filter", "parameters": {"frequency": 85}},
+            {"effect": "de_esser", "parameters": {"frequency": 6500, "threshold": -25}},
+            {"effect": "compressor", "parameters": {"threshold": -20, "ratio": 4.0}},
+            {"effect": "loudness_normalize", "parameters": {"target_lufs": -16}}
+        ]
+    
+    Performance Notes:
+        - Each effect adds processing time (see get_available_audio_effects for estimates)
+        - Order matters: filters → EQ → dynamics → loudness normalization
+        - Loudness normalization should typically be the final step
+        
+    Example Usage:
+        apply_audio_effect_chain(
+            file_id="file_12345678",
+            effects_chain=[
+                {"effect": "high_pass_filter", "parameters": {"frequency": 80}},
+                {"effect": "compressor", "parameters": {"threshold": -18, "ratio": 3.0}},
+                {"effect": "loudness_normalize", "parameters": {"target_lufs": -14}}
+            ]
+        )
+    """
+    try:
+        return await audio_effect_processor.apply_effect_chain(file_id, effects_chain)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply audio effect chain: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_audio_template(file_id: str, template_name: str) -> Dict[str, Any]:
+    """🎵 AUDIO TEMPLATES - Apply pre-defined or user-created audio effect templates
+    
+    Apply complete mastering chains using predefined templates for different genres
+    and use cases. Templates include professional mastering chains optimized for
+    streaming platforms.
+    
+    Args:
+        file_id: Source audio/video file ID from list_files()
+        template_name: Template name from list_audio_templates()
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating template application
+        - final_output_file_id: File ID of the processed audio
+        - template_applied: Template details and effects chain used
+        - applied_effects: Details of each processing step
+        
+    Built-in Templates:
+        🎸 rock_mastering: Professional rock mastering for streaming
+        🎧 edm_mastering: High-impact EDM mastering with controlled low-end
+        🎤 podcast_enhancement: Speech processing for podcasts
+        
+    Platform Optimization:
+        - Templates include LUFS targets for major platforms
+        - True peak limiting prevents transcoding distortion
+        - Genre-specific EQ and dynamics for optimal sound
+        
+    Example Usage:
+        apply_audio_template(
+            file_id="file_12345678",
+            template_name="rock_mastering"
+        )
+    """
+    try:
+        return await audio_effect_processor.apply_effect_template(file_id, template_name)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply audio template: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def list_audio_templates() -> Dict[str, Any]:
+    """🎵 AUDIO TEMPLATES - List all available audio effect templates
+    
+    Get all available audio templates including predefined professional templates
+    and user-created custom templates.
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating list generation
+        - predefined: List of built-in professional templates
+        - user: List of user-created custom templates
+        - template_count: Total number of templates available
+        
+    Template Information:
+        Each template includes:
+        - name: Template display name
+        - description: What the template does
+        - category: Template type (mastering, speech, etc.)
+        - genre: Target music genre or content type
+        - target_platforms: Optimized platforms (Spotify, Apple Music, etc.)
+        - effects_chain: Complete effects processing chain
+        
+    Template Locations:
+        - Predefined: examples/effect-templates/audio/
+        - User: /tmp/music/effect-templates/audio/
+        
+    Example Usage:
+        list_audio_templates()
+    """
+    try:
+        return {
+            "success": True,
+            **audio_effect_processor.list_effect_templates()
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to list audio templates: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def save_audio_template(template_name: str, template_data: Dict[str, Any]) -> Dict[str, Any]:
+    """🎵 AUDIO TEMPLATES - Save custom audio effect template
+    
+    Save a custom audio effect template to the user template directory for reuse.
+    Templates can be created from successful effect chains or designed from scratch.
+    
+    Args:
+        template_name: Name for the new template (no .yaml extension needed)
+        template_data: Template structure with name, description, category, effects_chain
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating save completion
+        - template_path: Path where template was saved
+        - template_name: Name of the saved template
+        
+    Template Structure:
+        {
+            "name": "My Custom Template",
+            "description": "Description of what this template does",
+            "category": "mastering" or "speech" or "creative",
+            "genre": "rock" or "edm" or "podcast" etc,
+            "target_platforms": ["spotify", "apple_music"],
+            "effects_chain": [
+                {"effect": "effect_name", "parameters": {...}},
+                ...
+            ]
+        }
+        
+    Example Usage:
+        save_audio_template(
+            template_name="my_vocal_chain",
+            template_data={
+                "name": "My Vocal Processing Chain",
+                "description": "Custom vocal processing for my podcast",
+                "category": "speech",
+                "genre": "podcast",
+                "target_platforms": ["spotify_podcasts"],
+                "effects_chain": [
+                    {"effect": "high_pass_filter", "parameters": {"frequency": 85}},
+                    {"effect": "compressor", "parameters": {"threshold": -20, "ratio": 4.0}},
+                    {"effect": "loudness_normalize", "parameters": {"target_lufs": -16}}
+                ]
+            }
+        )
+    """
+    try:
+        success = audio_effect_processor.save_effect_template(template_name, template_data)
+        if success:
+            template_path = audio_effect_processor.user_templates_dir / f"{template_name}.yaml"
+            return {
+                "success": True,
+                "template_path": str(template_path),
+                "template_name": template_name,
+                "message": f"Template '{template_name}' saved successfully"
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Failed to save template '{template_name}'"
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to save audio template: {str(e)}"
         }
 
 

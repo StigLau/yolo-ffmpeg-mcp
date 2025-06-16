@@ -1,0 +1,56 @@
+FROM python:3.13-slim
+
+# Install system dependencies (same as CI)
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    mediainfo \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install UV for package management (before copying code for better caching)
+RUN pip install --no-cache-dir uv
+
+# Set working directory
+WORKDIR /app
+
+# Copy only requirements first for better caching
+COPY pyproject.toml ./
+
+# Install Python dependencies first (fresh build with PyYAML)
+RUN uv pip install --system --no-cache \
+    fastmcp>=2.7.1 \
+    mcp>=1.9.3 \
+    pydantic>=2.11.5 \
+    pytest>=8.4.0 \
+    pytest-asyncio>=1.0.0 \
+    jsonschema>=4.0.0 \
+    psutil>=5.9.0 \
+    pillow>=10.0.0 \
+    numpy>=1.24.0 \
+    pyyaml>=6.0.0 \
+    opencv-python-headless>=4.11.0
+
+# Copy minimal project files (excludes large test files due to .dockerignore)
+COPY . .
+
+# Create test directories and copy test files (same as CI)
+RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/metadata /tmp/music/screenshots && \
+    echo "📁 Available test files:" && \
+    ls -la tests/files/ && \
+    echo "📋 Copying test files..." && \
+    find tests/files/ -name "*.mp4" -exec cp {} /tmp/music/source/ \; && \
+    find tests/files/ -name "*.jpeg" -exec cp {} /tmp/music/source/ \; && \
+    find tests/files/ -name "*.flac" -exec cp {} /tmp/music/source/ \; && \
+    find tests/files/ -name "*.mp3" -exec cp {} /tmp/music/source/ \; && \
+    echo "✅ Test files copied:" && \
+    ls -la /tmp/music/source/ && \
+    echo "📊 Total files: $(ls /tmp/music/source/ | wc -l)"
+
+# Set Python path for module imports
+ENV PYTHONPATH=/app:/app/src
+
+# Make scripts executable
+RUN chmod +x scripts/verify_container_components.py scripts/run_ci_tests.sh
+
+# Default command runs all CI tests using our script  
+CMD ["./scripts/run_ci_tests.sh"]

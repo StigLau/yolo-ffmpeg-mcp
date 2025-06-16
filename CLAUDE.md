@@ -12,6 +12,9 @@ Implemented advanced komposition JSON processing for beat-synchronized music vid
 ### 🎤 SPEECH DETECTION & AUDIO ANALYSIS ✅
 Implemented AI-powered speech detection using Silero VAD with pluggable backend architecture. Provides precise speech timestamps, quality assessment, and intelligent editing suggestions for advanced audio-video synchronization workflows.
 
+### 📐 FORM-FACTOR CONTROL SYSTEM ✅ **NEW**
+Intelligent aspect ratio and cropping management system that solves the portrait→landscape mismatch problem. Users can now specify target format upfront and preview exactly how videos will be cropped before processing. Includes smart cropping options (center, letterbox, blur background) and platform-specific presets (YouTube, Instagram, TikTok).
+
 ## Quick Start
 
 ### 🐳 Docker Setup (Recommended)
@@ -87,17 +90,23 @@ uv run pytest tests/test_komposition_music_video.py -v -s              # Komposi
 8. **smart_trim_suggestions(file_id, desired_duration=10.0)** - Intelligent trim recommendations based on content
 9. **get_scene_screenshots(file_id)** - Get scene screenshots with URLs for visual scene selection 📸
 
-### Speech Detection & Audio Analysis Tools 🎤 **NEW**
+### Speech Detection & Audio Analysis Tools 🎤
 10. **detect_speech_segments(file_id, force_reanalysis=False, threshold=0.5, min_speech_duration=250, min_silence_duration=100)** - AI-powered speech detection with precise timestamps using Silero VAD
 11. **get_speech_insights(file_id)** - Comprehensive speech analysis with quality metrics, timing patterns, and editing suggestions
 
+### Form-Factor & Aspect Ratio Management Tools 📐 **NEW**
+12. **analyze_video_formats(file_ids)** - Analyze aspect ratios of multiple videos and suggest optimal target format
+13. **preview_format_conversion(file_id, target_format, crop_mode, timestamp)** - Generate preview image showing how video will be cropped/fitted
+14. **create_format_conversion_plan(file_ids, target_format, crop_mode)** - Create detailed plan for converting videos to consistent format
+15. **get_format_presets()** - Get available format presets (YouTube, Instagram, TikTok, etc.) with cropping options
+
 ### Workflow Management Tools 🔧
-12. **list_generated_files()** - List all processed files in temp directory with metadata 
-13. **batch_process(operations)** - Execute multi-step workflows with atomic transaction support
+16. **list_generated_files()** - List all processed files in temp directory with metadata 
+17. **batch_process(operations)** - Execute multi-step workflows with atomic transaction support
 
 ### Beat-Synchronized Music Video Tools 🎵
-14. **process_komposition_file(komposition_path)** - Create beat-synchronized music videos from komposition JSON
-15. **process_transition_effects_komposition(komposition_path)** - Process komposition with advanced transition effects tree
+18. **process_komposition_file(komposition_path)** - Create beat-synchronized music videos from komposition JSON
+19. **process_transition_effects_komposition(komposition_path)** - Process komposition with advanced transition effects tree
 
 ## Test Results Summary
 - **✅ File Management**: Secure ID-based file references working

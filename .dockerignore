@@ -69,10 +69,10 @@ Dockerfile*
 docker-compose*.yml
 .dockerignore
 
-# Large test files (keep structure but exclude large media)
-tests/files/*.mp4
-tests/files/*.mov
-tests/files/*.avi
+# Large test files (keep structure but exclude large media for CI speed)
+# tests/files/*.mp4  # Commented out to allow CI testing
+# tests/files/*.mov  # Commented out to allow CI testing  
+# tests/files/*.avi  # Commented out to allow CI testing
 !tests/files/small-*.mp4
 
 # Generated output directories (will be created by container)
@@ -80,14 +80,21 @@ tests/files/*.avi
 /tmp/music/screenshots/*
 /tmp/music/metadata/*
 
-# Development and documentation that's not needed in container
+# Development and documentation that's not needed in container  
+documents/ai-generated/
+archive/
+examples/video-workflows/
+examples/komposition-examples/
+tools/analysis/
+tools/testing/
+scripts/benchmark_*
+scripts/main.py
+deployment/
+PROJECT_STRUCTURE.md
 IMPROVEMENT_PLAN.md
-documents/WORKFLOW_EXAMPLES.md
-documents/PRODUCTION_RECOMMENDATIONS.md
-documents/TRANSITION_EFFECTS_POC_SUMMARY.md
-documents/The\ Evolving\ Landscape\ of\ Python-Based\ Audio\ Processing*
-documents/AUDIO_PROCESSING_FINDINGS.md
-documents/SPEECH_DETECTION_FEATURE_SPEC.md
+*.md
+!README.md
+!CLAUDE.md
 
 # Keep only essential files for runtime
 !src/

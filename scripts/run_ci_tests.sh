@@ -20,7 +20,13 @@ echo ""
 echo -e "${YELLOW}📋 Environment Validation${NC}"
 echo "Python version: $(python3 --version)"
 echo "FFMPEG version: $(ffmpeg -version | head -1)"
-echo "Test data directory: $(ls -la /tmp/music/source | wc -l) files"
+echo "Test data directory: $(ls /tmp/music/source 2>/dev/null | wc -l) files"
+if [ -d "/tmp/music/source" ]; then
+    echo "Test files available:"
+    ls -la /tmp/music/source/
+else
+    echo "❌ Test source directory not found"
+fi
 echo ""
 
 # Test categories to run

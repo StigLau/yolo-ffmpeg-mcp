@@ -13,10 +13,12 @@ class FileManager:
         self.cache_ttl = 300  # 5 minutes cache TTL
         self.source_dir = Path("/tmp/music/source")
         self.temp_dir = Path("/tmp/music/temp")
+        self.finished_dir = Path("/tmp/music/finished")
         
         # Create directories if they don't exist
         self.source_dir.mkdir(parents=True, exist_ok=True)
         self.temp_dir.mkdir(parents=True, exist_ok=True)
+        self.finished_dir.mkdir(parents=True, exist_ok=True)
         
     def register_file(self, file_path: str | Path) -> str:
         """Register a file and return its ID reference"""
@@ -57,11 +59,33 @@ class FileManager:
         file_id = self.register_file(temp_path)
         return file_id, temp_path
         
+    def create_finished_file(self, extension: str, title: str = None) -> tuple[str, Path]:
+        """Create finished file and return (id, path)"""
+        if not extension.startswith('.'):
+            extension = f'.{extension}'
+            
+        if title:
+            # Sanitize title for filename
+            safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_title = safe_title.replace(' ', '_')
+            finished_filename = f"{safe_title}_{uuid.uuid4().hex[:8]}{extension}"
+        else:
+            finished_filename = f"finished_{uuid.uuid4().hex[:8]}{extension}"
+            
+        finished_path = self.finished_dir / finished_filename
+        
+        # Create empty file
+        finished_path.touch()
+        
+        # Register and return
+        file_id = self.register_file(finished_path)
+        return file_id, finished_path
+        
     def _is_path_allowed(self, file_path: Path) -> bool:
         """Check if file path is within allowed directories"""
         try:
             resolved_path = file_path.resolve()
-            allowed_dirs = [self.source_dir.resolve(), self.temp_dir.resolve()]
+            allowed_dirs = [self.source_dir.resolve(), self.temp_dir.resolve(), self.finished_dir.resolve()]
             
             return any(
                 resolved_path.is_relative_to(allowed_dir) 
@@ -97,6 +121,14 @@ class FileManager:
         
     def invalidate_cache(self, file_id: str):
         """Remove cached properties for a file"""
+        self.property_cache.pop(file_id, None)
+        self.cache_timestamps.pop(file_id, None)
+
+    def invalidate_file_id(self, file_id: str):
+        """Remove a file_id from the map, typically if its creation failed or file is removed."""
+        if file_id in self.file_map:
+            del self.file_map[file_id]
+        # Also remove from property cache if it exists
         self.property_cache.pop(file_id, None)
         self.cache_timestamps.pop(file_id, None)
         

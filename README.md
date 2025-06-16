@@ -5,7 +5,74 @@ Working with a developer-LLM (Claude Code) which has access to the project, it c
 
 # FFMPEG MCP Server 🎬
 
-An intelligent video editing MCP server with AI-powered content analysis, speech detection, and automated music video creation.
+**Intelligent video editing with AI-powered content understanding**
+
+> An advanced MCP (Model Context Protocol) server that provides AI-powered video editing capabilities with speech detection, intelligent scene analysis, and beat-synchronized music video creation.
+
+## 🚀 Quick Start
+
+### Run All Tests
+```bash
+./test-all.sh
+```
+
+### Start MCP Server
+```bash
+# Local development (recommended)
+uv run python -m src.server
+
+# Or with Docker
+docker run -p 8000:8000 ffmpeg-mcp:latest
+```
+
+### Create Your First Video
+```bash
+# List available source files
+python examples/video-workflows/build_your_video.py
+```
+
+## 📚 Documentation
+
+### For Developers
+- **[CLAUDE.md](CLAUDE.md)** - Complete development guide for LLMs
+- **[DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)** - Architecture decisions and optimization notes
+- **[Project Structure](PROJECT_STRUCTURE.md)** - Detailed codebase organization
+
+### For Users
+- **[Production Examples](documents/WORKFLOW_EXAMPLES.md)** - Complete video creation workflows
+- **[Docker Setup](documents/DOCKER_SETUP.md)** - Production deployment guide
+- **[Feature Specifications](documents/)** - Detailed feature documentation
+
+## 🎯 Key Features
+
+### ✅ Production Ready
+- **AI-Powered Content Analysis**: Automatic scene detection and object recognition
+- **Speech Detection**: Advanced VAD with Silero and quality assessment  
+- **Beat-Synchronized Videos**: Precise BPM timing for music video creation
+- **Form-Factor Control**: Smart aspect ratio conversion with intelligent cropping
+- **Video Effects System**: 12+ professional effects with multi-provider architecture
+
+### 🔧 Developer Features  
+- **MCP Protocol Integration**: 40+ tools for video processing automation
+- **Docker Support**: Production-ready containerization
+- **Comprehensive Testing**: Unit, integration, and end-to-end test suites
+- **Security First**: File validation, sandboxing, and access controls
+
+## 🏗️ Project Structure
+
+```
+├── README.md                    # This file - start here
+├── CLAUDE.md                   # Complete development guide  
+├── test-all.sh                 # Run all tests (entry point)
+├── Dockerfile                  # Production Docker image
+├── src/                        # Core system code
+├── tests/                      # Test suites (CI/integration/unit)
+├── examples/                   # Usage examples and workflows
+├── documents/                  # Documentation and specifications  
+├── docker/                     # Additional Docker configurations
+├── deployment/                 # Production deployment scripts
+└── tools/                      # Development and analysis tools
+```
 
 ## What is this?
 

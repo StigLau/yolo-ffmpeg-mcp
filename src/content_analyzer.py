@@ -20,13 +20,74 @@ import cv2
 import numpy as np
 
 # PySceneDetect imports
-from scenedetect import detect, ContentDetector, AdaptiveDetector
-from scenedetect.video_splitter import split_video_ffmpeg
+try:
+    from scenedetect import detect, ContentDetector, AdaptiveDetector
+    from scenedetect.video_splitter import split_video_ffmpeg # Not used in this file currently
+    SCENEDETECT_AVAILABLE = True
+    print("INFO: PySceneDetect imported successfully. Full scene detection capabilities enabled.")
+except ImportError:
+    SCENEDETECT_AVAILABLE = False
+    # Define placeholders for type hinting or if accessed directly elsewhere (though current usage is guarded)
+    detect, ContentDetector, AdaptiveDetector, split_video_ffmpeg = None, None, None, None
+    print("WARNING: PySceneDetect not found. Scene detection will use a fallback mechanism (single scene).")
 
 try:
     from .config import SecurityConfig
 except ImportError:
     from config import SecurityConfig
+
+
+async def _generate_screenshot_for_scene(
+    video_path: Path, 
+    start_time: float, 
+    scene_id: int, 
+    screenshot_output_dir: Path,
+    ffmpeg_path: str, 
+    process_timeout: int, 
+    screenshots_base_url: str,
+    source_ref: str
+) -> Optional[str]:
+    """Generate screenshot from scene start using FFMPEG"""
+    try:
+        # Create filename for screenshot
+        screenshot_filename = f"scene_{scene_id:03d}_{start_time:.2f}s.jpg"
+        screenshot_path = screenshot_output_dir / screenshot_filename
+        
+        # FFMPEG command to extract frame at specific time
+        cmd = [
+            ffmpeg_path,
+            "-i", str(video_path),
+            "-ss", str(start_time),  # Seek to start time
+            "-vframes", "1",         # Extract only 1 frame
+            "-q:v", "2",            # High quality
+            "-y",                   # Overwrite existing
+            str(screenshot_path)
+        ]
+        
+        # Execute FFMPEG command
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        stdout, stderr = await asyncio.wait_for(
+            process.communicate(),
+            timeout=process_timeout
+        )
+        
+        if process.returncode == 0 and screenshot_path.exists():
+            # Generate URL for screenshot
+            screenshot_url = f"{screenshots_base_url}/{source_ref}/{screenshot_filename}"
+            print(f"    Generated screenshot: {screenshot_url}")
+            return screenshot_url
+        else:
+            print(f"    Failed to generate screenshot for scene {scene_id}: {stderr.decode()}")
+            return None
+            
+    except Exception as e:
+        print(f"    Error generating screenshot for scene {scene_id}: {e}")
+        return None
 
 
 class VideoContentAnalyzer:
@@ -117,9 +178,21 @@ class VideoContentAnalyzer:
     async def _detect_scenes(self, video_path: Path) -> List[Tuple[float, float]]:
         """Detect scene boundaries using PySceneDetect"""
         print(f"  Detecting scenes in {video_path.name}...")
+
+        if not SCENEDETECT_AVAILABLE:
+            print("  PySceneDetect not available. Using fallback: single scene for the video.")
+            # Fallback: create a single scene for the entire video.
+            # The existing fallback assumes 60s; a future improvement could be to get actual video duration.
+            return [(0.0, 60.0)] 
         
         try:
             # Use ContentDetector for general scene changes
+            # Ensure scenedetect components are available (they should be if SCENEDETECT_AVAILABLE is True)
+            if not detect or not ContentDetector:
+                # This case should ideally not be reached if SCENEDETECT_AVAILABLE is True
+                # and imports were successful.
+                raise ImportError("PySceneDetect components (detect or ContentDetector) are not available even though SCENEDETECT_AVAILABLE is True.")
+            
             scene_list = detect(str(video_path), ContentDetector(threshold=30.0))
             
             # Convert to list of (start, end) tuples in seconds
@@ -133,7 +206,7 @@ class VideoContentAnalyzer:
             return scenes
             
         except Exception as e:
-            print(f"  Scene detection failed: {e}")
+            print(f"  Scene detection using PySceneDetect failed: {e}")
             # Fallback: create a single scene for the entire video
             return [(0.0, 60.0)]  # Assume max 60 seconds if we can't detect properly
     
@@ -182,7 +255,16 @@ class VideoContentAnalyzer:
                     scene_data["characteristics"] = characteristics
                     
                     # Generate screenshot from scene start
-                    screenshot_url = await self._generate_scene_screenshot(video_path, start_time, source_ref, i)
+                    screenshot_url = await _generate_screenshot_for_scene(
+                        video_path,
+                        start_time,
+                        i,  # scene_id
+                        screenshots_source_dir, # Full path to dir for this source's screenshots
+                        SecurityConfig.FFMPEG_PATH,
+                        SecurityConfig.PROCESS_TIMEOUT,
+                        SecurityConfig.SCREENSHOTS_BASE_URL,
+                        source_ref # source_ref for URL construction
+                    )
                     scene_data["screenshot_url"] = screenshot_url
                 else:
                     print(f"    Warning: Could not extract keyframe for scene {i}")
@@ -446,49 +528,6 @@ class VideoContentAnalyzer:
             })
         
         return suggestions
-    
-    async def _generate_scene_screenshot(self, video_path: Path, start_time: float, source_ref: str, scene_id: int) -> Optional[str]:
-        """Generate screenshot from scene start using FFMPEG"""
-        try:
-            # Create filename for screenshot
-            screenshot_filename = f"scene_{scene_id:03d}_{start_time:.2f}s.jpg"
-            screenshot_path = self.screenshots_dir / source_ref / screenshot_filename
-            
-            # FFMPEG command to extract frame at specific time
-            cmd = [
-                SecurityConfig.FFMPEG_PATH,
-                "-i", str(video_path),
-                "-ss", str(start_time),  # Seek to start time
-                "-vframes", "1",         # Extract only 1 frame
-                "-q:v", "2",            # High quality
-                "-y",                   # Overwrite existing
-                str(screenshot_path)
-            ]
-            
-            # Execute FFMPEG command
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=SecurityConfig.PROCESS_TIMEOUT
-            )
-            
-            if process.returncode == 0 and screenshot_path.exists():
-                # Generate URL for screenshot
-                screenshot_url = f"{SecurityConfig.SCREENSHOTS_BASE_URL}/{source_ref}/{screenshot_filename}"
-                print(f"    Generated screenshot: {screenshot_url}")
-                return screenshot_url
-            else:
-                print(f"    Failed to generate screenshot for scene {scene_id}: {stderr.decode()}")
-                return None
-                
-        except Exception as e:
-            print(f"    Error generating screenshot for scene {scene_id}: {e}")
-            return None
     
     async def get_scene_screenshots(self, file_id: str) -> Dict[str, Any]:
         """Get all scene screenshots for a video file"""
