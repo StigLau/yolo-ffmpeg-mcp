@@ -105,9 +105,9 @@ jobs:
         # Test container can run basic commands
         echo "Testing Podman container functionality..."
         
-        # Test Python and FFmpeg availability
-        podman run --rm ffmpeg-mcp-podman:latest python --version
-        podman run --rm ffmpeg-mcp-podman:latest ffmpeg -version | head -1
+        # Run comprehensive component verification
+        echo "🏥 Running component verification..."
+        podman run --rm ffmpeg-mcp-podman:latest python /app/verify_components.py
         
         # Test file system setup
         podman run --rm ffmpeg-mcp-podman:latest ls -la /tmp/music/source/

@@ -70,10 +70,17 @@ COPY tests/files/*.mp3 /tmp/music/source/ 2>/dev/null || true
 # Fix ownership after file copy
 RUN chown -R mcp:mcp /tmp/music
 
+# Copy and setup component verification script
+COPY scripts/verify_container_components.py /app/verify_components.py
+RUN chmod +x /app/verify_components.py && chown mcp:mcp /app/verify_components.py
+
 # Create health check script
 RUN echo '#!/bin/bash\npython -c "import src.server; print(\"✅ MCP server OK\")" || exit 1' > /app/healthcheck.sh \
     && chmod +x /app/healthcheck.sh \
     && chown mcp:mcp /app/healthcheck.sh
+
+# Verify components during build
+RUN python /app/verify_components.py || (echo "❌ Component verification failed during build" && exit 1)
 
 # Switch to non-root user
 USER mcp
