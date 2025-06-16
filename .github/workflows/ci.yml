@@ -237,7 +237,8 @@ jobs:
           "pyproject.toml"
           "src/server.py"
           "tests/ci/"
-          "Dockerfile.ci"
+          "docker/Dockerfile.ci-test"
+          "test-all.sh"
         )
         
         for file in "${required_files[@]}"; do
