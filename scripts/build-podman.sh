@@ -147,8 +147,17 @@ run_rootless() {
 run_tests() {
     print_info "Running tests in Podman container..."
     
-    # Build and run test container
-    podman build -f Containerfile -t $IMAGE_NAME-test:latest .
+    # Build test container with fallback logic
+    if [ -f "Containerfile" ]; then
+        print_info "Building test container with Containerfile..."
+        podman build -f Containerfile -t $IMAGE_NAME-test:latest .
+    elif [ -f "docker/Dockerfile.ci-test" ]; then
+        print_warning "Using Docker CI test file for testing..."
+        podman build -f docker/Dockerfile.ci-test -t $IMAGE_NAME-test:latest .
+    else
+        print_error "No suitable build file found for testing"
+        exit 1
+    fi
     
     # Run tests
     podman run --rm \
