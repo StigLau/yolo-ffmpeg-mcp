@@ -1,0 +1,41 @@
+name: "EDM/Dance Mastering Profile"
+description: "High-impact EDM mastering with controlled low-end and stereo width"
+category: "mastering"
+genre: "edm"
+target_platforms: ["spotify", "soundcloud", "beatport"]
+effects_chain:
+  - effect: "mono_bass"
+    parameters:
+      frequency: 120  # Everything below 120Hz mono
+  - effect: "multiband_compressor"
+    parameters:
+      bands:
+        - frequency_range: [20, 120]
+          threshold: -20
+          ratio: 4.0
+          attack: 10
+          release: 100
+        - frequency_range: [120, 2000]
+          threshold: -15
+          ratio: 2.5
+          attack: 20
+          release: 150
+        - frequency_range: [2000, 8000]
+          threshold: -12
+          ratio: 2.0
+          attack: 15
+          release: 100
+        - frequency_range: [8000, 20000]
+          threshold: -10
+          ratio: 1.8
+          attack: 5
+          release: 50
+  - effect: "stereo_widener"
+    parameters:
+      frequency_range: [200, 20000]  # Don't widen bass
+      width: 1.3
+  - effect: "limiter"
+    parameters:
+      ceiling: -1.0     # dBTP
+      release: 50       # ms
+      target_lufs: -7   # Very loud for EDM

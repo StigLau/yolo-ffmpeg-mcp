@@ -1,0 +1,50 @@
+name: "Podcast Speech Enhancement"
+description: "Professional speech processing for podcasts and spoken word content"
+category: "speech"
+genre: "podcast"
+target_platforms: ["apple_podcasts", "spotify_podcasts", "google_podcasts"]
+effects_chain:
+  - effect: "high_pass_filter"
+    parameters:
+      frequency: 85   # Remove plosives and rumble
+      rolloff: 12
+  - effect: "de_esser"
+    parameters:
+      frequency: 6500  # Target sibilant frequencies
+      threshold: -25
+      ratio: 3.0
+      attack: 1
+      release: 100
+  - effect: "equalizer"
+    parameters:
+      bands:
+        - frequency: 100
+          gain: -2.0   # Reduce boominess
+          q: 1.2
+        - frequency: 300
+          gain: -1.5   # Clear up muddiness
+          q: 1.8
+        - frequency: 3000
+          gain: 2.5    # Speech intelligibility
+          q: 1.0
+        - frequency: 8000
+          gain: 1.2    # Add presence
+          q: 0.8
+  - effect: "compressor"
+    parameters:
+      threshold: -20   # Heavy compression for speech
+      ratio: 4.0
+      attack: 10
+      release: 120
+      knee: 3.0
+  - effect: "noise_gate"
+    parameters:
+      threshold: -50   # Remove background noise
+      ratio: 10.0
+      attack: 5
+      release: 200
+  - effect: "loudness_normalize"
+    parameters:
+      target_lufs: -16  # Podcast standard
+      true_peak: -1.0
+      lra: 8

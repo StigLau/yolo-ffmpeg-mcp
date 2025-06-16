@@ -21,6 +21,7 @@ try:
     from .komposition_build_planner import KompositionBuildPlanner
     from .komposition_generator import KompositionGenerator
     from .effect_processor import EffectProcessor
+    from .audio_effect_processor import AudioEffectProcessor
     from .format_manager import FormatManager, COMMON_PRESETS
 except ImportError:
     from file_manager import FileManager
@@ -36,6 +37,7 @@ except ImportError:
     from komposition_build_planner import KompositionBuildPlanner
     from komposition_generator import KompositionGenerator
     from effect_processor import EffectProcessor
+    from audio_effect_processor import AudioEffectProcessor
     from format_manager import FormatManager, COMMON_PRESETS
 
 
@@ -55,6 +57,7 @@ composition_planner = CompositionPlanner()
 komposition_build_planner = KompositionBuildPlanner()
 komposition_generator = KompositionGenerator()
 effect_processor = EffectProcessor(ffmpeg, file_manager)
+audio_effect_processor = AudioEffectProcessor(ffmpeg, file_manager)
 format_manager = FormatManager()
 
 
@@ -4280,6 +4283,342 @@ async def get_format_presets() -> Dict[str, Any]:
         return {
             "success": False,
             "error": f"Failed to get format presets: {str(e)}"
+        }
+
+
+# Audio Effects Tools
+
+@mcp.tool()
+async def get_available_audio_effects(category: Optional[str] = None) -> Dict[str, Any]:
+    """🎵 AUDIO EFFECTS - List all available audio effects with parameter discovery
+    
+    This tool provides comprehensive information about available audio effects including:
+    - Parameter specifications with types, ranges, and defaults
+    - Performance estimates and provider information  
+    - Category-based filtering for easy discovery
+    - Parameter validation rules and constraints
+    
+    Args:
+        category: Filter by effect category ("eq", "dynamics", "loudness", "spatial", "filter")
+    
+    Returns:
+        Dictionary containing:
+        - effects: Complete effect specifications with parameters
+        - categories: Available effect categories
+        - effects_count: Total number of available effects
+        
+    Categories:
+        🎛️ eq: Equalizers and frequency shaping
+        🎚️ dynamics: Compressors, limiters, gates
+        📊 loudness: LUFS normalization and metering
+        🌊 spatial: Stereo width and positioning
+        🔊 filter: High-pass, low-pass, band filters
+        
+    Example Usage:
+        get_available_audio_effects()  # All effects
+        get_available_audio_effects(category="dynamics")  # Compressors/limiters only
+    """
+    try:
+        return audio_effect_processor.get_available_effects(category=category)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get available audio effects: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_audio_effect(file_id: str, effect_name: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    """🎵 AUDIO EFFECTS - Apply single audio effect with parameter control
+    
+    Apply professional audio effects to your audio files with precise parameter control.
+    Each effect preserves original quality and provides performance estimates.
+    
+    Args:
+        file_id: Source audio/video file ID from list_files()
+        effect_name: Effect name from get_available_audio_effects()
+        parameters: Effect-specific parameters (optional, uses defaults if not provided)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating processing completion
+        - output_file_id: New file ID for the processed audio
+        - processing_time: Actual processing duration
+        - effect_applied: Details of the effect and parameters used
+        
+    Popular Audio Effects:
+    
+    🎛️ EQ Effects:
+        - equalizer: Multi-band parametric EQ
+          Parameters: bands [{"frequency": Hz, "gain": dB, "q": width}]
+        - high_pass_filter: Remove low frequencies
+          Parameters: frequency (10-1000 Hz), rolloff (6-48 dB/oct)
+    
+    🎚️ Dynamics:
+        - compressor: Dynamic range control
+          Parameters: threshold (-60-0 dB), ratio (1-20), attack/release (ms)
+        - limiter: Peak limiting for output control
+          Parameters: ceiling (-3-0 dBTP), release (1-1000 ms)
+        - de_esser: Sibilance control
+          Parameters: frequency (2000-12000 Hz), threshold, ratio
+    
+    📊 Loudness:
+        - loudness_normalize: EBU R128 normalization
+          Parameters: target_lufs (-30 to -6), true_peak (-3 to 0)
+    
+    🌊 Spatial:
+        - stereo_widener: Stereo field control
+          Parameters: width (0.0-2.0), frequency_range [low, high]
+        - mono_bass: Make low frequencies mono
+          Parameters: frequency (50-300 Hz)
+          
+    Example Usage:
+        apply_audio_effect(
+            file_id="file_12345678",
+            effect_name="compressor",
+            parameters={"threshold": -18, "ratio": 3.0, "attack": 20, "release": 150}
+        )
+        
+        apply_audio_effect(
+            file_id="file_12345678", 
+            effect_name="loudness_normalize",
+            parameters={"target_lufs": -16, "true_peak": -1.0}
+        )
+    """
+    try:
+        return await audio_effect_processor.apply_effect(file_id, effect_name, parameters)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply audio effect: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_audio_effect_chain(file_id: str, effects_chain: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """🎵 AUDIO EFFECTS - Apply multiple audio effects in sequence with chaining
+    
+    Stack multiple audio effects to create professional mastering chains. Effects are applied
+    sequentially, with each effect processing the output of the previous effect.
+    
+    Args:
+        file_id: Source audio/video file ID from list_files()
+        effects_chain: List of effect steps, each containing:
+            - effect: Effect name from get_available_audio_effects()
+            - parameters: Effect-specific parameters (optional)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating complete chain processing
+        - final_output_file_id: File ID of the final processed audio
+        - applied_effects: Details of each effect step with output file IDs
+        - total_steps: Number of effects applied
+        
+    Professional Mastering Chain Examples:
+    
+    🎸 Rock Mastering:
+        [
+            {"effect": "high_pass_filter", "parameters": {"frequency": 35}},
+            {"effect": "equalizer", "parameters": {"bands": [
+                {"frequency": 80, "gain": 1.5, "q": 0.8},
+                {"frequency": 2500, "gain": 1.8, "q": 1.0}
+            ]}},
+            {"effect": "compressor", "parameters": {"threshold": -18, "ratio": 2.5}},
+            {"effect": "loudness_normalize", "parameters": {"target_lufs": -9}}
+        ]
+    
+    🎧 EDM Mastering:
+        [
+            {"effect": "mono_bass", "parameters": {"frequency": 120}},
+            {"effect": "compressor", "parameters": {"threshold": -15, "ratio": 4.0}},
+            {"effect": "stereo_widener", "parameters": {"width": 1.3}},
+            {"effect": "limiter", "parameters": {"ceiling": -1.0}}
+        ]
+        
+    🎤 Podcast Enhancement:
+        [
+            {"effect": "high_pass_filter", "parameters": {"frequency": 85}},
+            {"effect": "de_esser", "parameters": {"frequency": 6500, "threshold": -25}},
+            {"effect": "compressor", "parameters": {"threshold": -20, "ratio": 4.0}},
+            {"effect": "loudness_normalize", "parameters": {"target_lufs": -16}}
+        ]
+    
+    Performance Notes:
+        - Each effect adds processing time (see get_available_audio_effects for estimates)
+        - Order matters: filters → EQ → dynamics → loudness normalization
+        - Loudness normalization should typically be the final step
+        
+    Example Usage:
+        apply_audio_effect_chain(
+            file_id="file_12345678",
+            effects_chain=[
+                {"effect": "high_pass_filter", "parameters": {"frequency": 80}},
+                {"effect": "compressor", "parameters": {"threshold": -18, "ratio": 3.0}},
+                {"effect": "loudness_normalize", "parameters": {"target_lufs": -14}}
+            ]
+        )
+    """
+    try:
+        return await audio_effect_processor.apply_effect_chain(file_id, effects_chain)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply audio effect chain: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def apply_audio_template(file_id: str, template_name: str) -> Dict[str, Any]:
+    """🎵 AUDIO TEMPLATES - Apply pre-defined or user-created audio effect templates
+    
+    Apply complete mastering chains using predefined templates for different genres
+    and use cases. Templates include professional mastering chains optimized for
+    streaming platforms.
+    
+    Args:
+        file_id: Source audio/video file ID from list_files()
+        template_name: Template name from list_audio_templates()
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating template application
+        - final_output_file_id: File ID of the processed audio
+        - template_applied: Template details and effects chain used
+        - applied_effects: Details of each processing step
+        
+    Built-in Templates:
+        🎸 rock_mastering: Professional rock mastering for streaming
+        🎧 edm_mastering: High-impact EDM mastering with controlled low-end
+        🎤 podcast_enhancement: Speech processing for podcasts
+        
+    Platform Optimization:
+        - Templates include LUFS targets for major platforms
+        - True peak limiting prevents transcoding distortion
+        - Genre-specific EQ and dynamics for optimal sound
+        
+    Example Usage:
+        apply_audio_template(
+            file_id="file_12345678",
+            template_name="rock_mastering"
+        )
+    """
+    try:
+        return await audio_effect_processor.apply_effect_template(file_id, template_name)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to apply audio template: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def list_audio_templates() -> Dict[str, Any]:
+    """🎵 AUDIO TEMPLATES - List all available audio effect templates
+    
+    Get all available audio templates including predefined professional templates
+    and user-created custom templates.
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating list generation
+        - predefined: List of built-in professional templates
+        - user: List of user-created custom templates
+        - template_count: Total number of templates available
+        
+    Template Information:
+        Each template includes:
+        - name: Template display name
+        - description: What the template does
+        - category: Template type (mastering, speech, etc.)
+        - genre: Target music genre or content type
+        - target_platforms: Optimized platforms (Spotify, Apple Music, etc.)
+        - effects_chain: Complete effects processing chain
+        
+    Template Locations:
+        - Predefined: examples/effect-templates/audio/
+        - User: /tmp/music/effect-templates/audio/
+        
+    Example Usage:
+        list_audio_templates()
+    """
+    try:
+        return {
+            "success": True,
+            **audio_effect_processor.list_effect_templates()
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to list audio templates: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def save_audio_template(template_name: str, template_data: Dict[str, Any]) -> Dict[str, Any]:
+    """🎵 AUDIO TEMPLATES - Save custom audio effect template
+    
+    Save a custom audio effect template to the user template directory for reuse.
+    Templates can be created from successful effect chains or designed from scratch.
+    
+    Args:
+        template_name: Name for the new template (no .yaml extension needed)
+        template_data: Template structure with name, description, category, effects_chain
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating save completion
+        - template_path: Path where template was saved
+        - template_name: Name of the saved template
+        
+    Template Structure:
+        {
+            "name": "My Custom Template",
+            "description": "Description of what this template does",
+            "category": "mastering" or "speech" or "creative",
+            "genre": "rock" or "edm" or "podcast" etc,
+            "target_platforms": ["spotify", "apple_music"],
+            "effects_chain": [
+                {"effect": "effect_name", "parameters": {...}},
+                ...
+            ]
+        }
+        
+    Example Usage:
+        save_audio_template(
+            template_name="my_vocal_chain",
+            template_data={
+                "name": "My Vocal Processing Chain",
+                "description": "Custom vocal processing for my podcast",
+                "category": "speech",
+                "genre": "podcast",
+                "target_platforms": ["spotify_podcasts"],
+                "effects_chain": [
+                    {"effect": "high_pass_filter", "parameters": {"frequency": 85}},
+                    {"effect": "compressor", "parameters": {"threshold": -20, "ratio": 4.0}},
+                    {"effect": "loudness_normalize", "parameters": {"target_lufs": -16}}
+                ]
+            }
+        )
+    """
+    try:
+        success = audio_effect_processor.save_effect_template(template_name, template_data)
+        if success:
+            template_path = audio_effect_processor.user_templates_dir / f"{template_name}.yaml"
+            return {
+                "success": True,
+                "template_path": str(template_path),
+                "template_name": template_name,
+                "message": f"Template '{template_name}' saved successfully"
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Failed to save template '{template_name}'"
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to save audio template: {str(e)}"
         }
 
 
