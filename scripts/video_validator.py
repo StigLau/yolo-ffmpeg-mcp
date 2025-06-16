@@ -239,7 +239,6 @@ class VideoValidator:
                 
                 # Debug: Check what's actually in PATH
                 try:
-                    import subprocess
                     which_result = subprocess.run(["which", "ffmpeg"], capture_output=True, text=True)
                     print(f"   which ffmpeg result: {which_result.stdout.strip() if which_result.stdout else 'not found'}")
                     if which_result.stderr:
