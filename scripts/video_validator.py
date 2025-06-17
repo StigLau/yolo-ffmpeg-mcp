@@ -49,8 +49,14 @@ class VideoValidator:
             result["size_bytes"] = video_path.stat().st_size
             
             # Use FFPROBE to get detailed video information
+            ffmpeg_path = self._find_ffmpeg_path()
+            if not ffmpeg_path:
+                result["validation_errors"].append("FFmpeg/FFprobe not found in system")
+                return result
+            
+            ffprobe_path = ffmpeg_path.replace('ffmpeg', 'ffprobe')
             ffprobe_cmd = [
-                "ffprobe",
+                ffprobe_path,
                 "-v", "quiet",
                 "-print_format", "json", 
                 "-show_format",
