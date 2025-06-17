@@ -1,0 +1,96 @@
+{
+  "id": "Fancy_Effects_Showcase",
+  "type": "Komposition",
+  "bpm": 120,
+  "config": {
+    "width": 1920,
+    "height": 1080,
+    "framerate": 30,
+    "extension": "mp4"
+  },
+  "beatpattern": {
+    "frombeat": 0,
+    "tobeat": 64,
+    "masterbpm": 120
+  },
+  "segments": [
+    {
+      "id": "Intro Leica Look",
+      "sourceid": "pxl_intro",
+      "start": 0,
+      "duration": 16,
+      "end": 16,
+      "source_timing": {
+        "original_start": 2,
+        "original_duration": 8
+      },
+      "stretch_factor": 1.0
+    },
+    {
+      "id": "Speech Segment",
+      "sourceid": "lookin_speech",
+      "start": 16,
+      "duration": 16,
+      "end": 32,
+      "source_timing": {
+        "original_start": 0,
+        "original_duration": 8
+      },
+      "stretch_factor": 1.0
+    },
+    {
+      "id": "Panning Enhanced",
+      "sourceid": "panning_video",
+      "start": 32,
+      "duration": 16,
+      "end": 48,
+      "source_timing": {
+        "original_start": 5,
+        "original_duration": 8
+      },
+      "stretch_factor": 1.0
+    },
+    {
+      "id": "Reverse Finale",
+      "sourceid": "finale_video",
+      "start": 48,
+      "duration": 16,
+      "end": 64,
+      "source_timing": {
+        "original_start": 0,
+        "original_duration": 8
+      },
+      "stretch_factor": 1.0
+    }
+  ],
+  "sources": [
+    {
+      "id": "pxl_intro",
+      "url": "file://PXL_20240717_143726927.mp4",
+      "startingOffset": 0,
+      "extension": "mp4",
+      "mediatype": "video"
+    },
+    {
+      "id": "lookin_speech",
+      "url": "file://lookin.mp4",
+      "startingOffset": 0,
+      "extension": "mp4",
+      "mediatype": "video"
+    },
+    {
+      "id": "panning_video",
+      "url": "file://panning back and forth.mp4",
+      "startingOffset": 0,
+      "extension": "mp4",
+      "mediatype": "video"
+    },
+    {
+      "id": "finale_video",
+      "url": "file://PXL_20250219_151636921.mp4",
+      "startingOffset": 0,
+      "extension": "mp4",
+      "mediatype": "video"
+    }
+  ]
+}
