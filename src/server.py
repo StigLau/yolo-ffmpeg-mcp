@@ -26,6 +26,7 @@ try:
     from .format_manager import FormatManager, COMMON_PRESETS
     from .models import FileInfo, ProcessResult # Import models
     from .video_operations import execute_core_processing # Import core processing logic
+    from .video_comparison_tool import VideoComparisonTool
 except ImportError:
     from file_manager import FileManager
     from ffmpeg_wrapper import FFMPEGWrapper
@@ -44,6 +45,7 @@ except ImportError:
     from format_manager import FormatManager, COMMON_PRESETS
     from models import FileInfo, ProcessResult # Import models
     from video_operations import execute_core_processing # Import core processing logic
+    from video_comparison_tool import VideoComparisonTool
 
 
 # Initialize MCP server
@@ -64,6 +66,7 @@ komposition_generator = KompositionGenerator()
 effect_processor = EffectProcessor(ffmpeg, file_manager)
 audio_effect_processor = AudioEffectProcessor(ffmpeg, file_manager)
 format_manager = FormatManager()
+video_comparison_tool = VideoComparisonTool(ffmpeg, file_manager, content_analyzer)
 
 # FileInfo and ProcessResult classes are now in models.py
 
@@ -4445,6 +4448,199 @@ async def save_audio_template(template_name: str, template_data: Dict[str, Any])
             "success": False,
             "error": f"Failed to save audio template: {str(e)}"
         }
+
+
+# Video Comparison Tools
+
+@mcp.tool()
+async def create_video_comparison(
+    file_id_1: str, 
+    file_id_2: str, 
+    comparison_type: str = "side_by_side",
+    label_1: str = "Version A",
+    label_2: str = "Version B",
+    resolution: str = "1920x1080",
+    sync_audio: bool = True,
+    add_labels: bool = True
+) -> Dict[str, Any]:
+    """🎬 VIDEO COMPARISON - Create side-by-side video comparison for A/B testing
+    
+    Perfect for comparing two versions of the same video project to evaluate:
+    - Different editing approaches
+    - Effect applications
+    - Audio mixing results
+    - Resolution or quality differences
+    
+    Args:
+        file_id_1: First video file ID from list_files()
+        file_id_2: Second video file ID from list_files()
+        comparison_type: Layout type ("side_by_side", "top_bottom") 
+        label_1: Text label for first video (default: "Version A")
+        label_2: Text label for second video (default: "Version B")
+        resolution: Output resolution (default: "1920x1080")
+        sync_audio: Whether to mix both audio tracks (default: True)
+        add_labels: Whether to add text labels identifying each version (default: True)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating comparison creation success
+        - output_file_id: File ID of the comparison video
+        - comparison_type: Type of comparison layout used
+        - configuration: Settings used for the comparison
+        - processing_time: Time taken to create the comparison
+        
+    Perfect For:
+        - Music video A/B testing
+        - Before/after effect comparisons  
+        - Different edit timeline comparisons
+        - Quality assessment workflows
+        
+    Example Usage:
+        create_video_comparison(
+            file_id_1="file_12345678",
+            file_id_2="file_87654321", 
+            label_1="Original Cut",
+            label_2="Director's Cut",
+            sync_audio=False  # Use audio from first video only
+        )
+    """
+    try:
+        from .video_comparison_tool import ComparisonConfig
+    except ImportError:
+        from video_comparison_tool import ComparisonConfig
+        
+    config = ComparisonConfig(
+        layout=comparison_type,
+        sync_audio=sync_audio,
+        add_labels=add_labels,
+        resolution=resolution
+    )
+    
+    return await video_comparison_tool.create_side_by_side_comparison(
+        file_id_1, file_id_2, label_1, label_2, config
+    )
+
+
+@mcp.tool()
+async def analyze_video_differences(file_id_1: str, file_id_2: str) -> Dict[str, Any]:
+    """🔍 VIDEO ANALYSIS - Analyze technical and content differences between two videos
+    
+    Provides detailed analysis comparison between two videos including:
+    - Scene count and structure differences
+    - Duration and pacing analysis
+    - Visual complexity comparison
+    - Quality score differences
+    - AI-generated recommendations
+    
+    Args:
+        file_id_1: First video file ID from list_files()
+        file_id_2: Second video file ID from list_files()
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating analysis completion
+        - video_1: Analysis data for first video
+        - video_2: Analysis data for second video
+        - differences: Calculated differences in key metrics
+        - recommendations: AI-generated suggestions based on comparison
+        
+    Analysis Metrics:
+        - Scene count and distribution
+        - Video duration differences
+        - Visual complexity assessment
+        - Quality scores (if available)
+        - Content structure comparison
+        
+    Perfect For:
+        - Understanding editing impact
+        - Quantifying improvement between versions
+        - Making data-driven editing decisions
+        - Quality assessment workflows
+        
+    Example Usage:
+        analyze_video_differences(
+            file_id_1="file_12345678",  # Original version
+            file_id_2="file_87654321"   # Edited version
+        )
+    """
+    try:
+        return await video_comparison_tool.create_analysis_comparison(
+            file_id_1, file_id_2, analysis_type="comprehensive"
+        )
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to analyze video differences: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def create_multi_video_comparison(
+    file_ids: List[str],
+    labels: List[str] = None,
+    layout: str = "grid",
+    resolution: str = "1920x1080",
+    add_labels: bool = True
+) -> Dict[str, Any]:
+    """🎬 MULTI-VIDEO COMPARISON - Create 2x2 grid comparison of up to 4 videos
+    
+    Compare multiple video versions simultaneously in a grid layout.
+    Perfect for extensive A/B testing and multi-option evaluation.
+    
+    Args:
+        file_ids: List of 2-4 video file IDs from list_files()
+        labels: Optional list of labels for each video (default: Version A, B, C, D)
+        layout: Layout type ("grid" for 2x2, "horizontal" for side-by-side)
+        resolution: Output resolution (default: "1920x1080")
+        add_labels: Whether to add text labels identifying each version (default: True)
+    
+    Returns:
+        Dictionary containing:
+        - success: Boolean indicating comparison creation success
+        - output_file_id: File ID of the multi-comparison video
+        - comparison_type: Type of comparison layout used
+        - input_files: List of input files with their labels
+        - configuration: Settings used for the comparison
+        - processing_time: Time taken to create the comparison
+        
+    Grid Layouts:
+        - 2 videos: Side-by-side horizontal layout
+        - 3 videos: Top row (2 videos) + bottom row (1 centered)
+        - 4 videos: 2x2 grid layout
+        
+    Perfect For:
+        - Multi-version comparison workflows
+        - Effect variation testing
+        - Timeline alternative evaluation
+        - Client presentation materials
+        
+    Example Usage:
+        create_multi_video_comparison(
+            file_ids=["file_1", "file_2", "file_3", "file_4"],
+            labels=["Original", "Color Graded", "With Effects", "Final Cut"],
+            layout="grid"
+        )
+    """
+    try:
+        from .video_comparison_tool import ComparisonConfig
+    except ImportError:
+        from video_comparison_tool import ComparisonConfig
+        
+    if len(file_ids) < 2 or len(file_ids) > 4:
+        return {
+            "success": False,
+            "error": "Multi-video comparison requires 2-4 videos"
+        }
+    
+    config = ComparisonConfig(
+        layout=layout,
+        add_labels=add_labels,
+        resolution=resolution
+    )
+    
+    return await video_comparison_tool.create_four_way_comparison(
+        file_ids, labels, config
+    )
 
 
 # Run the server

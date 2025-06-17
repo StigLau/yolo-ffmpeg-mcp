@@ -293,6 +293,7 @@ create_video_preset(name, operations)    # Save common workflows as presets
 - **Senior developer context**: Deep technical knowledge assumed
 - **Cost-conscious**: Optimize for efficiency and brevity
 - **YOLO commands**: When prefixed with "YOLO", implement changes directly without discussion
+- **External LLM Research**: For research-heavy tasks, create info-documents intended for external LLM consumption instead of burning tokens in conversation
 
 ## AI-Generated Documentation Organization
 - **AI-Generated Files**: All .md files created by Claude/AI assistants should be moved to `documents/ai-generated/` folder

@@ -19,7 +19,20 @@ echo ""
 # Environment validation
 echo -e "${YELLOW}📋 Environment Validation${NC}"
 echo "Python version: $(python3 --version)"
-echo "FFMPEG version: $(ffmpeg -version | head -1)"
+
+# Check FFmpeg availability
+if command -v ffmpeg >/dev/null 2>&1; then
+    echo "FFMPEG version: $(ffmpeg -version | head -1)"
+elif [ -f "/opt/homebrew/bin/ffmpeg" ]; then
+    echo "FFMPEG found at: /opt/homebrew/bin/ffmpeg"
+    echo "FFMPEG version: $(/opt/homebrew/bin/ffmpeg -version | head -1)"
+elif [ -f "/usr/local/bin/ffmpeg" ]; then
+    echo "FFMPEG found at: /usr/local/bin/ffmpeg"
+    echo "FFMPEG version: $(/usr/local/bin/ffmpeg -version | head -1)"
+else
+    echo "⚠️  FFMPEG not found in PATH - tests may fail"
+fi
+
 echo "Test data directory: $(ls /tmp/music/source 2>/dev/null | wc -l) files"
 if [ -d "/tmp/music/source" ]; then
     echo "Test files available:"

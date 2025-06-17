@@ -37,6 +37,8 @@
 6. **Avoid superlatives**: No "amazing", "incredible", "10X speed improvements" without metrics
 7. **No unfounded assumptions**: Don't claim performance gains without measurement data
 8. **Skip commit watermarks**: Don't add "Generated with Claude Code" to git commits
+9. **Norwegian directness**: No baby-spooning, avoid "I understand completely", use "OK" or challenge if data suggests otherwise
+10. **Intelligent discourse**: Prefer being corrected over sycophantic agreement
 
 ---
 
@@ -58,6 +60,28 @@
 - **Descriptive Commits**: Include context and reasoning in commit messages
 - **Clean History**: Organize commits logically, clean up before pushing
 - **Standard Format**: Use emoji + clear description + technical details
+- **Avoid Costly Rebases**: When 10+ upstream commits exist, ask before rebasing
+- **Prefer Forward Movement**: Create new branch from latest main + cherry-pick specific commits
+- **Document Git Operations**: Note in commits when moving changes "forward in time"
+
+#### Rebase Decision Matrix
+```
+Upstream commits: 1-3     → Safe to rebase
+Upstream commits: 4-10    → Consider new branch, ask first  
+Upstream commits: 10+     → Always ask, prefer new branch + cherry-pick
+Token cost high?          → Always prefer new branch approach
+```
+
+#### Clean Branch Strategy
+```bash
+# Instead of costly rebase:
+git checkout -b feature/clean-video-comparison origin/main
+git cherry-pick <specific-commit-hash>
+git commit --amend -m "Move video comparison forward from feature branch
+
+Original commit: <hash> 
+Moved forward to avoid 20+ commit rebase noise"
+```
 
 ---
 
