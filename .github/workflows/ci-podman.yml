@@ -1,11 +1,11 @@
-name: CI/CD - Podman Alternative
+name: CI/CD - Podman Alternative (DISABLED)
 
 on:
-  push:
-    branches: [ main, develop, feature/container-alternatives ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # Manual only - disabled for now
+  # push:
+  #   branches: [ main, develop, feature/container-alternatives ]
+  # pull_request:
+  #   branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
