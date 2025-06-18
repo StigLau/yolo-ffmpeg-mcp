@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Video Composition Platform with Elm Editor Integration"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Elm Application - Will be built from the symlinked kompostedit -->
+    <script src="%PUBLIC_URL%/elm/kompost.js"></script>
+    
+    <title>kompo.st - Video Composition Platform</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    
+    <!-- Elm Integration Info -->
+    <script>
+      // Global configuration for Elm integration
+      window.KOMPOST_CONFIG = {
+        elm: {
+          available: typeof window.Elm !== 'undefined' && window.Elm.Main,
+          version: '1.0.0'
+        },
+        integration: {
+          type: 'react-elm-hybrid',
+          firebase: true,
+          couchdb_compatible: true
+        }
+      };
+      
+      if (!window.KOMPOST_CONFIG.elm.available) {
+        console.warn('Elm application not loaded. Elm editor will show integration instructions.');
+      }
+    </script>
+  </body>
+</html>
