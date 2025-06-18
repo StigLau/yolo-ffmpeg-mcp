@@ -22,6 +22,7 @@ try:
     from .komposition_build_planner import KompositionBuildPlanner
     from .komposition_generator import KompositionGenerator
     from .effect_processor import EffectProcessor
+    from .analytics_service import configure_analytics, cleanup_analytics
     from .audio_effect_processor import AudioEffectProcessor
     from .format_manager import FormatManager, COMMON_PRESETS
     from .models import FileInfo, ProcessResult # Import models
@@ -50,6 +51,12 @@ except ImportError:
 
 # Initialize MCP server
 mcp = FastMCP("ffmpeg-mcp")
+
+# Configure analytics
+firebase_endpoint = os.getenv("FIREBASE_ANALYTICS_ENDPOINT")
+firebase_api_key = os.getenv("FIREBASE_API_KEY")
+analytics_enabled = os.getenv("ANALYTICS_ENABLED", "true").lower() == "true"
+configure_analytics(firebase_endpoint, analytics_enabled, firebase_api_key)
 
 # Initialize components
 file_manager = FileManager()
@@ -249,13 +256,17 @@ async def process_file(
         → get_file_info() - Check output metadata
     """
     # Delegate to the core processing logic in video_operations.py
+    # Simple user identification - in production this would come from authentication
+    user_id = os.getenv("MCP_USER_ID", "anonymous")
+    
     return await execute_core_processing(
         input_file_id=input_file_id,
         operation=operation,
         output_extension=output_extension,
         params_str=params, # Pass the original 'params' string here
         file_manager=file_manager, # Pass the global instance
-        ffmpeg=ffmpeg             # Pass the global instance
+        ffmpeg=ffmpeg,             # Pass the global instance
+        user_id=user_id
     )
 
 
@@ -4645,4 +4656,9 @@ async def create_multi_video_comparison(
 
 # Run the server
 if __name__ == "__main__":
+    import atexit
+    
+    # Register cleanup handler
+    atexit.register(lambda: asyncio.run(cleanup_analytics()))
+    
     mcp.run()

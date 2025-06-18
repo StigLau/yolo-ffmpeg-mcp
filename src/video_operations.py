@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+import time
 
 from .config import SecurityConfig
 from .models import ProcessResult
+from .analytics_service import get_analytics
 
 # Forward declaration for type hints if FileManager/FFMPEGWrapper are passed as instances
 # This helps with static analysis without creating circular imports at runtime.
@@ -23,6 +25,7 @@ async def execute_core_processing(
     params_str: str,
     file_manager: 'FileManager',
     ffmpeg: 'FFMPEGWrapper',
+    user_id: str = "anonymous",
 ) -> ProcessResult:
     """Core logic for processing a file, extracted from the original process_file MCP tool."""
     input_path = file_manager.resolve_id(input_file_id)
@@ -98,7 +101,26 @@ async def execute_core_processing(
         else:
             command = ffmpeg.build_command(operation, input_path, output_path, **parsed_params)
         
+        # Track analytics - start timing
+        start_time = time.time()
+        
         ffmpeg_result = await ffmpeg.execute_command(command, SecurityConfig.PROCESS_TIMEOUT)
+        
+        # Track analytics - capture results
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        analytics = get_analytics()
+        if analytics:
+            await analytics.track_ffmpeg_operation(
+                user_id=user_id,
+                operation_type=operation,
+                parameters=parsed_params,
+                input_path=input_path,
+                output_path=output_path,
+                success=ffmpeg_result["success"],
+                processing_time_ms=processing_time_ms,
+                error_message=ffmpeg_result.get("error") if not ffmpeg_result["success"] else None,
+                platform="mcp"
+            )
         
         if ffmpeg_result["success"]:
             return ProcessResult(
@@ -139,11 +161,12 @@ async def process_file_internal(
     output_extension: str,
     params_str: str,
     file_manager: 'FileManager',
-    ffmpeg: 'FFMPEGWrapper'
+    ffmpeg: 'FFMPEGWrapper',
+    user_id: str = "internal"
 ) -> str:
     """Internal helper for processors to use core processing logic, returning file_id or raising error."""
     result_obj = await execute_core_processing(
-        input_file_id, operation, output_extension, params_str, file_manager, ffmpeg
+        input_file_id, operation, output_extension, params_str, file_manager, ffmpeg, user_id
     )
     
     if result_obj.success:

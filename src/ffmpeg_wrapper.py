@@ -1,9 +1,12 @@
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import asyncio
 import os
 import re
 import shutil
+import time
+
+from .analytics_service import get_analytics
 
 
 class FFMPEGWrapper:
