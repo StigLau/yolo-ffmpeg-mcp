@@ -61,7 +61,16 @@ const ElmEditorPage: React.FC = () => {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p>Please sign in to access the editor.</p>
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">Please sign in to access the Elm komposition editor.</p>
+          <button 
+            onClick={() => navigate('/')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+          >
+            Go to Sign In
+          </button>
+        </div>
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Komposition, ElmApp } from '../types';
 import { useStore } from '../hooks/useStore';
+import { getAuth } from 'firebase/auth';
 
 interface ElmEditorProps {
   komposition: Komposition | null;
@@ -12,7 +13,31 @@ const ElmEditor: React.FC<ElmEditorProps> = ({ komposition, onKompositionUpdate 
   const elmAppRef = useRef<ElmApp | null>(null);
   const [isElmLoaded, setIsElmLoaded] = useState(false);
   const [elmError, setElmError] = useState<string | null>(null);
+  const [firebaseToken, setFirebaseToken] = useState<string | null>(null);
   const { user } = useStore();
+
+  // Get Firebase ID token when user changes
+  useEffect(() => {
+    const fetchToken = async () => {
+      if (user) {
+        try {
+          const auth = getAuth();
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            const token = await currentUser.getIdToken();
+            setFirebaseToken(token);
+          }
+        } catch (error) {
+          console.error('Error getting Firebase ID token:', error);
+          setFirebaseToken(null);
+        }
+      } else {
+        setFirebaseToken(null);
+      }
+    };
+
+    fetchToken();
+  }, [user]);
 
   useEffect(() => {
     // Load Elm application
@@ -24,16 +49,37 @@ const ElmEditor: React.FC<ElmEditorProps> = ({ komposition, onKompositionUpdate 
         }
 
         if (elmRef.current && !elmAppRef.current) {
-          // Initialize Elm app with CouchDB-compatible REST API configuration
+          // Initialize Elm app with Firebase auth context and CouchDB-compatible REST API
           const app = (window as any).Elm.Main.init({
             node: elmRef.current,
             flags: {
-              apiToken: user?.id || '',
-              kompoUrl: process.env.REACT_APP_KOMPO_API_URL || 'https://api.kompo.st',
-              metaUrl: process.env.REACT_APP_META_URL || 'https://meta.kompo.st', 
-              cacheUrl: process.env.REACT_APP_CACHE_URL || 'https://cache.kompo.st',
-              integrationDestination: process.env.REACT_APP_KOMPOSTEUR_URL || 'https://komposteur.kompo.st',
-              integrationFormat: 'json'
+              // Pass Firebase ID token for authentication
+              apiToken: firebaseToken || 'anonymous',
+              // Pass user info to Elm
+              userProfile: user ? {
+                id: user.id,
+                email: user.email,
+                displayName: user.displayName || user.email,
+                photoURL: user.photoURL || ''
+              } : null,
+              // Firebase Functions REST API endpoints (CouchDB-compatible)
+              kompoUrl: process.env.REACT_APP_FIREBASE_FUNCTIONS_URL ? 
+                `${process.env.REACT_APP_FIREBASE_FUNCTIONS_URL}/api/kompositions` : 
+                'http://localhost:5001/kompost-web-ui/us-central1/api/api/kompositions',
+              metaUrl: process.env.REACT_APP_FIREBASE_FUNCTIONS_URL ? 
+                `${process.env.REACT_APP_FIREBASE_FUNCTIONS_URL}/api/meta` : 
+                'http://localhost:5001/kompost-web-ui/us-central1/api/api/meta',
+              cacheUrl: process.env.REACT_APP_FIREBASE_FUNCTIONS_URL ? 
+                `${process.env.REACT_APP_FIREBASE_FUNCTIONS_URL}/api/cache` : 
+                'http://localhost:5001/kompost-web-ui/us-central1/api/api/cache',
+              integrationDestination: process.env.REACT_APP_FIREBASE_FUNCTIONS_URL ? 
+                `${process.env.REACT_APP_FIREBASE_FUNCTIONS_URL}/api/process` : 
+                'http://localhost:5001/kompost-web-ui/us-central1/api/api/process',
+              integrationFormat: 'json',
+              // Authentication mode - tell Elm it's running in an authenticated shell
+              authMode: 'firebase_shell',
+              // Skip Elm's own auth flow
+              skipAuth: true
             }
           });
 
@@ -79,8 +125,8 @@ const ElmEditor: React.FC<ElmEditorProps> = ({ komposition, onKompositionUpdate 
             }
 
             // Send Firebase auth token updates to Elm
-            if (app.ports.firebaseTokenUpdated && user) {
-              app.ports.firebaseTokenUpdated.send(user.id);
+            if (app.ports.firebaseTokenUpdated && firebaseToken) {
+              app.ports.firebaseTokenUpdated.send(firebaseToken);
             }
           }
 
@@ -94,7 +140,10 @@ const ElmEditor: React.FC<ElmEditorProps> = ({ komposition, onKompositionUpdate 
       }
     };
 
-    loadElmApp();
+    // Only load Elm when we have a Firebase token (or no user)
+    if (firebaseToken || !user) {
+      loadElmApp();
+    }
 
     // Cleanup on unmount
     return () => {
@@ -104,7 +153,7 @@ const ElmEditor: React.FC<ElmEditorProps> = ({ komposition, onKompositionUpdate 
         setIsElmLoaded(false);
       }
     };
-  }, [user, onKompositionUpdate]);
+  }, [user, firebaseToken, onKompositionUpdate]);
 
   // Send komposition updates to Elm when they change
   useEffect(() => {

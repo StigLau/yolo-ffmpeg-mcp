@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own documents
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Kompositions - users can read and write their own kompositions
+    match /kompositions/{kompositionId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Processing jobs - users can read and write their own jobs
+    match /processing_jobs/{jobId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Cache - users can read and write their own cached data
+    match /cache/{cacheId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // System operations - read only for authenticated users
+    match /system_operations/{operationId} {
+      allow read: if request.auth != null;
+    }
+    
+    // Analytics - read only for authenticated users  
+    match /analytics/{analyticsId} {
+      allow read: if request.auth != null;
+    }
+    
+    // Public analytics - read only for authenticated users
+    match /public_analytics/{analyticsId} {
+      allow read: if request.auth != null;
+    }
+  }
+}

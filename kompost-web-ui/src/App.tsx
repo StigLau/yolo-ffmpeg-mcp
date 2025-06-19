@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuthStateListener } from './hooks/useStore';
-import KompositionList from './components/KompositionList';
-import ElmEditorPage from './components/ElmEditorPage';
-import LoginPage from './components/LoginPage';
+import { KompositionList, ElmEditorPage, LoginPage } from './components';
+import VideoProcessor from './components/VideoProcessor';
+import AIKompositionGenerator from './components/AIKompositionGenerator';
 
 function App() {
   // Initialize auth state listener
@@ -17,6 +17,8 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/edit/:id" element={<ElmEditorPage />} />
           <Route path="/edit/new" element={<ElmEditorPage />} />
+          <Route path="/process" element={<VideoProcessor />} />
+          <Route path="/ai-generate" element={<AIKompositionGenerator />} />
         </Routes>
       </div>
     </Router>

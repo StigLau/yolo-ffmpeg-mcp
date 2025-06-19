@@ -129,13 +129,27 @@ const KompositionList: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900">Your Kompositions</h2>
             <p className="text-gray-600">Create and edit video compositions with the Elm editor</p>
           </div>
-          <button
-            onClick={handleCreateNew}
-            disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            New Komposition
-          </button>
+          <div className="flex space-x-3">
+            <Link
+              to="/ai-generate"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              🤖 AI Generator
+            </Link>
+            <Link
+              to="/process"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              🎬 Video Processing
+            </Link>
+            <button
+              onClick={handleCreateNew}
+              disabled={isLoading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              New Komposition
+            </button>
+          </div>
         </div>
 
         {error && (

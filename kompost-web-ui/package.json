@@ -1,0 +1,58 @@
+{
+  "name": "kompost-web-ui",
+  "version": "1.0.0",
+  "description": "Video Composition Platform with React + Elm Integration",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.11.56",
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
+    "axios": "^1.10.0",
+    "firebase": "^9.23.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.7.4",
+    "web-vitals": "^2.1.4",
+    "zustand": "^4.4.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "build-elm": "./build-elm.sh",
+    "dev": "npm run build-elm && npm start",
+    "dev-quick": "npm start",
+    "build-all": "npm run build-elm && npm run build",
+    "deploy": "npm run build-all && firebase deploy --only hosting",
+    "deploy-full": "npm run build-all && firebase deploy"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/react-router-dom": "^5.3.3"
+  }
+}
