@@ -1,0 +1,83 @@
+{
+  "metadata": {
+    "title": "128-Beat Music Video Transition",
+    "bpm": 120,
+    "estimatedDuration": 64.0,
+    "creator": "Claude YOLO MCP",
+    "description": "Transitional music video from JJVtt947FfI_136.mp4 to _wZ5Hof5tXY_136.mp4"
+  },
+  "timeline": {
+    "totalBeats": 128,
+    "beatsPerMeasure": 16,
+    "totalMeasures": 8
+  },
+  "segments": [
+    {
+      "id": "transition_intro",
+      "sourceRef": "JJVtt947FfI_136.mp4",
+      "timing": {
+        "startBeat": 16,
+        "endBeat": 80,
+        "sourceStart": 8.0,
+        "sourceDuration": 32.0
+      },
+      "effects": {
+        "fadeIn": {
+          "duration": 2.0
+        },
+        "crossfade": {
+          "enabled": true,
+          "duration": 4.0
+        }
+      }
+    },
+    {
+      "id": "transition_outro",
+      "sourceRef": "_wZ5Hof5tXY_136.mp4",
+      "timing": {
+        "startBeat": 76,
+        "endBeat": 128,
+        "sourceStart": 12.0,
+        "sourceDuration": 26.0
+      },
+      "effects": {
+        "fadeOut": {
+          "duration": 2.0
+        },
+        "crossfade": {
+          "enabled": true,
+          "duration": 4.0
+        }
+      }
+    }
+  ],
+  "effects_tree": {
+    "type": "sequence",
+    "effects": [
+      {
+        "type": "transition",
+        "name": "crossfade",
+        "start_time": 30.0,
+        "duration": 4.0,
+        "options": {
+          "transition_type": "fade",
+          "ease": "cubic-bezier"
+        }
+      },
+      {
+        "type": "color_correction",
+        "name": "brightness_sync",
+        "start_time": 0.0,
+        "duration": 64.0,
+        "options": {
+          "auto_levels": true,
+          "contrast": 1.1
+        }
+      }
+    ]
+  },
+  "audio": {
+    "backgroundMusic": null,
+    "mixingStrategy": "crossfade_original_audio"
+  }
+}
