@@ -24,7 +24,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.13'
           
       - name: Install UV
         run: |
@@ -64,7 +64,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.13'
           
       - name: Install UV
         run: |
@@ -84,7 +84,7 @@ jobs:
           
       - name: Setup CI test environment
         run: |
-          chmod +x test_ci_config.sh
+          # Scripts should be executable from git
           ./test_ci_config.sh setup
           
       - name: Create test media files
@@ -109,7 +109,6 @@ jobs:
           
       - name: Test video verification script
         run: |
-          chmod +x test_music_video_creation.sh
           # Run in headless mode for CI
           export HEADLESS_MODE=true
           export VIDEO_PLAYER=none
@@ -117,7 +116,6 @@ jobs:
           
       - name: Test MCP natural environment workflow
         run: |
-          chmod +x test_mcp_natural_environment.sh
           ./test_mcp_natural_environment.sh "CI integration test workflow"
           
       - name: Test actual video creation (if possible)
@@ -182,11 +180,16 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
         
-      - name: Build Docker image
+      - name: Build Docker image with cache
         run: |
-          echo "🐳 Building Docker image for MCP server..."
-          docker build -t ffmpeg-mcp:ci .
-          echo "✅ Docker image built successfully"
+          echo "🐳 Building Docker image for MCP server using pre-built base..."
+          docker buildx build \
+            --cache-from=type=gha \
+            --cache-to=type=gha,mode=max \
+            --load \
+            --tag ffmpeg-mcp:ci \
+            .
+          echo "✅ Docker image built successfully with pre-built base"
           docker images ffmpeg-mcp:ci
           echo "Note: PySceneDetect warning is expected - using fallback mechanism"
           
@@ -216,8 +219,16 @@ jobs:
       - name: Test MCP server import in Docker
         run: |
           echo "🧪 Testing MCP server modules in Docker..."
-          # Test imports with expected PySceneDetect warnings
-          OUTPUT=$(docker exec mcp-test-container python -c "
+          
+          # Debug: Check working directory and Python path
+          echo "Debug: Container environment:"
+          docker exec mcp-test-container pwd
+          docker exec mcp-test-container ls -la /app
+          docker exec mcp-test-container python -c "import sys; print('Python path:', sys.path)"
+          docker exec mcp-test-container printenv | grep PYTHON || echo "No PYTHON env vars"
+          
+          # Test imports with explicit PYTHONPATH
+          OUTPUT=$(docker exec -e PYTHONPATH=/app mcp-test-container python -c "
           try:
               import src.server
               import src.file_manager  
@@ -272,11 +283,10 @@ jobs:
           docker cp test_ci_config.sh mcp-test-container:/app/
           docker cp test_music_video_creation.sh mcp-test-container:/app/
           
-          # Make scripts executable and run
-          docker exec mcp-test-container chmod +x test_ci_config.sh test_music_video_creation.sh
+          # Scripts should be executable from git - run directly
           docker exec mcp-test-container bash -c "
             export CI=true HEADLESS_MODE=true VIDEO_PLAYER=none
-            ./test_ci_config.sh setup
+            bash test_ci_config.sh setup
             echo '✅ CI config setup completed in Docker'
           "
           
@@ -300,7 +310,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.13'
           
       - name: Install UV and dependencies
         run: |
@@ -315,7 +325,7 @@ jobs:
           
       - name: Setup test environment
         run: |
-          chmod +x test_ci_config.sh run_full_test.sh
+          # Scripts should be executable from git
           export CI=true GITHUB_ACTIONS=true
           ./test_ci_config.sh setup
           
@@ -418,7 +428,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.13'
           
       - name: Install UV and dependencies
         run: |

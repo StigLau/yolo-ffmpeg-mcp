@@ -4,28 +4,26 @@ FROM ghcr.io/stiglau/yolo-ffmpeg-mcp:base-latest
 # Copy dependency files first for better layer caching
 COPY pyproject.toml ./
 
-# Install core Python dependencies (fast - uses pre-built base)
+# Install core Python dependencies (fast - heavy packages pre-installed in base)
 RUN uv pip install --system --no-cache \
     fastmcp>=2.7.1 \
     mcp>=1.9.3 \
     pydantic>=2.11.5 \
-    # Testing dependencies
     pytest>=8.4.0 \
     pytest-asyncio>=1.0.0 \
-    # Minimal dependencies for Alpine
     jsonschema>=4.0.0 \
-    psutil>=5.9.0 \
-    # Audio effect dependencies
-    PyYAML>=6.0 \
-    # Video effects dependencies
-    opencv-python-headless>=4.8.0 \
-    pillow>=10.0.0 \
-    numpy>=1.24.0
+    PyYAML>=6.0
+# Note: opencv-python-headless, pillow, numpy, psutil pre-installed in base image
 
 # Copy application code
 COPY src/ ./src/
 COPY tests/ ./tests/
 COPY README.md ./
+
+# Set Python path for module imports  
+ENV PYTHONPATH=/app
+# Also add to shell profile for interactive sessions
+RUN echo 'export PYTHONPATH=/app' >> /etc/profile
 
 # Create directories for file processing
 RUN mkdir -p /tmp/music/source /tmp/music/temp /tmp/music/screenshots /tmp/music/metadata /tmp/music/finished \
