@@ -75,6 +75,66 @@ class FFMPEGWrapper:
                      "-map", "[outv]", "-map", "[outa]", "-c:v", "libx264", "-c:a", "aac"],
             "description": "Opacity-based transition with transparency control (requires second_video, opacity 0.0-1.0)"
         },
+        "wipe_left": {
+            "args": ["-i", "{second_video}", "-filter_complex", 
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=wipeleft:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Left-to-right wipe transition (requires second_video, duration, offset)"
+        },
+        "wipe_up": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=wipeup:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Bottom-to-top wipe transition (requires second_video, duration, offset)"
+        },
+        "wipe_down": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=wipedown:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Top-to-bottom wipe transition (requires second_video, duration, offset)"
+        },
+        "slide_left": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=slideleft:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Slide transition moving left (requires second_video, duration, offset)"
+        },
+        "slide_right": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=slideright:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Slide transition moving right (requires second_video, duration, offset)"
+        },
+        "slide_up": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=slideup:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Slide transition moving up (requires second_video, duration, offset)"
+        },
+        "slide_down": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=slidedown:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Slide transition moving down (requires second_video, duration, offset)"
+        },
+        "circle_crop": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=circlecrop:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Circular crop reveal transition (requires second_video, duration, offset)"
+        },
+        "fade_black": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=fadeblack:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Fade through black transition (requires second_video, duration, offset)"
+        },
+        "fade_white": {
+            "args": ["-i", "{second_video}", "-filter_complex",
+                     "[0:v]scale=1280:720,setsar=1:1[v0];[1:v]scale=1280:720,setsar=1:1[v1];[v0][v1]xfade=transition=fadewhite:duration={duration}:offset={offset}[outv]",
+                     "-map", "[outv]", "-c:v", "libx264"],
+            "description": "Fade through white transition (requires second_video, duration, offset)"
+        },
         "leica_look": {
             "args": ["-vf", "curves=vintage,eq=contrast=1.1:brightness=0.05:saturation=0.9:gamma=1.05,colorbalance=rs=0.1:gs=-0.05:bs=-0.1:rm=0.05:gm=0:bm=-0.05:rh=-0.05:gh=0.05:bh=0.1,unsharp=5:5:0.8:3:3:0.4"],
             "description": "Apply Leica-style color grading with vintage curves, contrast, and color balance"
@@ -86,6 +146,34 @@ class FFMPEGWrapper:
         "apply_leica_and_trim": {
             "args": ["-ss", "{start}", "-t", "{duration}", "-vf", "curves=vintage,eq=contrast=1.1:brightness=0.05:saturation=0.9:gamma=1.05,colorbalance=rs=0.1:gs=-0.05:bs=-0.1:rm=0.05:gm=0:bm=-0.05:rh=-0.05:gh=0.05:bh=0.1,unsharp=5:5:0.8:3:3:0.4"],
             "description": "Trim video segment and apply Leica look in one operation (requires start, duration)"
+        },
+        "create_seamless_loop": {
+            "args": ["-filter_complex", "[0:a]asplit=2[a][b];[a]atrim=0:{fade_duration}[afade_out];[b]atrim={overlap_start}[afade_in];[afade_out][afade_in]acrossfade=d={fade_duration}[audio_loop];[0:v]copy[video_loop]", "-map", "[video_loop]", "-map", "[audio_loop]", "-c:v", "libx264", "-preset", "slower", "-crf", "18", "-g", "48", "-keyint_min", "48", "-sc_threshold", "0", "-bf", "2", "-b_strategy", "0", "-c:a", "aac", "-movflags", "+faststart", "-pix_fmt", "yuv420p"],
+            "description": "Create seamless looping video with crossfade audio and GOP optimization (requires fade_duration, overlap_start)"
+        },
+        "youtube_shorts_optimize": {
+            "args": ["-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setsar=1:1", "-c:v", "libx264", "-preset", "slower", "-crf", "18", "-g", "48", "-keyint_min", "48", "-sc_threshold", "0", "-bf", "2", "-b_strategy", "0", "-refs", "3", "-c:a", "aac", "-ar", "48000", "-b:a", "128k", "-movflags", "+faststart", "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"],
+            "description": "Optimize video for YouTube Shorts with 9:16 aspect ratio, GOP structure control, and platform-specific encoding"
+        },
+        "create_loop_with_reverse": {
+            "args": ["-filter_complex", "[0]split=2[original][reverse];[reverse]reverse[rev];[original][rev]concat=n=2:v=1:a=0[video_pingpong];[0]asplit=2[a1][a2];[a2]areverse[a2rev];[a1][a2rev]concat=n=2:v=0:a=1[audio_pingpong]", "-map", "[video_pingpong]", "-map", "[audio_pingpong]", "-c:v", "libx264", "-preset", "slower", "-crf", "18", "-g", "48", "-keyint_min", "48", "-sc_threshold", "0", "-c:a", "aac", "-movflags", "+faststart"],
+            "description": "Create ping-pong loop by playing video forward then reverse for seamless looping effect"
+        },
+        "youtube_recommended_encode": {
+            "args": ["-c:v", "libx264", "-preset", "slow", "-crf", "18", "-maxrate", "8000k", "-bufsize", "12000k", "-pix_fmt", "yuv420p", "-g", "48", "-keyint_min", "48", "-sc_threshold", "0", "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-ac", "2", "-movflags", "+faststart", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"],
+            "description": "Encode video with YouTube recommended settings for best quality and compatibility"
+        },
+        "youtube_shorts_premium": {
+            "args": ["-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setsar=1:1", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-maxrate", "8000k", "-bufsize", "12000k", "-pix_fmt", "yuv420p", "-g", "24", "-keyint_min", "24", "-sc_threshold", "0", "-bf", "2", "-b_strategy", "0", "-refs", "3", "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-ac", "2", "-movflags", "+faststart", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"],
+            "description": "Premium YouTube Shorts encoding with optimal quality settings, faster GOP for mobile playback"
+        },
+        "youtube_1080p_optimize": {
+            "args": ["-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1:1", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-maxrate", "5000k", "-bufsize", "10000k", "-pix_fmt", "yuv420p", "-g", "48", "-keyint_min", "48", "-sc_threshold", "0", "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-movflags", "+faststart", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"],
+            "description": "Optimize video for YouTube 1080p with recommended bitrate and quality settings"
+        },
+        "youtube_4k_optimize": {
+            "args": ["-vf", "scale=3840:2160:force_original_aspect_ratio=decrease,pad=3840:2160:(ow-iw)/2:(oh-ih)/2,setsar=1:1", "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-maxrate", "40000k", "-bufsize", "60000k", "-pix_fmt", "yuv420p", "-g", "48", "-keyint_min", "48", "-sc_threshold", "0", "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-movflags", "+faststart", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"],
+            "description": "Optimize video for YouTube 4K with high bitrate and premium quality settings"
         }
     }
 
@@ -106,22 +194,22 @@ class FFMPEGWrapper:
             if isinstance(arg, str) and "{" in arg:
                 for param_name, param_value in params.items():
                     placeholder = f"{{{param_name}}}"
-                    if placeholder in arg:
-                        args[i] = arg.replace(placeholder, str(param_value))
+                    if placeholder in args[i]:  # Use args[i] instead of arg
+                        args[i] = args[i].replace(placeholder, str(param_value))
         
         # Replace parameter placeholders in pre-input args
         for i, arg in enumerate(pre_input_args):
             if isinstance(arg, str) and "{" in arg:
                 for param_name, param_value in params.items():
                     placeholder = f"{{{param_name}}}"
-                    if placeholder in arg:
-                        pre_input_args[i] = arg.replace(placeholder, str(param_value))
+                    if placeholder in pre_input_args[i]:  # Use pre_input_args[i] instead of arg
+                        pre_input_args[i] = pre_input_args[i].replace(placeholder, str(param_value))
         
         # Validate that all placeholders were replaced in both arg lists
         all_args = args + pre_input_args
         for arg in all_args:
             if isinstance(arg, str) and re.search(r'\{[^}]+\}', arg):
-                missing_params = re.findall(r'\{([^}]+)\}', arg)
+                missing_params = list(set(re.findall(r'\{([^}]+)\}', arg)))  # Deduplicate with set()
                 raise ValueError(f"Missing required parameters: {missing_params}")
         
         # Build complete command with pre-input args before -i
