@@ -643,6 +643,164 @@ For any multi-fix PR, document:
 
 This case study demonstrates that **simpler is usually correct** when dealing with import/dependency issues in CI environments.
 
+### **CRITICAL DISTINCTION: Good vs Bad Multi-Fix Patterns** 🎯
+
+#### **✅ GOOD Pattern: Sequential Problem Discovery (Gemini Example)**
+*From gemini-ffmpeg changes_summary_20250824.md - demonstrates proper systematic debugging*
+
+```
+Problem 1: Method call mismatch → Fix: Load file + use correct async method → New error
+Problem 2: JSON structure mismatch → Fix: Add sources list + sourceRef pattern → New error  
+Problem 3: File path restrictions → Fix: Update FileManager config + hardcoded paths → Success
+```
+
+**Why This Was CORRECT Multi-Fix Approach**:
+- ✅ **Each fix revealed NEW, SPECIFIC error message** (progress indicators)
+- ✅ **Targeted changes** addressing actual underlying issues  
+- ✅ **No architectural rewrites** - just corrected specific mismatches
+- ✅ **Sequential problem discovery** - fix A reveals problem B
+
+#### **❌ BAD Pattern: Same Problem Escalating Complexity (PR 22)**
+```
+Same CI Failure → Complex Dockerfile fix → Still failing → Workflow rewrite → Still failing → etc.
+```
+
+**Why This Was WRONG Multi-Fix Approach**:
+- ❌ **Same error recurring** despite multiple "fixes"
+- ❌ **Each fix more complex/architectural** than the last
+- ❌ **Solution >> Problem Complexity** (50+ line fixes for import issue)
+- ❌ **Symptom-fixing cycle** without root cause identification
+
+### **Refined Over-Engineering Detection** 🔍
+
+#### **REAL Warning Signs** (Replace crude metrics)
+- ❌ **Same Error Persisting** after 2+ attempts with different approaches
+- ❌ **Architectural Drift** - "simple" fix requiring tech stack changes  
+- ❌ **Solution >> Problem Complexity** - 50-line fix for 3-line problem
+- ❌ **Recursive Complexity** - each fix creates more problems than it solves
+
+#### **NOT Warning Signs** (False positives to avoid)
+- ✅ **Multiple files changed** when each change addresses specific, different issues
+- ✅ **Sequential debugging** that progresses through distinct problems
+- ✅ **Multiple fix attempts** when each attempt targets a newly discovered issue
+
+#### **Key Insight: Error Message Patterns**
+```bash
+# GOOD Sequential Pattern:
+Error 1: "Method 'process_komposition_file' not found" → Fix method call
+Error 2: "No source found for segment: None" → Fix JSON structure  
+Error 3: "File path not allowed: /tmp/music/source/..." → Fix path handling
+
+# BAD Recurring Pattern:  
+Error: "ModuleNotFoundError: No module named 'docker'" → Fix 1
+Error: "ModuleNotFoundError: No module named 'docker'" → Fix 2
+Error: "ModuleNotFoundError: No module named 'docker'" → Fix 3
+```
+
+**CRITICAL LEARNING**: **Quality of analysis** matters more than **quantity of changes**. Systematic debugging applied to multiple sequential issues is exactly what we want - not over-engineering.
+
+## ⚠️ **COMPREHENSIVE AI RESTRAINT PROTOCOLS** ⚠️
+
+### **Research-Based Constraint Framework** 📚
+*Based on analysis of Anthropic Engineering, The Ground Truth, Spec-Driven Development, and Claude Code documentation*
+
+#### **The "3-Line Rule"** 🎯
+**Principle**: If root cause is likely <10 lines of code, spend MORE time analyzing than implementing.
+
+**Protocol**:
+1. **Analysis Phase**: Use Build Detective, compare branches, identify patterns  
+2. **Minimal Fix Hypothesis**: Propose simplest possible solution FIRST
+3. **Escalation Threshold**: Only expand scope with explicit user approval
+
+#### **The "Stable Point Protocol"** 🔗  
+**Principle**: Always work from known-good state → known-good state.
+
+**Steps**:
+1. **Verify Starting Point**: Ensure current state compiles/tests pass
+2. **Single Change**: Make one logical change only
+3. **Verification**: Confirm new state is stable (BD local CI)
+4. **Commit**: Version the change before next modification
+
+#### **Pre-Implementation Constraint Gates** 🚪
+
+**MANDATORY CHECKPOINTS**:
+- [ ] **Planning Phase**: Force AI to plan before ANY code changes
+- [ ] **Root Cause Analysis**: Compare branches, identify simplest solution
+- [ ] **Scope Definition**: Define maximum files/lines to change
+- [ ] **YOLO Mode Approval**: Require explicit permission for >3 file changes
+
+**AUTOMATIC TRIGGERS** (Refined based on Gemini vs PR 22 analysis):
+- **Same Error Persisting** → After 2+ attempts, switch to BD/environment comparison
+- **Architectural Drift** → "Simple" fix requiring tech stack changes → STOP and ask  
+- **Recursive Complexity** → Each fix creates more problems → STOP and reassess
+- **Solution >> Problem** → 50+ line fix for single error message → Justify or simplify
+
+#### **The Domain Expert Consultation Protocol** 🤝
+**Principle**: Senior developers know the codebase; ask instead of assuming.
+
+**Implementation**:
+```bash
+# Before ANY architectural change:
+1. "What's the typical pattern for X in this codebase?" 
+2. "Has this issue occurred before?"
+3. "Do you prefer approach A or B for this type of change?"
+4. "Will this change affect any other systems?"
+```
+
+#### **Course Correction Protocols** 🛑
+
+**Interrupt Capabilities**:
+- **ESC Key Protocol**: Stop mid-process when complexity escalates
+- **Token Budget Awareness**: Reassess after significant token usage  
+- **Build Detective First**: Use BD tools before LLM analysis for build issues
+- **Branch Comparison**: When debugging, compare working vs broken branches FIRST
+
+#### **Mature Codebase Sensitivity Rules** 🏛️
+
+**GOLDEN RULES**:
+1. **Incremental Over Comprehensive**: Small testable changes vs rewrites
+2. **Backward Compatibility**: Maintain existing behavior patterns
+3. **Domain Language**: Use project-specific terminology consistently  
+4. **Change Impact Assessment**: Estimate affected systems before starting
+
+**VIOLATION CONSEQUENCES**:
+- **First Violation**: Warning and course correction
+- **Second Violation**: Session reset with planning restart
+- **Pattern Violation**: Immediate escalation to user oversight
+
+### **Success Metrics & Monitoring** 📊
+
+**Target Metrics**:
+- **Progressive Error Resolution**: Each fix produces new, more specific error (not same recurring error)
+- **First-Fix Success**: >80% problems solved without architectural changes
+- **BD Usage Rate**: >90% build issues use BD before LLM analysis  
+- **User Satisfaction**: Reduced overwhelming change review burden
+
+**Warning Indicators** (Refined):
+- **Error Message Stagnation**: Same error after multiple different approaches
+- **Complexity Escalation**: Each successive fix more architectural than previous
+- **Recursive Problem Creation**: Fixes generate more issues than they solve
+- **Token Burn Without Progress**: High usage without advancing through distinct problems
+
+### **Implementation Roadmap** 🗺️
+
+**Phase 1 (Immediate)**:
+- [ ] Add explicit approval gates for >3 file changes
+- [ ] Implement "pause and ask" checkpoints during complex tasks
+- [ ] Create change impact estimator before modifications
+
+**Phase 2 (Short-term)**:  
+- [ ] Build Detective first protocol for all CI failures
+- [ ] Subagent specialization with domain-specific constraints
+- [ ] Automated scope detection based on task analysis
+
+**Phase 3 (Long-term)**:
+- [ ] Change complexity scoring with escalation thresholds
+- [ ] Historical pattern learning from over-engineering incidents
+- [ ] Continuous improvement feedback loops
+
+**CRITICAL SUCCESS FACTOR**: Balancing AI capability with mature codebase sensitivity through explicit approval gates and domain expert consultation protocols.
+
 ## LLM Issue Reporting and Improvement Tracking
 
 ### Komposteur and Video Renderer Improvement Guidelines
