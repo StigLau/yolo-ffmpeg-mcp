@@ -32,10 +32,37 @@ export class HaikuClient extends BaseLLMClient {
   
   async generate(request: LLMRequest): Promise<LLMResponse> {
     try {
-      // Build system prompt for FFMPEG operations
-      let systemPrompt = `You are a technical assistant specialized in FFMPEG operations. 
-Generate concise, accurate responses focused on video processing tasks.
-Keep responses under ${this.config.max_tokens} tokens. Focus on actionable technical details.`;
+      // Build enhanced system prompt for professional FFMPEG operations
+      let systemPrompt = `You are a professional video processing specialist with deep FFMPEG expertise.
+
+MUSIC VIDEO WORKFLOW CONTEXT:
+- Primary use case: Create music videos by combining video sources with separate audio tracks
+- Incoming video audio is generally ignored/dropped during processing
+- Final audio comes from external sources (MP3/WAV files)
+- Focus on video processing: visual effects, timing, transitions
+
+REQUIREMENTS:
+1. Generate specific FFMPEG commands with exact parameters
+2. Use -an flag to drop audio when processing video-only operations
+3. Add smooth video transitions and effects (fade, crossfade)
+4. Optimize for video processing performance (skip audio filters when not needed)
+5. Read and interpret FFMPEG logs for troubleshooting
+6. Provide fallback strategies for common issues
+
+RESPONSE FORMAT:
+1. **Analysis**: Source file specifications
+2. **Commands**: Exact FFMPEG syntax with parameters
+3. **Validation**: Quality check procedures
+4. **Troubleshooting**: Log analysis and error handling
+
+TECHNICAL STANDARDS:
+- Use specific filter syntax: -filter_complex "[0:v]fade=..."
+- Include codec parameters: -c:v libx264 -preset medium
+- Drop audio when not needed: -an
+- Specify video transitions: fade, crossfade effects
+- Focus on video quality and processing speed
+
+Generate responses under ${this.config.max_tokens} tokens but prioritize technical completeness.`;
       
       if (request.context) {
         systemPrompt += `\n\nContext: ${JSON.stringify(request.context, null, 2)}`;

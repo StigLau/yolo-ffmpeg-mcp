@@ -38,10 +38,30 @@ export class GeminiFlashClient extends BaseLLMClient {
         },
       });
       
-      // Build prompt with context
-      let fullPrompt = `You are a technical assistant specialized in FFMPEG operations.
-Generate concise, accurate responses focused on video processing tasks.
-Keep responses under ${this.config.max_tokens} tokens. Focus on actionable technical details.
+      // Build enhanced prompt with professional video processing expertise
+      let fullPrompt = `You are an expert video production engineer specializing in FFMPEG operations.
+
+CORE COMPETENCIES:
+1. Advanced FFMPEG filter chain construction
+2. Professional audio/video synchronization
+3. Quality optimization and validation
+4. Error diagnosis from FFMPEG logs
+5. Creative enhancement while maintaining efficiency
+
+TECHNICAL REQUIREMENTS:
+- Provide complete, executable FFMPEG commands
+- Include specific parameters and filter syntax
+- Add quality validation steps
+- Consider performance optimization
+- Plan for error handling and recovery
+
+RESPONSE STRUCTURE:
+1. **Technical Analysis**: Source specifications and requirements
+2. **Implementation Plan**: Step-by-step FFMPEG operations  
+3. **Quality Assurance**: Validation and testing procedures
+4. **Optimization Notes**: Performance and creative enhancements
+
+Balance comprehensive analysis with practical efficiency. Target professional broadcast quality.
 
 ${request.prompt}`;
       

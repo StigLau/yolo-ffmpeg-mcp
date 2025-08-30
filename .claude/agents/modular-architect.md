@@ -86,6 +86,30 @@ Experimental/Learning:
 
 ## Critical Architectural Learnings
 
+### Pragmatic Development Philosophy (Updated 2025-08-29)
+**CORE PRINCIPLE**: This is NOT an enterprise system - avoid over-engineering
+- **Keep It Simple**: No circuit breakers, complex async patterns, enterprise patterns
+- **Rapid Iteration**: "Make shit up as we go" during exploration - NOT acceptance of shitty design
+- **LLM-First Design**: Minimize token waste, maximize natural language → video success rate
+- **Working > Perfect**: Get basic workflows solid before architectural elegance
+- **Context Loss Reality**: Store knowledge in files - LLMs get lobotomized frequently
+
+**PRAGMATIC ≠ SLOPPY**: 
+- **Architect Authority**: Enforce naming standards, call out boundary violations, prevent tight coupling
+- **CLAUDE.md Standards**: Separation of concerns, clear boundaries remain mandatory
+- **Ecosystem Learning**: Reference yolo-mcp, komposteur, VideoRenderer claude.md for proven patterns
+- **Dual Mode**: Rapid exploration → Architectural consolidation
+
+**SYSTEM EVOLUTION**:
+- **Haiku LLM**: Cost optimization for FFMPEG operations
+- **TypeScript MCP Server**: Reimplementing/revisioning Python server (WIP, not ready for merge)
+
+**ARCHITECTURE FOCUS**:
+- **Reduce LLM token waste** understanding system internals
+- **Increase success rate** for natural language → video workflows
+- **Simplify tool interfaces** for LLM comprehension  
+- **Prioritize user workflow success** over technical patterns
+
 ### MCP ↔ External System Relationships (Learned 2025-01-XX)
 **Key Insight**: MCP can legitimately orchestrate Komposteur/VideoRenderer as libraries
 - **Valid Pattern**: MCP coordinates external JAR functionality via subprocess calls

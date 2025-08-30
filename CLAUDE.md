@@ -2,6 +2,195 @@
 
 **🚨 CRITICAL: Read Registry Guidelines Below Before Using This Server**
 
+## 🎬 **MUSIC VIDEO CREATION WORKFLOW** 🎬
+
+**PRIMARY USE CASE**: Create music videos by combining video sources with separate audio tracks.
+
+**AUDIO PROCESSING STRATEGY**:
+- **Incoming video audio**: Generally ignored/dropped during processing
+- **Final audio**: Comes from external audio sources (MP3, WAV, etc.)
+- **Video processing**: Focus on visual effects, timing, transitions
+- **Audio synchronization**: Handle separately from video processing
+
+**WORKFLOW PATTERN**:
+1. **Video Processing**: Trim, effects, transitions (audio ignored)
+2. **Audio Preparation**: Load separate audio tracks  
+3. **Final Assembly**: Combine processed video + prepared audio
+4. **Future Enhancement**: Extract timing from video audio for sync matching
+
+**TECHNICAL IMPLICATIONS**:
+- FFMPEG commands should use `-an` to drop audio when processing video
+- Complex audio filters not needed for video-only processing
+- Simpler, faster processing when audio sync not required
+- Audio streams cause unnecessary processing overhead
+
+## ⚠️ **ZERO TOLERANCE: ROOT FOLDER POLLUTION** ⚠️
+
+**MANDATORY RULE**: AI-generated files MUST NEVER appear in project root directory.
+
+**DIRECTORY ORGANIZATION**:
+- **Generated Videos**: `/tmp/kompo/haiku-ffmpeg/generated-videos/`
+- **YouTube Downloads**: `/tmp/kompo/haiku-ffmpeg/youtube-downloads/`
+- **Test Files**: `/tmp/kompo/haiku-ffmpeg/test-files/`
+- **Source Files**: `/tmp/kompo/haiku-ffmpeg/source/`
+- **Temp Processing**: `/tmp/kompo/haiku-ffmpeg/temp/`
+- **Screenshots**: `/tmp/kompo/haiku-ffmpeg/screenshots/`
+- **Metadata**: `/tmp/kompo/haiku-ffmpeg/metadata/`
+
+**PROJECT SIZE LIMIT**: Files >10MB MUST go to `/tmp/kompo/haiku-ffmpeg/` unless explicitly approved as source files.
+
+**CONFIGURATION**: `src/config.py` updated to use `/tmp/kompo/haiku-ffmpeg/` directories by default.
+
+## 🗂️ **FILE ORGANIZATION & CLASSIFICATION GUIDELINES** 🗂️
+
+### **File Value Classification System**
+
+**HIGH VALUE - Keep in Project**:
+- ✅ **Source Code**: `src/`, core implementation files
+- ✅ **Documentation**: Technical analysis, architecture guides, API documentation
+- ✅ **Configuration**: `pyproject.toml`, `tsconfig.json`, `.gitignore`
+- ✅ **Small Test Files**: <10MB, essential for project testing
+- ✅ **Build Scripts**: `Makefile`, deployment scripts
+- ✅ **Lock Files**: `uv.lock` (standard for Python projects using uv)
+
+**MEDIUM VALUE - Archive Location**:  
+- 📁 **Historical Analysis**: Move to `archive/analysis/`
+- 📁 **Old Experiments**: Move to `archive/experiments/`
+- 📁 **Legacy Configs**: Move to `archive/configs/`
+
+**LOW VALUE - Temp Directory**:
+- 🗑️ **AI Bragging Files**: database_stats, extraction_reports with timestamps
+- 🗑️ **Test Runtime Artifacts**: `*.cjs` test files, `server.log`
+- 🗑️ **Build Artifacts**: `node_modules/`, `dist/`, `package-lock.json`
+- 🗑️ **Large Files**: >10MB files (unless explicitly approved as source)
+
+### **Directory Structure Standards**
+
+**For Generated Files**:
+```
+/tmp/kompo/haiku-ffmpeg/
+├── generated-videos/     # Final output videos
+├── youtube-downloads/    # Downloaded source material  
+├── test-files/          # Test artifacts and experiments
+├── typescript-tests/    # TypeScript experiment files
+├── temp/                # Processing intermediate files
+├── screenshots/         # Video screenshots
+└── metadata/           # Processing metadata
+```
+
+**For Documentation**:
+```
+docs/
+├── ai-generated/
+│   ├── haiku-mcp-typescript/    # Valuable analysis documents
+│   └── [project-specific]/      # Other AI analysis results
+├── reports/             # Technical reports and findings
+├── architecture/        # System design documents
+└── [standard-docs]/     # README, API docs, etc.
+```
+
+**For Archives**:
+```
+archive/
+├── configs/            # Historical configuration files
+├── experiments/        # Prototype code and tests
+├── media/             # Old media files and samples
+└── analysis/          # Old analysis reports
+```
+
+### **Git Staging Rules**
+
+**NEVER Stage These File Types**:
+- ❌ Timestamped AI reports (`*_20250830_*.json`, `*_20250830_*.md`)
+- ❌ Runtime logs (`server.log`, `*.log`)  
+- ❌ Build artifacts (`node_modules/`, `dist/`, `__pycache__/`)
+- ❌ Large binary files >10MB (unless explicitly approved)
+- ❌ System-specific paths or personal API keys
+
+**Always Stage These**:
+- ✅ Source code changes (`src/`, core implementation)
+- ✅ Documentation improvements (valuable analysis, not AI bragging)
+- ✅ Configuration updates (`pyproject.toml`, `CLAUDE.md`)
+- ✅ Lock files (`uv.lock` for reproducible Python builds)
+
+### **Cleanup Protocol**
+
+**Before Any Git Commit**:
+1. **Classify files** using the value system above
+2. **Move low-value files** to appropriate temp/archive locations
+3. **Remove AI bragging files** (timestamped stats/reports)
+4. **Check file sizes** - reject >10MB unless explicitly approved
+5. **Verify documentation value** - keep analysis, remove bragging
+
+**TypeScript Project Management**:
+- Keep: `src/`, `README.md`, `package.json`, `tsconfig.json`
+- Archive: valuable analysis documents  
+- Delete: `test-*.cjs`, `node_modules/`, `dist/`, runtime logs
+
+**Questions Before Staging**:
+- Does this file provide value to future developers?
+- Is this analysis/documentation or AI self-congratulation?
+- Would this file be useful if someone else cloned the repo?
+- Is this file size appropriate for the project (<10MB)?
+
+### **🔍 FILE CREATION TRACKING & ACCOUNTABILITY** 🔍
+
+**MANDATORY RULE**: ALL file/folder creation MUST be logged for accountability and cleanup.
+
+**Implementation**: Create/update `FILE_CREATION_LOG.md` for every session that creates files:
+
+```markdown
+# File Creation Log - [Session Date]
+
+## [Timestamp] - [Agent/Tool Name]
+**Reasoning**: [Why these files were created]
+**Created Files/Folders**:
+- /path/to/file1.ext - [Purpose]
+- /path/to/folder/ - [Purpose]
+- /tmp/location/file2.ext - [Purpose]
+
+**Value Assessment**: [High/Medium/Low value]
+**Cleanup Required**: [Yes/No] - [When/Why]
+```
+
+**Location Requirements**:
+- **Project root**: `FILE_CREATION_LOG.md` (tracked in git)
+- **Temp directories**: Include in temp directory for reference
+
+**Logging Triggers**:
+- ❗ **ANY new file creation** (code, logs, reports, data)
+- ❗ **ANY new directory creation** 
+- ❗ **ANY downloads/generated content**
+- ❗ **ANY archive/temp file moves**
+
+**Accountability Benefits**:
+- **Track file proliferation** - identify which tools/agents create clutter
+- **Enable targeted cleanup** - know what's safe to remove and when
+- **Prevent redundancy** - see if similar files already exist
+- **Debug workflows** - trace which process created problematic files
+- **Justify file retention** - clear reasoning for keeping/removing files
+
+**Example Log Entry**:
+```markdown
+## 2025-08-30T15:54:12Z - Knowledge Extractor (Haiku)
+**Reasoning**: User requested VDVIL project analysis for main function detection
+**Created Files/Folders**:
+- docs/ai-generated/vdvil-analysis/extraction_report_20250830_155412.md - Analysis results
+- knowledge_graph.db - Entity relationship storage
+- /tmp/kompo/haiku-ffmpeg/temp/vdvil_cache/ - Processing cache
+
+**Value Assessment**: Medium (analysis results valuable, cache/db temporary)
+**Cleanup Required**: Yes - Remove timestamped files after 7 days, keep summary analysis
+```
+
+**Enforcement Protocol**:
+- **Before ANY file creation**: Check if logging is current
+- **After file operations**: Update log immediately  
+- **Session end**: Review log for cleanup opportunities
+- **Weekly review**: Archive old logs, cleanup temp files
+
+This ensures transparency and prevents the "shitload of files everywhere" problem by making creation intentional and trackable.
+
 ## ⚠️ CRITICAL: NO ARCHITECTURAL CHANGES WITHOUT PERMISSION ⚠️
 
 **MANDATORY CONSULTATION RULE:**

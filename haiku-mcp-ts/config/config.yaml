@@ -12,18 +12,18 @@ models:
   haiku:
     provider: "anthropic"
     model: "claude-3-haiku-20240307"
-    api_key: "test-key"
+    api_key: "${ANTHROPIC_API_KEY}"
     max_tokens: 500
     
   gemini_flash:
     provider: "google"
     model: "gemini-1.5-flash"
-    api_key: "test-key"
+    api_key: "${GOOGLE_API_KEY}"
     max_tokens: 500
 
 ffmpeg:
   timeout_seconds: 60
-  temp_directory: "/tmp/haiku-mcp-test"
+  temp_directory: "/tmp/kompo/haiku-ffmpeg/temp"
   cleanup_on_exit: true
 
 youtube:

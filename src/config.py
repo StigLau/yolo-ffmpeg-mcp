@@ -23,12 +23,12 @@ class SecurityConfig:
     MEMORY_LIMIT = "512M"
     CPU_LIMIT = "1.0"
     
-    # Directory configuration
-    SOURCE_DIR = Path(os.getenv("FFMPEG_SOURCE_DIR", "/tmp/music/source"))
-    TEMP_DIR = Path(os.getenv("FFMPEG_TEMP_DIR", "/tmp/music/temp"))
-    FINISHED_DIR = Path(os.getenv("FFMPEG_FINISHED_DIR", "/tmp/music/finished"))
-    SCREENSHOTS_DIR = Path(os.getenv("FFMPEG_SCREENSHOTS_DIR", "/tmp/music/screenshots"))
-    METADATA_DIR = Path(os.getenv("FFMPEG_METADATA_DIR", "/tmp/music/metadata"))
+    # Directory configuration - Updated to prevent root folder pollution
+    SOURCE_DIR = Path(os.getenv("FFMPEG_SOURCE_DIR", "/tmp/kompo/haiku-ffmpeg/source"))
+    TEMP_DIR = Path(os.getenv("FFMPEG_TEMP_DIR", "/tmp/kompo/haiku-ffmpeg/temp"))
+    FINISHED_DIR = Path(os.getenv("FFMPEG_FINISHED_DIR", "/tmp/kompo/haiku-ffmpeg/generated-videos"))
+    SCREENSHOTS_DIR = Path(os.getenv("FFMPEG_SCREENSHOTS_DIR", "/tmp/kompo/haiku-ffmpeg/screenshots"))
+    METADATA_DIR = Path(os.getenv("FFMPEG_METADATA_DIR", "/tmp/kompo/haiku-ffmpeg/metadata"))
     
     # Screenshot URL configuration
     SCREENSHOTS_BASE_URL = os.getenv("SCREENSHOTS_BASE_URL", "https://kompo.st/screenshots")

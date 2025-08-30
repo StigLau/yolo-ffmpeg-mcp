@@ -151,13 +151,46 @@ FFMPEG Command:`;
     return null;
   }
 
+  private parseShellCommand(command: string): string[] {
+    const args: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = '';
+    
+    for (let i = 0; i < command.length; i++) {
+      const char = command[i];
+      
+      if (!inQuotes && (char === '"' || char === "'")) {
+        inQuotes = true;
+        quoteChar = char;
+      } else if (inQuotes && char === quoteChar) {
+        inQuotes = false;
+        quoteChar = '';
+      } else if (!inQuotes && char === ' ') {
+        if (current.trim()) {
+          args.push(current.trim());
+          current = '';
+        }
+      } else {
+        current += char;
+      }
+    }
+    
+    if (current.trim()) {
+      args.push(current.trim());
+    }
+    
+    return args;
+  }
+
   private async executeFFMPEG(command: string): Promise<{
     success: boolean;
     output?: string;
     error?: string;
   }> {
     return new Promise((resolve) => {
-      const args = command.split(' ').slice(1); // Remove 'ffmpeg' from args
+      // Proper shell parsing to handle quoted arguments
+      const args = this.parseShellCommand(command).slice(1); // Remove 'ffmpeg' from args
       
       const process = spawn('ffmpeg', args, {
         stdio: ['ignore', 'pipe', 'pipe'],
