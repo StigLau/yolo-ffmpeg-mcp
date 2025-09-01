@@ -20,4 +20,4 @@ Thumbs.db
 # Test outputs
 server.log
 *.cjs
-*.mjs
+*.mjsclient.js
