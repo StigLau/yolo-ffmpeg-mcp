@@ -16,6 +16,7 @@ import { GeminiFlashClient } from './llm/gemini-client.js';
 import { VideoProcessor } from './tools/video-processor.js';
 import { YouTubeDownloader } from './tools/youtube-downloader.js';
 import { BaseLLMClient } from './llm/types.js';
+import { FileManager } from './registry/file-manager.js';
 
 class HaikuMCPServer {
   private server: Server;
@@ -23,6 +24,7 @@ class HaikuMCPServer {
   private fallbackClient!: BaseLLMClient;
   private videoProcessor!: VideoProcessor;
   private youtubeDownloader!: YouTubeDownloader;
+  private fileManager!: FileManager;
 
   constructor() {
     this.server = new Server({
@@ -75,6 +77,9 @@ class HaikuMCPServer {
       config.youtube, 
       sanitizationConfig
     );
+
+    // Initialize file registry
+    this.fileManager = new FileManager();
 
     console.error('Haiku MCP Server initialized');
   }
@@ -198,6 +203,36 @@ class HaikuMCPServer {
             properties: {},
           },
         },
+        {
+          name: 'list_files',
+          description: 'List all files in the registry with their IDs and metadata',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'get_file_info',
+          description: 'Get detailed information about a file by its ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              file_id: {
+                type: 'string',
+                description: 'File ID from the registry (e.g., file_14af0abf)',
+              },
+            },
+            required: ['file_id'],
+          },
+        },
+        {
+          name: 'get_registry_status',
+          description: 'Get current registry status and statistics',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
       ],
     }));
 
@@ -219,6 +254,15 @@ class HaikuMCPServer {
           case 'get_llm_stats':
             return await this.handleGetLLMStats();
 
+          case 'list_files':
+            return await this.handleListFiles();
+
+          case 'get_file_info':
+            return await this.handleGetFileInfo(request.params.arguments);
+
+          case 'get_registry_status':
+            return await this.handleGetRegistryStatus();
+
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -233,12 +277,16 @@ class HaikuMCPServer {
   }
 
   private async handleCreateMusicVideo(args: any) {
+    // Resolve file IDs to actual paths
+    const videoPath = this.fileManager.resolveFileId(args.video_file) || args.video_file;
+    const audioPath = this.fileManager.resolveFileId(args.audio_file) || args.audio_file;
+
     const result = await this.videoProcessor.processVideo({
-      input_file: args.video_file,
+      input_file: videoPath,
       output_file: args.output_file,
       operation: 'create_music_video',
       parameters: {
-        audio_file: args.audio_file,
+        audio_file: audioPath,
         duration: args.duration,
         start_time: args.start_time,
       },
@@ -253,8 +301,11 @@ class HaikuMCPServer {
   }
 
   private async handleProcessVideoFile(args: any) {
+    // Resolve file ID to actual path
+    const inputPath = this.fileManager.resolveFileId(args.input_file) || args.input_file;
+
     const result = await this.videoProcessor.processVideo({
-      input_file: args.input_file,
+      input_file: inputPath,
       output_file: args.output_file,
       operation: args.operation,
       parameters: args.parameters || {},
@@ -322,6 +373,48 @@ class HaikuMCPServer {
       content: [{
         type: 'text',
         text: JSON.stringify(stats, null, 2),
+      }],
+    };
+  }
+
+  private async handleListFiles() {
+    const files = await this.fileManager.listFiles();
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({ files }, null, 2),
+      }],
+    };
+  }
+
+  private async handleGetFileInfo(args: any) {
+    const fileInfo = await this.fileManager.getFileInfo(args.file_id);
+
+    if (!fileInfo) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({ error: `File not found: ${args.file_id}` }, null, 2),
+        }],
+      };
+    }
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({ file: fileInfo }, null, 2),
+      }],
+    };
+  }
+
+  private async handleGetRegistryStatus() {
+    const status = this.fileManager.getRegistryStatus();
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({ registry: status }, null, 2),
       }],
     };
   }

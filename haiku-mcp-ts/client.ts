@@ -97,25 +97,40 @@ async function main() {
     // Connect to server
     await client.connect();
 
-    // Test 1: List available tools first
-    console.log('📋 Testing tools list...');
-    const toolsList = await client.listTools();
-    console.log('Available Tools:', toolsList.tools.map(t => t.name));
+    // Test 1: Registry system
+    console.log('📋 Testing registry system...');
+    
+    const registryStatus = await client.callTool('get_registry_status', {});
+    console.log('Registry Status:', JSON.parse(registryStatus.content[0].text));
 
-    // Test 2: Get LLM stats
-    console.log('\n📊 Testing LLM stats...');
-    const statsResponse = await client.callTool('get_llm_stats', {});
-    console.log('LLM Stats:', JSON.parse(statsResponse.content[0].text));
-
-    // Test 3: Create music video
-    console.log('\n🎵 Testing music video creation...');
-    const musicVideoResponse = await client.callTool('create_music_video', {
-      video_file: '/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/JJVtt947FfI_136.mp4',
-      audio_file: '/tmp/music/source/Subnautic Measures.flac',
-      output_file: '/tmp/kompo/haiku-ffmpeg/generated-videos/music-video-test.mp4',
-      duration: 18
-    });
-    console.log('Music Video Response:', JSON.parse(musicVideoResponse.content[0].text));
+    const filesList = await client.callTool('list_files', {});
+    const files = JSON.parse(filesList.content[0].text).files;
+    console.log(`Found ${files.length} files in registry:`);
+    
+    if (files.length > 0) {
+      console.log('File IDs:', files.map(f => `${f.id} (${f.extension})`));
+      
+      // Test file info for first file
+      const fileInfo = await client.callTool('get_file_info', { file_id: files[0].id });
+      console.log('First File Info:', JSON.parse(fileInfo.content[0].text));
+      
+      // Test music video with file IDs
+      const videoFile = files.find(f => f.mediaType === 'video');
+      const audioFile = files.find(f => f.mediaType === 'audio');
+      
+      if (videoFile && audioFile) {
+        console.log('\n🎵 Testing music video with file IDs...');
+        const musicVideoResponse = await client.callTool('create_music_video', {
+          video_file: videoFile.id,
+          audio_file: audioFile.id,
+          output_file: '/tmp/kompo/haiku-ffmpeg/generated-videos/registry-music-video.mp4',
+          duration: 18
+        });
+        console.log('Music Video Response:', JSON.parse(musicVideoResponse.content[0].text));
+      } else {
+        console.log('⚠️  No video/audio files found for music video test');
+      }
+    }
 
   } catch (error) {
     console.error('❌ Client error:', error);

@@ -50,7 +50,7 @@ export class VideoProcessor {
       if (!llmResponse.success) {
         return {
           success: false,
-          error: `LLM command generation failed: ${llmResponse.error}`,
+          error: `LLM (${this.llmClient.provider}/${this.llmClient.model}) command generation failed: ${llmResponse.error}`,
         };
       }
 
@@ -120,6 +120,8 @@ Requirements:
 - Use appropriate codecs and quality settings
 - Handle audio/video sync properly
 - Use efficient processing flags
+- CRITICAL: Always wrap file paths in double quotes to handle spaces
+- Example: ffmpeg -i "input file.mp4" -i "audio file.mp3" "output.mp4"
 - Command should be ready to execute directly
 
 FFMPEG Command:`;
