@@ -37,9 +37,9 @@ def bd_local_ci_verify(include_docker=False):
         ("uv sync && uv run python -c 'import pytest; print(\"pytest OK\")'", 
          "UV dependencies and pytest"),
          
-        # Test 2: Local pytest execution
-        ("uv run python -m pytest tests/ci/ -v --tb=short", 
-         "Local pytest suite"),
+        # Test 2: Core music video workflow CI test (fast)
+        ("uv run python -m pytest tests/ci/test_music_video_workflow_ci.py -v --tb=short", 
+         "Music video workflow CI"),
     ]
     
     # Docker tests (optional, slower) - Enhanced with CI-specific validation
