@@ -46,9 +46,13 @@ jobs:
     - name: Create test directories
       run: |
         sudo mkdir -p /tmp/music/{source,temp,metadata,screenshots}
-        sudo chmod -R 777 /tmp/music
+        sudo mkdir -p /tmp/kompo/haiku-ffmpeg/{generated-videos,youtube-downloads,test-files,source,temp,screenshots,metadata,ci-workflow}
+        sudo chmod -R 777 /tmp/music /tmp/kompo
         cp tests/files/* /tmp/music/source/ || echo "Test files copied (or not found)"
+        # Copy test files to both locations for compatibility
+        cp tests/files/* /tmp/kompo/haiku-ffmpeg/source/ 2>/dev/null || echo "Files copied to kompo location"
         ls -la /tmp/music/
+        ls -la /tmp/kompo/haiku-ffmpeg/
     
     - name: Run all core tests
       run: |
@@ -59,6 +63,8 @@ jobs:
         python -m pytest tests/ci/test_integration_basic.py -v --tb=short || echo "Integration tests failed"  
         echo "Running MCP server tests..."
         python -m pytest tests/ci/test_mcp_server.py -v --tb=short || echo "MCP server tests failed"
+        echo "Running music video workflow tests..."
+        python -m pytest tests/ci/test_music_video_workflow_ci.py -v --tb=short || echo "Music video workflow tests failed"
         # Create some test artifacts to ensure upload doesn't fail
         echo "Test completed at $(date)" > /tmp/music/temp/test_completion.log
         ls -la /tmp/music/temp/
