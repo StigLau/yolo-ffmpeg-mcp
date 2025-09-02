@@ -1,0 +1,136 @@
+{
+  "timestamp": 1756543527.26879,
+  "framework_version": "1.0",
+  "test_prompts": [
+    "Create a music video using PXL_20250306_132546255.mp4 video with Coast music as background. Make it 15 seconds long with smooth looping",
+    "Create a 30-second music video using lookin.mp4 and panning.mp4 with background music at 135 BPM",
+    "Create a 24-second YouTube Short music video using Subnautica gameplay footage with 120 BPM sync, mysterious deep ocean atmosphere with vignette effects and enhanced underwater detail",
+    "Create a YouTube Short music video with dramatic dark intro, eye-focused verse, dynamic refrain, and fade outro at 120 BPM",
+    "Create a 60-second landscape music video with 4 segments of 15 seconds each from different timestamps"
+  ],
+  "quality_markers": {
+    "test1": {
+      "required": [
+        "crossfade",
+        "loudnorm",
+        "libx264",
+        "fade=in",
+        "fade=out",
+        "-t 15"
+      ],
+      "advanced": [
+        "stream_loop",
+        "scale=1920:1080",
+        "crf 23",
+        "preset medium"
+      ],
+      "scoring": {
+        "min": 4,
+        "target": 8
+      }
+    },
+    "test2": {
+      "required": [
+        "xfade",
+        "loudnorm",
+        "BPM",
+        "135",
+        "-t 30"
+      ],
+      "advanced": [
+        "atempo",
+        "transition=fade",
+        "scale=1920:1080",
+        "crf 20"
+      ],
+      "scoring": {
+        "min": 5,
+        "target": 8
+      }
+    },
+    "test3": {
+      "required": [
+        "vignette",
+        "unsharp",
+        "1080:1920",
+        "120 BPM",
+        "-t 24"
+      ],
+      "advanced": [
+        "colorchannelmixer",
+        "lowpass",
+        "aecho",
+        "preset slow"
+      ],
+      "scoring": {
+        "min": 6,
+        "target": 9
+      }
+    },
+    "test4": {
+      "required": [
+        "xfade",
+        "trim",
+        "1080:1920",
+        "120 BPM",
+        "mood"
+      ],
+      "advanced": [
+        "curves",
+        "vibrance",
+        "compand",
+        "transition=wiperight"
+      ],
+      "scoring": {
+        "min": 6,
+        "target": 9
+      }
+    },
+    "test5": {
+      "required": [
+        "trim",
+        "xfade",
+        "segments",
+        "-t 60",
+        "timestamps"
+      ],
+      "advanced": [
+        "smoothleft",
+        "circleopen",
+        "acompressor",
+        "15 seconds each"
+      ],
+      "scoring": {
+        "min": 5,
+        "target": 8
+      }
+    }
+  },
+  "results": {
+    "haiku": {
+      "scores": [
+        "ValidationScore(score=10, max_score=10, found=['crossfade', 'loudnorm', 'libx264', 'fade=in', 'fade=out', '-t 15'], missing=[], advanced=['stream_loop', 'scale=1920:1080', 'crf 23', 'preset medium'], assessment='\u2705 PROFESSIONAL (Sonnet equivalent)')",
+        "ValidationScore(score=10, max_score=10, found=['xfade', 'loudnorm', 'BPM', '135', '-t 30'], missing=[], advanced=['atempo', 'transition=fade', 'scale=1920:1080', 'crf 20'], assessment='\u2705 PROFESSIONAL (Sonnet equivalent)')",
+        "ValidationScore(score=9, max_score=10, found=['vignette', 'unsharp', '1080:1920', '120 BPM', '-t 24'], missing=[], advanced=['lowpass', 'aecho', 'preset slow'], assessment='\u2705 PROFESSIONAL (Sonnet equivalent)')",
+        "ValidationScore(score=9, max_score=10, found=['xfade', 'trim', '1080:1920', '120 BPM', 'mood'], missing=[], advanced=['curves', 'transition=wiperight'], assessment='\u2705 PROFESSIONAL (Sonnet equivalent)')",
+        "ValidationScore(score=7, max_score=10, found=['trim', 'xfade', 'segments', 'timestamps'], missing=['-t 60'], advanced=['smoothleft', '15 seconds each'], assessment='\u26a0\ufe0f FUNCTIONAL (needs improvement)')"
+      ],
+      "total": 45,
+      "average": 9
+    },
+    "gemini": {
+      "scores": [
+        "ValidationScore(score=9, max_score=10, found=['crossfade', 'libx264', 'fade=in', 'fade=out', '-t 15'], missing=['loudnorm'], advanced=['stream_loop', 'scale=1920:1080', 'crf 23', 'preset medium'], assessment='\u2705 PROFESSIONAL (Sonnet equivalent)')",
+        "ValidationScore(score=8, max_score=10, found=['xfade', 'BPM', '135', '-t 30'], missing=['loudnorm'], advanced=['transition=fade', 'scale=1920:1080', 'crf 20'], assessment='\u2705 PROFESSIONAL (Sonnet equivalent)')",
+        "ValidationScore(score=9, max_score=10, found=['vignette', 'unsharp', '1080:1920', '120 BPM', '-t 24'], missing=[], advanced=['colorchannelmixer', 'preset slow'], assessment='\u2705 PROFESSIONAL (Sonnet equivalent)')",
+        "ValidationScore(score=7, max_score=10, found=['xfade', 'trim', '1080:1920', 'mood'], missing=['120 BPM'], advanced=['curves', 'transition=wiperight'], assessment='\u26a0\ufe0f FUNCTIONAL (needs improvement)')",
+        "ValidationScore(score=8, max_score=10, found=['trim', 'xfade', 'segments', 'timestamps'], missing=['-t 60'], advanced=['smoothleft', 'circleopen', '15 seconds each'], assessment='\u2705 PROFESSIONAL (Sonnet equivalent)')"
+      ],
+      "total": 41,
+      "average": 8
+    }
+  },
+  "recommendations": [
+    "Haiku shows strong cost/performance ratio for simple workflows"
+  ]
+}
