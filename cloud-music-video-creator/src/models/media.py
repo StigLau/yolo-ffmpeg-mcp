@@ -116,7 +116,11 @@ class MediaReference(BaseModel):
     def full_path(self) -> str:
         """Get full storage path"""
         if self.storage_type == StorageType.TEMP:
-            return f"/tmp/music-video-creator/{self.storage_path}"
+            # For temp storage, storage_path should be the actual full path
+            if self.storage_path.startswith('/tmp/'):
+                return self.storage_path
+            else:
+                return f"/tmp/music-video-creator/{self.storage_path}"
         elif self.storage_type == StorageType.S3:
             bucket = self.storage_metadata.get('bucket', 'default-bucket')
             return f"s3://{bucket}/{self.storage_path}"

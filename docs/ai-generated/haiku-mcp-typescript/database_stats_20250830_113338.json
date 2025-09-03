@@ -1,0 +1,23 @@
+{
+  "total_entities": 154,
+  "total_relationships": 126,
+  "total_extractions": 20,
+  "average_confidence": 0.777,
+  "entity_types": {
+    "class": 29,
+    "component": 9,
+    "concept": 20,
+    "configuration": 1,
+    "dependency": 5,
+    "devDependency": 7,
+    "environment_variable": 2,
+    "file": 4,
+    "function": 26,
+    "library": 5,
+    "person": 1,
+    "project": 12,
+    "technology": 24,
+    "tool": 2,
+    "type": 7
+  }
+}

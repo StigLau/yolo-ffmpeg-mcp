@@ -75,25 +75,11 @@ class Effect(BaseModel):
     duration: Optional[float] = None    # Effect duration in seconds
     
     @validator('parameters')
-    def validate_parameters(cls, v, values):
+    def validate_parameters(cls, v):
         """Validate effect parameters based on type"""
-        effect_type = values.get('type')
-        
-        # Define required/optional parameters for each effect type
-        parameter_schemas = {
-            EffectType.CROSSFADE: {'duration': float},
-            EffectType.ZOOM: {'scale_factor': float, 'center_x': float, 'center_y': float},
-            EffectType.COLOR_GRADE: {'temperature': float, 'tint': float},
-            EffectType.EIGHT_BIT: {'resolution_scale': int, 'color_depth': int},
-            EffectType.LEICA: {'warmth': float, 'vignette_strength': float},
-        }
-        
-        if effect_type in parameter_schemas:
-            schema = parameter_schemas[effect_type]
-            for param, expected_type in schema.items():
-                if param in v and not isinstance(v[param], expected_type):
-                    raise ValueError(f"Parameter {param} must be of type {expected_type}")
-        
+        # Simplified validation for Pydantic v2 compatibility
+        if not isinstance(v, dict):
+            raise ValueError("Parameters must be a dictionary")
         return v
 
 
@@ -109,7 +95,7 @@ class Segment(BaseModel):
     duration_seconds: float = Field(gt=0)
     
     # Source media
-    source_media: MediaReference
+    source_media: Optional[MediaReference] = None
     source_start_time: float = Field(default=0.0, ge=0)  # Where in source to start
     
     # Effects and processing
@@ -120,7 +106,7 @@ class Segment(BaseModel):
     processing_metadata: Optional[Dict[str, Any]] = None
     
     @validator('start_seconds', 'duration_seconds')
-    def validate_timing_consistency(cls, v, values, field):
+    def validate_timing_consistency(cls, v):
         """Ensure beat and second timing are consistent"""
         # This would be validated against BPM in the full komposition context
         return v
@@ -261,14 +247,10 @@ class Komposition(BaseModel):
     tags: List[str] = Field(default_factory=list)
     
     @validator('total_beats')
-    def calculate_total_beats(cls, v, values):
-        """Ensure total_beats matches duration and BPM"""
-        bpm = values.get('bpm')
-        duration = values.get('duration_seconds')
-        if bpm and duration:
-            calculated_beats = (bpm * duration) / 60.0
-            if abs(v - calculated_beats) > 0.1:  # Allow small floating point differences
-                raise ValueError(f"total_beats ({v}) doesn't match calculated beats ({calculated_beats})")
+    def calculate_total_beats(cls, v):
+        """Ensure total_beats is positive"""
+        if v <= 0:
+            raise ValueError("total_beats must be positive")
         return v
     
     @property

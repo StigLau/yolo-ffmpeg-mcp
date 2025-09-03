@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Knowledge Extractor - Universal Codebase Scanner
+# Usage: ./extract <base-folder> "<natural-language-prompt>"
+
+set -e
+
+if [ $# -ne 2 ]; then
+    echo "❌ Usage: ./extract <base-folder> \"<natural-language-prompt>\""
+    echo ""
+    echo "Examples:"
+    echo "  ./extract /path/to/project \"Find all Spring Boot controllers and services\""
+    echo "  ./extract ~/code/myapp \"Analyze the authentication and security patterns\""
+    echo "  ./extract . \"Map the data layer and database interactions\""
+    exit 1
+fi
+
+BASE_FOLDER="$1"
+USER_PROMPT="$2"
+
+# Resolve absolute path
+BASE_FOLDER=$(realpath "$BASE_FOLDER")
+
+if [ ! -d "$BASE_FOLDER" ]; then
+    echo "❌ Directory not found: $BASE_FOLDER"
+    exit 1
+fi
+
+echo "🔍 Knowledge Extractor - Universal Codebase Scanner"
+echo "📂 Target: $BASE_FOLDER"
+echo "🎯 Goal: $USER_PROMPT"
+echo ""
+
+# Set Python path
+export PYTHONPATH="/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp"
+
+# Run the adaptive extraction
+echo "⏱️ Start time: $(date)"
+echo ""
+
+.venv/bin/python knowledge-extractor/adaptive_extractor.py "$BASE_FOLDER" "$USER_PROMPT"
+
+echo ""
+echo "⏱️ End time: $(date)"
+echo "✅ Knowledge extraction complete!"
