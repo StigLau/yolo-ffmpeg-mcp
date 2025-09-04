@@ -128,6 +128,12 @@ cloud-music-video-creator/
 
 ### Core Entities
 
+**Komposition Format Reference**: 
+- **CRITICAL**: Always refer to `docs/KOMPOSITION_FORMAT_REFERENCE.md` for correct format specifications
+- Two complementary formats: Markdown specification (.md) and JSON komposition (.json)
+- **Never create generic Python class structures** - use YOLO-format JSON with actual FFmpeg filters
+- Markdown specs are LLM-parseable, JSON kompositions are machine-executable
+
 **Komposition**:
 - Structured representation of a music video (JSON format from YOLO learnings)
 - Beat-synchronized segments with visual effects
@@ -149,11 +155,12 @@ cloud-music-video-creator/
 
 ### Key Questions to Answer During Development
 
-1. **Storage Abstraction**: Design registry interface that works with both temp files and future cloud storage
-2. **Session Management**: How to maintain context across stateless requests without storing full conversations
-3. **Error Recovery**: How to gracefully handle LLM failures and provide fallback options
-4. **Scalability**: How to handle multiple concurrent users and komposition processing
-5. **Testing Strategy**: How to test multi-LLM workflows without excessive API costs
+1. **Komposition Format Integration**: Bridge MCP server with YOLO-format JSON kompositions (see `docs/KOMPOSITION_FORMAT_REFERENCE.md`)
+2. **Storage Abstraction**: Design registry interface that works with both temp files and future cloud storage
+3. **Session Management**: How to maintain context across stateless requests without storing full conversations
+4. **Error Recovery**: How to gracefully handle LLM failures and provide fallback options
+5. **Scalability**: How to handle multiple concurrent users and komposition processing
+6. **Testing Strategy**: How to test multi-LLM workflows without excessive API costs
 
 ### Implementation Phases
 

@@ -1,0 +1,21 @@
+{
+  "name": "cloud-music-video-creator-mcp",
+  "version": "1.0.0",
+  "description": "TypeScript MCP Server for Cloud Music Video Creator",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "npx tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

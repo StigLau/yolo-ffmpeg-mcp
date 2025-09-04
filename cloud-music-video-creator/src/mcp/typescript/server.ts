@@ -146,7 +146,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'create_komposition': {
-        const spec = args as KompositionSpec;
+        const spec = args as any as KompositionSpec;
         const id = generateId();
         const komposition: Komposition = {
           id,
