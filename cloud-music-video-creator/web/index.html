@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cloud Music Video Creator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; max-width: 800px; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 10px 0; }
+        #responses { border: 1px solid #ccc; padding: 10px; min-height: 200px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Cloud Music Video Creator</h1>
+    
+    <textarea id="request" placeholder="Describe your music video..."></textarea>
+    <br>
+    <button onclick="sendRequest()">Send Request</button>
+    
+    <h3>Responses:</h3>
+    <div id="responses"></div>
+
+    <script>
+        let jobId = null;
+        
+        async function sendRequest() {
+            const request = document.getElementById('request').value;
+            if (!request.trim()) return;
+            
+            addResponse('Sending: ' + request);
+            
+            try {
+                const response = await fetch('/api/create-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: request, duration: 10 })
+                });
+                
+                const data = await response.json();
+                jobId = data.job_id;
+                addResponse('Job created: ' + jobId);
+                
+                // Poll status
+                pollStatus();
+                
+            } catch (error) {
+                addResponse('Error: ' + error.message);
+            }
+        }
+        
+        async function pollStatus() {
+            if (!jobId) return;
+            
+            try {
+                const response = await fetch('/api/status/' + jobId);
+                const data = await response.json();
+                
+                addResponse('Status: ' + data.message + ' (' + data.progress + '%)');
+                
+                if (data.status === 'completed') {
+                    addResponse('COMPLETED: Video ready at ' + data.video_url);
+                    jobId = null;
+                } else if (data.status === 'failed') {
+                    addResponse('FAILED: ' + data.message);
+                    jobId = null;
+                } else {
+                    setTimeout(pollStatus, 2000);
+                }
+                
+            } catch (error) {
+                addResponse('Status error: ' + error.message);
+            }
+        }
+        
+        function addResponse(text) {
+            const responses = document.getElementById('responses');
+            const time = new Date().toLocaleTimeString();
+            responses.textContent += '[' + time + '] ' + text + '\n';
+            responses.scrollTop = responses.scrollHeight;
+        }
+    </script>
+</body>
+</html>

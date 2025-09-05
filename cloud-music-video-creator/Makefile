@@ -39,3 +39,17 @@ clean: ## Clean temp files and cache
 	rm -rf __pycache__ src/__pycache__ */__pycache__
 	rm -rf dist node_modules
 	find . -name "*.pyc" -delete
+
+# Web Interface
+web: setup ## Start web interface server
+	@echo "🎬 Starting Cloud Music Video Creator Web Interface..."
+	@echo "📍 Open your browser to: http://localhost:8001"
+	python3 simple_server.py 8001
+
+test-web: ## Test web interface API quickly
+	@echo "🧪 Testing Web Interface API..."
+	@python3 simple_server.py 8002 &
+	@sleep 2
+	@curl -s http://localhost:8002/api/health || echo "❌ Server not responding"
+	@echo "\n✅ Web server test complete"
+	@pkill -f "python3 simple_server.py" || true
