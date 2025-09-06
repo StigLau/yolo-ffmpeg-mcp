@@ -966,16 +966,12 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                             # Use the full Gemini communication if no option pattern found
                             user_friendly_msg = gemini_user_communication.strip()
                     else:
-                        # Fallback to type-based messages if no Gemini evaluation
+                        # Fallback to showing actual technical error if no Gemini evaluation
+                        technical_error = result.get("error", "Unknown error")
                         failure_type = failure_analysis.get("failure_type", "unknown")
-                        if failure_type == "validation_error":
-                            user_friendly_msg = "Your video project has some issues that need to be fixed before processing can begin."
-                        elif failure_type == "missing_media":
-                            user_friendly_msg = "Some media files referenced in your project couldn't be found."
-                        elif failure_type == "processing_error":
-                            user_friendly_msg = "There was an issue processing your video project."
-                        else:
-                            user_friendly_msg = "Your video project encountered an issue during processing."
+                        
+                        # Show the actual technical error instead of generic messages
+                        user_friendly_msg = f"Video processing failed: {technical_error}"
                     
                     if corrected_komposition:
                         user_friendly_msg += " An improved version has been generated that should work better."
