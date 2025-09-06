@@ -1011,12 +1011,12 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                         "enhanced_analysis": True
                     })
                 else:
-                    # Standard failure
+                    # Standard failure - show actual technical error
                     error_msg = result.get("error", "Unknown processing error")
                     job.update({
                         "status": "failed", 
                         "progress": 0,
-                        "message": "Video processing failed. Please check your project and try again.",
+                        "message": f"Video processing failed: {error_msg}",
                         "technical_error": error_msg,
                         "processing_method": result.get("processing_method", "basic"),
                         "enhanced_analysis": False
