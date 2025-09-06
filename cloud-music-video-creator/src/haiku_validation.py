@@ -53,6 +53,12 @@ class HaikuValidator:
             "validation_details": {}
         }
         
+        # Add komposition quality validation (EXPERIMENTAL - may be rolled back)
+        quality_validation = self.validate_komposition_quality(komposition_md)
+        if quality_validation["needs_improvement"]:
+            validation["warnings"].extend([f"Quality issue: {issue}" for issue in quality_validation["issues"]])
+            validation["validation_details"]["quality_issues"] = quality_validation["issues"]
+        
         try:
             # 1. Extract media file references
             media_files = self._extract_media_references(komposition_md)
@@ -169,6 +175,62 @@ class HaikuValidator:
                 unique_media.append(media)
         
         return unique_media
+    
+    def validate_komposition_quality(self, komposition_md: str) -> Dict[str, Any]:
+        """
+        EXPERIMENTAL: Validate komposition creative quality and structure.
+        This validation may be rolled back if it's too restrictive.
+        
+        Args:
+            komposition_md: Markdown komposition content
+            
+        Returns:
+            Quality validation result with issues and improvement flag
+        """
+        issues = []
+        
+        try:
+            # Extract segment sources
+            segment_pattern = r'### Segment \d+:.*?\n- \*\*Source\*\*: (.*?)\n'
+            segments = re.findall(segment_pattern, komposition_md, re.DOTALL)
+            
+            if len(segments) > 1:
+                # Check for visual variety - all segments using same source
+                unique_sources = set(seg.strip() for seg in segments)
+                if len(unique_sources) == 1:
+                    issues.append("All segments use same media source - lacks visual variety")
+            
+            # Check crossfade timing math
+            duration_match = re.search(r'\*\*Duration\*\*:\s*(\d+)\s*seconds?', komposition_md)
+            crossfade_matches = re.findall(r'Crossfade.*?(\d+)-second', komposition_md)
+            
+            if duration_match and crossfade_matches and segments:
+                total_duration = int(duration_match.group(1))
+                segment_count = len(segments)
+                crossfade_time = int(crossfade_matches[0]) if crossfade_matches else 0
+                
+                if segment_count > 1:
+                    segment_duration = total_duration / segment_count
+                    if crossfade_time >= segment_duration * 0.4:  # More than 40% of segment
+                        issues.append(f"Crossfade time ({crossfade_time}s) too long for {segment_duration:.1f}s segments")
+            
+            # Check for effect variety
+            effect_pattern = r'- \*\*Effects\*\*: (.*?)\n'
+            effects = re.findall(effect_pattern, komposition_md)
+            if len(effects) > 2:
+                unique_effects = set(eff.strip() for eff in effects)
+                if len(unique_effects) == 1:
+                    issues.append("All segments use identical effects - consider progression or variety")
+            
+        except Exception as e:
+            logger.warning(f"Quality validation failed: {e}")
+            # Don't fail validation due to parsing issues
+        
+        return {
+            "issues": issues,
+            "needs_improvement": len(issues) > 0,
+            "experimental": True
+        }
     
     def _find_alternative_media_files(self) -> List[Dict[str, str]]:
         """Find available media files that could be used as alternatives."""
