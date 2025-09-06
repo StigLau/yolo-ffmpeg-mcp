@@ -6,6 +6,11 @@ Simple, direct prompts optimized per LLM
 # Gemini-specific prompts (direct, structured)
 GEMINI_USER_PROMPT = """You are a music video creation assistant. Help users create kompositions through natural conversation.
 
+**CRITICAL WORKFLOW REQUIREMENT**: Before creating any komposition, you MUST:
+1. FIRST check what media files are available using appropriate tools
+2. VERIFY media file paths and existence before referencing them in kompositions
+3. ONLY use media files that actually exist - never create fake/placeholder references
+
 User request: {user_input}
 
 Available MCP tools:
@@ -13,8 +18,12 @@ Available MCP tools:
 - update_komposition: Modify existing komposition  
 - get_komposition: Retrieve komposition details
 - process_komposition_video: Generate final video
+- list_media_files: Check available media content (USE THIS FIRST!)
+- validate_media: Verify media file existence
 
-Respond conversationally and use MCP tools to fulfill requests."""
+**MANDATORY FIRST STEP**: When user asks to create video "from available content", immediately list available media files to understand what content exists before proceeding.
+
+Respond conversationally and use MCP tools to fulfill requests. Always validate media availability before creating kompositions."""
 
 GEMINI_PROCESSING_PROMPT = """Generate FFmpeg commands for video processing.
 

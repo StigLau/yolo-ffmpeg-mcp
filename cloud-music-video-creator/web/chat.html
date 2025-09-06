@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Cloud Music Video Creator - Chat</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; max-width: 1200px; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; width: calc(100vw - 40px); box-sizing: border-box; }
         .chat-container { display: flex; height: 80vh; position: relative; }
         
         .chat-panel { display: flex; flex-direction: column; min-width: 200px; overflow: hidden; }
@@ -56,6 +56,7 @@
             </div>
             <div class="actions">
                 <button id="createVideo" onclick="createVideo()" disabled>🎬 Create Video</button>
+                <button id="stopVideo" onclick="stopVideo()" style="display: none; background: #dc3545;">🛑 Stop</button>
                 <button onclick="saveKomposition()">💾 Save Komposition</button>
             </div>
         </div>
@@ -64,6 +65,8 @@
     <script>
         let currentKomposition = null;
         let conversationHistory = [];
+        let currentJobId = null;
+        let pollInterval = null;
         
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
@@ -176,6 +179,9 @@
             const maxAttempts = 60;
             let attempts = 0;
             
+            currentJobId = jobId;
+            showStopButton(true);
+            
             const poll = async () => {
                 try {
                     const response = await fetch('/api/status/' + jobId);
@@ -185,20 +191,87 @@
                     
                     if (data.status === 'completed') {
                         addVideoCompleteMessage(data.video_url);
+                        showStopButton(false);
+                        currentJobId = null;
                     } else if (data.status === 'failed') {
                         addSystemMessage(`❌ Video creation failed: ${data.message}`);
+                        showStopButton(false);
+                        currentJobId = null;
+                    } else if (data.status === 'cancelled') {
+                        addSystemMessage(`🛑 Video creation cancelled`);
+                        showStopButton(false);
+                        currentJobId = null;
                     } else if (attempts < maxAttempts) {
                         attempts++;
-                        setTimeout(poll, 3000);
+                        pollInterval = setTimeout(poll, 20000);
                     } else {
                         addSystemMessage('⏰ Video creation timed out');
+                        showStopButton(false);
+                        currentJobId = null;
                     }
                 } catch (error) {
                     addSystemMessage('❌ Status check failed: ' + error.message);
+                    showStopButton(false);
+                    currentJobId = null;
                 }
             };
             
-            setTimeout(poll, 3000);
+            pollInterval = setTimeout(poll, 20000);
+        }
+        
+        function showStopButton(show) {
+            const stopButton = document.getElementById('stopVideo');
+            const createButton = document.getElementById('createVideo');
+            
+            if (show) {
+                stopButton.style.display = 'inline-block';
+                createButton.disabled = true;
+            } else {
+                stopButton.style.display = 'none';
+                createButton.disabled = !currentKomposition;
+            }
+        }
+        
+        async function stopVideo() {
+            if (!currentJobId) {
+                addSystemMessage('❌ No video creation in progress');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/stop/' + currentJobId, {
+                    method: 'POST'
+                });
+                
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    // Handle non-JSON responses (like HTML "Not Found")
+                    const text = await response.text();
+                    addSystemMessage('❌ Failed to stop video creation: Server returned non-JSON response: ' + text);
+                    return;
+                }
+                
+                if (response.ok) {
+                    addSystemMessage('🛑 Stopping video creation...');
+                    
+                    // Clear polling
+                    if (pollInterval) {
+                        clearTimeout(pollInterval);
+                        pollInterval = null;
+                    }
+                    
+                    // Update UI
+                    showStopButton(false);
+                    currentJobId = null;
+                } else {
+                    addSystemMessage('❌ Failed to stop video creation: ' + (data.error || 'Unknown error'));
+                }
+                
+            } catch (error) {
+                addSystemMessage('❌ Failed to stop video creation: ' + error.message);
+            }
         }
         
         function saveKomposition() {

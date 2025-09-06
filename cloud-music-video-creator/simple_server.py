@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Global job tracking
 active_jobs = {}
+job_threads = {}  # Track threads for job cancellation
 web_dir = Path(__file__).parent / "web"
 
 
@@ -94,6 +95,9 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             self.handle_register_media()
         elif self.path == "/api/populate-test-data":
             self.handle_populate_test_data()
+        elif self.path.startswith("/api/stop/"):
+            job_id = self.path.split("/")[-1]
+            self.handle_stop_job(job_id)
         else:
             self.send_404()
     
@@ -128,8 +132,10 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 "created_at": time.time()
             }
             
-            # Start background processing
-            threading.Thread(target=self.process_video_creation, args=(job_id, request_data), daemon=True).start()
+            # Start background processing and track the thread
+            thread = threading.Thread(target=self.process_video_creation, args=(job_id, request_data), daemon=True)
+            job_threads[job_id] = thread
+            thread.start()
             
             logger.info(f"Started video creation job {job_id}")
             
@@ -248,8 +254,10 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 "created_at": time.time()
             }
             
-            # Start background processing
-            threading.Thread(target=self.process_komposition_video, args=(job_id, komposition), daemon=True).start()
+            # Start background processing and track the thread
+            thread = threading.Thread(target=self.process_komposition_video, args=(job_id, komposition), daemon=True)
+            job_threads[job_id] = thread
+            thread.start()
             
             logger.info(f"Started komposition video job {job_id}")
             
@@ -357,6 +365,47 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 "error": str(e)
             }
     
+    def scan_available_media_files(self):
+        """Scan available media files in the source directory"""
+        import os
+        import subprocess
+        
+        media_files = []
+        media_dirs = ["/tmp/music/source", "/tmp/music", "/tmp/kompo"]
+        
+        for media_dir in media_dirs:
+            if os.path.exists(media_dir):
+                for filename in os.listdir(media_dir):
+                    if filename.startswith('.'):
+                        continue
+                    
+                    filepath = os.path.join(media_dir, filename)
+                    if os.path.isfile(filepath):
+                        # Get file size
+                        file_size = os.path.getsize(filepath)
+                        size_mb = round(file_size / (1024 * 1024), 1)
+                        
+                        # Determine media type
+                        ext = filename.lower().split('.')[-1]
+                        if ext in ['mp4', 'avi', 'mov', 'mkv']:
+                            media_type = 'video'
+                        elif ext in ['mp3', 'wav', 'flac', 'm4a']:
+                            media_type = 'audio'
+                        elif ext in ['jpg', 'jpeg', 'png', 'gif']:
+                            media_type = 'image'
+                        else:
+                            media_type = 'unknown'
+                        
+                        media_files.append({
+                            'filename': filename,
+                            'filepath': filepath,
+                            'size_mb': size_mb,
+                            'type': media_type,
+                            'directory': media_dir
+                        })
+        
+        return media_files
+
     async def process_with_real_llm(self, user_message, conversation_history, current_komposition, session_id):
         """Process user message with REAL LLM integration"""
         
@@ -373,9 +422,12 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             if not current_komposition:
                 current_komposition = km.get_current_komposition(session_id)
             
-            # Process with LLM
+            # Scan available media files
+            available_media = self.scan_available_media_files()
+            
+            # Process with LLM (include media context)
             llm_response = await llm.process_chat_message(
-                user_message, conversation_history, current_komposition
+                user_message, conversation_history, current_komposition, available_media
             )
             
             # Log LLM response
@@ -446,8 +498,10 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                             # Assume the whole string is JSON
                             komposition_data = json.loads(komposition_data)
                     
-                    # Process with Haiku MCP
-                    ffmpeg_result = await llm.process_komposition_with_ffmpeg(komposition_data)
+                    # NEW: Process with markdown-native Haiku flow instead of JSON conversion
+                    # This approach sends the original markdown directly to Haiku for better understanding
+                    komposition_md = data.get("komposition", "")
+                    ffmpeg_result = await llm.process_komposition_markdown_with_haiku(komposition_md)
                     
                     if ffmpeg_result.get("success"):
                         response_data["ffmpeg_result"] = ffmpeg_result
@@ -648,6 +702,45 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             logger.error(f"Test data population error: {e}")
             self.send_json_response({"error": str(e)}, 400)
     
+    def handle_stop_job(self, job_id):
+        """Handle job cancellation request"""
+        try:
+            if job_id not in active_jobs:
+                self.send_json_response({"error": "Job not found"}, 404)
+                return
+                
+            job = active_jobs[job_id]
+            
+            # Check if job can be stopped
+            if job["status"] in ["completed", "failed", "cancelled"]:
+                self.send_json_response({
+                    "error": f"Cannot stop job with status: {job['status']}"
+                }, 400)
+                return
+            
+            # Mark job as cancelled
+            job.update({
+                "status": "cancelled",
+                "progress": 0,
+                "message": "Job cancellation requested",
+                "cancelled_at": time.time()
+            })
+            
+            logger.info(f"Job {job_id} marked as cancelled")
+            
+            # Note: We can't forcefully stop threads in Python, but we set the status
+            # The processing functions should check for cancellation status
+            
+            self.send_json_response({
+                "job_id": job_id,
+                "status": "cancelled",
+                "message": "Job cancellation requested"
+            })
+            
+        except Exception as e:
+            logger.error(f"Stop job error: {e}")
+            self.send_json_response({"error": str(e)}, 400)
+    
     def generate_sample_komposition(self, user_input, style="general"):
         """Generate a sample komposition based on user input"""
         
@@ -795,17 +888,32 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
         try:
             logger.info(f"Processing komposition video for job {job_id}")
             
+            # Check for cancellation
+            if job.get("status") == "cancelled":
+                logger.info(f"Job {job_id} was cancelled before starting")
+                return
+            
             # Update status
             job.update({
                 "progress": 10,
                 "message": "Analyzing komposition structure..."
             })
             
+            # Check for cancellation
+            if job.get("status") == "cancelled":
+                logger.info(f"Job {job_id} cancelled during analysis")
+                return
+            
             # Get session ID from job metadata or create temporary one
             session_id = job.get("session_id", f"temp_{job_id}")
             
             # Use real FFmpeg processing
-            result = asyncio.run(self.run_komposition_pipeline(komposition, session_id))
+            result = asyncio.run(self.run_komposition_pipeline(komposition, session_id, job_id))
+            
+            # Check for cancellation after processing
+            if job.get("status") == "cancelled":
+                logger.info(f"Job {job_id} cancelled after processing")
+                return
             
             job.update({
                 "progress": 30,
@@ -813,6 +921,11 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             })
             
             time.sleep(1)
+            
+            # Check for cancellation
+            if job.get("status") == "cancelled":
+                logger.info(f"Job {job_id} cancelled during conversion")
+                return
             
             job.update({
                 "progress": 60,
@@ -826,11 +939,81 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                     "message": "Komposition video created successfully!",
                     "output_file": result.get("output_file"),
                     "video_url": f"/api/download/{job_id}",
-                    "processing_time": result.get("total_duration", 0),
+                    "processing_method": result.get("processing_method"),
+                    "validation_passed": result.get("validation_passed", False),
                     "session_id": session_id
                 })
+                # Clean up thread tracking
+                if job_id in job_threads:
+                    del job_threads[job_id]
             else:
-                raise Exception(f"Processing failed: {result.get('error', 'Unknown error')}")
+                # Enhanced failure handling with user-friendly messages
+                if result.get("processing_method") == "failed_with_full_analysis":
+                    # We have full analysis with Gemini evaluation
+                    failure_analysis = result.get("failure_analysis", {})
+                    gemini_evaluation = result.get("gemini_evaluation", {})
+                    corrected_komposition = result.get("corrected_komposition")
+                    
+                    # Create a user-friendly failure message based on the failure type
+                    failure_type = failure_analysis.get("failure_type", "unknown")
+                    
+                    if failure_type == "validation_error":
+                        user_friendly_msg = "Your video project has some issues that need to be fixed before processing can begin."
+                    elif failure_type == "missing_media":
+                        user_friendly_msg = "Some media files referenced in your project couldn't be found."
+                    elif failure_type == "processing_error":
+                        user_friendly_msg = "There was an issue processing your video project."
+                    else:
+                        user_friendly_msg = "Your video project encountered an issue during processing."
+                    
+                    if corrected_komposition:
+                        user_friendly_msg += " An improved version has been generated that should work better."
+                    
+                    job.update({
+                        "status": "failed",
+                        "progress": 0,
+                        "message": user_friendly_msg,
+                        "corrected_komposition": corrected_komposition,
+                        "failure_analysis": failure_analysis,
+                        "gemini_evaluation": gemini_evaluation,
+                        "processing_method": "failed_with_full_analysis",
+                        "enhanced_analysis": True
+                    })
+                elif result.get("processing_method") in ["failed_with_partial_analysis", "failed_with_analysis"]:
+                    # We have failure analysis but limited Gemini evaluation
+                    failure_analysis = result.get("failure_analysis", {})
+                    failure_type = failure_analysis.get("failure_type", "unknown")
+                    
+                    if failure_type == "validation_error":
+                        user_friendly_msg = "Your video project has validation issues that need to be addressed."
+                    elif failure_type == "missing_media":
+                        user_friendly_msg = "Some required media files are missing from your project."
+                    else:
+                        user_friendly_msg = "Your video project encountered processing issues."
+                    
+                    job.update({
+                        "status": "failed",
+                        "progress": 0,
+                        "message": user_friendly_msg,
+                        "failure_analysis": failure_analysis,
+                        "processing_method": result.get("processing_method"),
+                        "enhanced_analysis": True
+                    })
+                else:
+                    # Standard failure
+                    error_msg = result.get("error", "Unknown processing error")
+                    job.update({
+                        "status": "failed", 
+                        "progress": 0,
+                        "message": "Video processing failed. Please check your project and try again.",
+                        "technical_error": error_msg,
+                        "processing_method": result.get("processing_method", "basic"),
+                        "enhanced_analysis": False
+                    })
+                
+                # Clean up thread tracking for failures
+                if job_id in job_threads:
+                    del job_threads[job_id]
                 
         except Exception as e:
             logger.error(f"Komposition video failed for job {job_id}: {e}")
@@ -839,44 +1022,84 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 "progress": 0,
                 "message": f"Komposition video creation failed: {str(e)}"
             })
+            # Clean up thread tracking for exceptions
+            if job_id in job_threads:
+                del job_threads[job_id]
     
-    async def run_komposition_pipeline(self, komposition: str, session_id: str):
-        """Run the komposition-to-video pipeline with real FFmpeg processing"""
+    async def run_komposition_pipeline(self, komposition: str, session_id: str, job_id: str = None):
+        """Run the komposition-to-video pipeline with enhanced validation and failure analysis"""
         try:
-            logger.info(f"Running komposition pipeline for session {session_id}")
+            logger.info(f"🎬 Running enhanced komposition pipeline for session {session_id}")
             
-            # Get FFmpeg processor
-            ffmpeg_proc = get_ffmpeg_processor()
-            
-            # Generate FFmpeg commands from komposition
-            commands = await ffmpeg_proc.generate_ffmpeg_commands(komposition, session_id)
-            
-            if not commands:
+            # Check for job cancellation before processing
+            if job_id and job_id in active_jobs and active_jobs[job_id].get("status") == "cancelled":
+                logger.info(f"Job {job_id} cancelled, aborting pipeline")
                 return {
                     "success": False,
-                    "error": "No FFmpeg commands generated from komposition"
+                    "error": "Job was cancelled",
+                    "cancelled": True
                 }
             
-            # Execute the commands
-            result = await ffmpeg_proc.execute_commands(commands, session_id)
+            # Use the new LLM service with markdown-native Haiku processing
+            from src.llm_service import get_llm_service
+            llm_service = get_llm_service()
             
-            if result.success:
+            # Process komposition markdown with validation and failure analysis
+            result = await llm_service.process_komposition_markdown_with_haiku(
+                komposition_md=komposition,
+                output_path=None,  # Let it generate path
+                haiku_instructions=None  # Let it auto-generate from markdown
+            )
+            
+            # Check for cancellation after processing
+            if job_id and job_id in active_jobs and active_jobs[job_id].get("status") == "cancelled":
+                logger.info(f"Job {job_id} cancelled after processing")
+                return {
+                    "success": False,
+                    "error": "Job was cancelled",
+                    "cancelled": True
+                }
+            
+            if result.get("success"):
+                logger.info(f"✅ Enhanced komposition processing successful")
                 return {
                     "success": True,
-                    "output_file": result.output_file,
-                    "total_duration": result.total_duration,
-                    "commands_executed": len(result.commands_executed),
-                    "ffmpeg_logs": result.ffmpeg_logs
+                    "output_file": result.get("output_file"),
+                    "processing_method": result.get("processing_method"),
+                    "haiku_instructions_used": result.get("haiku_instructions_used"),
+                    "validation_passed": result.get("validation_passed", False)
                 }
             else:
-                return {
-                    "success": False,
-                    "error": result.error_message,
-                    "ffmpeg_logs": result.ffmpeg_logs
-                }
+                # Enhanced failure handling with analysis and user guidance
+                error_message = result.get("error", "Unknown processing error")
+                
+                # Check if we have failure analysis and user guidance
+                if result.get("failure_analysis") and result.get("user_guidance"):
+                    user_friendly_message = result.get("user_guidance")
+                    logger.warning(f"🔍 Processing failed with analysis: {user_friendly_message}")
+                    
+                    return {
+                        "success": False,
+                        "error": error_message,
+                        "user_message": user_friendly_message,
+                        "failure_analysis": result.get("failure_analysis"),
+                        "gemini_evaluation": result.get("gemini_evaluation"),
+                        "corrected_komposition": result.get("corrected_komposition"),
+                        "processing_method": result.get("processing_method"),
+                        "enhanced_failure_handling": True
+                    }
+                else:
+                    # Standard failure without enhanced analysis
+                    logger.error(f"❌ Processing failed: {error_message}")
+                    return {
+                        "success": False,
+                        "error": error_message,
+                        "processing_method": result.get("processing_method", "basic"),
+                        "enhanced_failure_handling": False
+                    }
                 
         except Exception as e:
-            logger.error(f"Komposition pipeline execution failed: {e}")
+            logger.error(f"❌ Komposition pipeline execution failed: {e}")
             return {
                 "success": False,
                 "error": str(e)

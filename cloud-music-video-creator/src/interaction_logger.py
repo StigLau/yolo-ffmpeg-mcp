@@ -65,7 +65,7 @@ class InteractionLogger:
             },
             metadata=metadata or {}
         )
-        logger.info(f"Logged user message for session {session_id}")
+        logger.info(f"👤 USER [{session_id}]: {message[:100]}{'...' if len(message) > 100 else ''}")
         return interaction_id
     
     def log_llm1_response(self, session_id: str, request: str, response: str, 
@@ -83,7 +83,7 @@ class InteractionLogger:
             },
             metadata=metadata or {}
         )
-        logger.info(f"Logged LLM1 response for session {session_id}")
+        logger.info(f"🤖 ROBOT [{session_id}] {model}: {response[:100]}{'...' if len(response) > 100 else ''}")
         return interaction_id
     
     def log_llm2_call(self, session_id: str, purpose: str, request: str, 

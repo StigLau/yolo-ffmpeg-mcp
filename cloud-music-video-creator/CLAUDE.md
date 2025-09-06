@@ -203,4 +203,93 @@ cloud-music-video-creator/
 
 ---
 
+## ⚠️ **CRITICAL LESSON: OUTER LLM WORKFLOW DISCIPLINE** ⚠️
+
+### **ROOT CAUSE IDENTIFIED**: LLM Workflow Anti-Pattern
+**Problem**: Outer LLM (Gemini) was creating kompositions without first checking what media files actually exist, leading to:
+- Fake/placeholder media references
+- Haiku falling back to synthetic content (testsrc2, sine waves)
+- User frustration with "robot just saying things without doing them"
+- Circular conversations about style instead of concrete content
+
+### **SOLUTION IMPLEMENTED**: Content-First Workflow
+**Key Changes Made**:
+
+1. **Enhanced LLM Prompts** (`src/llm/prompts.py`):
+   ```
+   **CRITICAL WORKFLOW REQUIREMENT**: Before creating any komposition, you MUST:
+   1. FIRST check what media files are available using appropriate tools
+   2. VERIFY media file paths and existence before referencing them
+   3. ONLY use media files that actually exist - never create fake/placeholder references
+   
+   **MANDATORY FIRST STEP**: When user asks to create video "from available content", 
+   immediately list available media files to understand what content exists before proceeding.
+   ```
+
+2. **Media Scanning Integration** (`simple_server.py`):
+   ```python
+   def scan_available_media_files(self):
+       """Scan /tmp/music/source and other directories for actual files"""
+       # Returns real file list with sizes, types, paths
+   
+   # Pass media list to LLM context
+   available_media = self.scan_available_media_files()
+   llm_response = await llm.process_chat_message(user_message, history, komposition, available_media)
+   ```
+
+3. **Context Building Enhancement** (`src/llm_service.py`):
+   ```python
+   context += "=== AVAILABLE MEDIA FILES ===\n"
+   if available_media and len(available_media) > 0:
+       # Show actual files with sizes and paths
+       context += "**WORKFLOW**: User wants to create from available content. Show them this list"
+   else:
+       context += "**NO MEDIA CONTENT FOUND**"
+       context += "**WORKFLOW**: Recommend getting content first (YouTube download, file upload)"
+   ```
+
+4. **Improved Logging** (`src/interaction_logger.py`):
+   ```
+   👤 USER [session_id]: create music video from the content available
+   🤖 ROBOT [session_id] gemini-1.5-flash: Here are your available media files: ...
+   ```
+
+### **Workflow Pattern for Future Development**
+**MANDATORY SEQUENCE**:
+1. **Content Discovery FIRST**: Check what media exists
+2. **IF content exists**: Show list, let user select
+3. **IF no content**: Recommend acquisition methods  
+4. **ONLY THEN**: Create komposition with verified references
+
+### **Content Management Evolution Path**
+**Current (MVP)**: Local `/tmp/music/source` scanning
+**Future (Production)**: S3 user buckets + local cache + upload interface
+**Key Insight**: Workflow logic stays same regardless of storage backend
+
+### **User Experience Lessons**
+- Users expect LLMs to **DO** things, not just **SAY** things
+- "Available content" means "show me what files exist" 
+- Never create placeholder/fake references - always verify first
+- When content is missing, provide concrete next steps
+
+### **Technical Validation**
+**Before Fix**: 
+```
+User: "create music video from the content available"  
+Robot: "What style do you want?" (without checking content)
+```
+
+**After Fix**:
+```  
+User: "create music video from the content available"
+Robot: "Here are your available files:
+001. JJVtt947FfI_136.mp4 (video, 17.3MB)  
+002. Subnautic Measures.flac (audio, 28.4MB)
+Which would you like to use?"
+```
+
+This pattern must be preserved as the system scales to cloud storage.
+
+---
+
 **Remember**: This is a production system for real users. Every design decision should prioritize user experience, cost efficiency, and maintainability over cleverness or complexity.

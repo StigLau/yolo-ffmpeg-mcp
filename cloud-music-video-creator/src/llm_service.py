@@ -155,7 +155,8 @@ class LLMService:
         self,
         user_message: str,
         conversation_history: List[Dict[str, str]],
-        current_komposition: Optional[str] = None
+        current_komposition: Optional[str] = None,
+        available_media: Optional[List[Dict]] = None
     ) -> ChatResponse:
         """Process a chat message with the LLM"""
         
@@ -166,7 +167,7 @@ class LLMService:
             # Build the conversation context
             system_prompt = self._build_system_prompt()
             context = self._build_conversation_context(
-                user_message, conversation_history, current_komposition
+                user_message, conversation_history, current_komposition, available_media
             )
             
             # Generate response using LLM
@@ -331,11 +332,25 @@ This maintains the illusion of a single intelligent creative assistant while the
         self,
         user_message: str,
         conversation_history: List[Dict[str, str]],
-        current_komposition: Optional[str]
+        current_komposition: Optional[str],
+        available_media: Optional[List[Dict]] = None
     ) -> str:
         """Build the conversation context for the LLM"""
         
         context = "=== CONVERSATION CONTEXT ===\n\n"
+        
+        # CRITICAL: Add available media information FIRST
+        context += "=== AVAILABLE MEDIA FILES ===\n"
+        if available_media and len(available_media) > 0:
+            context += "**MEDIA CONTENT FOUND** - You have content to work with:\n\n"
+            for i, media in enumerate(available_media, 1):
+                context += f"{i:03d}. {media['filename']} ({media['type']}, {media['size_mb']}MB)\n"
+                context += f"     Path: {media['filepath']}\n"
+            
+            context += f"\n**WORKFLOW**: User wants to create from available content. Show them this list and ask which files they want to use for their video.\n\n"
+        else:
+            context += "**NO MEDIA CONTENT FOUND** - No multimedia files available.\n"
+            context += "**WORKFLOW**: Recommend getting content first (YouTube download, file upload, etc.) before creating video.\n\n"
         
         # Add conversation history (last 5 messages)
         if conversation_history:
@@ -807,6 +822,150 @@ This maintains the illusion of a single intelligent creative assistant while the
                 "error": str(e),
                 "message": "FFmpeg processing integration error"
             }
+
+    async def process_komposition_markdown_with_haiku(self, komposition_md: str, output_path: str = None, haiku_instructions: str = None) -> Dict[str, Any]:
+        """
+        Process komposition markdown directly using Haiku MCP with native markdown understanding.
+        
+        This new approach sends markdown directly to Haiku instead of converting to JSON,
+        which aligns better with Haiku's natural language processing capabilities.
+        
+        Includes pre-validation to prevent Haiku from falling back to synthetic content.
+        
+        Args:
+            komposition_md: Full komposition markdown content
+            output_path: Optional custom output path
+            haiku_instructions: Creative instructions for Haiku LLM
+            
+        Returns:
+            Processing result with success status and file location
+        """
+        try:
+            # STEP 1: Pre-validation before Haiku processing
+            from .haiku_validation import validate_before_haiku_processing, analyze_haiku_processing_failure
+            
+            logger.info("🔍 Pre-validating komposition before Haiku processing...")
+            try:
+                validation_result = validate_before_haiku_processing(komposition_md)
+                logger.info(f"✅ Pre-validation passed: {len(validation_result.get('validation_details', {}).get('available_files', []))} media files validated")
+            except Exception as validation_error:
+                logger.error(f"❌ Pre-validation failed: {validation_error}")
+                return {
+                    "success": False,
+                    "error": f"Pre-validation failed: {validation_error}",
+                    "message": "Komposition validation failed - media files not available or komposition structure invalid",
+                    "validation_details": validation_result if 'validation_result' in locals() else {},
+                    "processing_method": "validation_blocked"
+                }
+            
+            # Import markdown-native processor
+            from .markdown_ffmpeg_processor import create_markdown_haiku_processor
+            
+            # Create output path if not provided
+            if not output_path:
+                temp_dir = tempfile.gettempdir()
+                # Generate unique ID from markdown content hash
+                import hashlib
+                content_hash = hashlib.md5(komposition_md.encode()).hexdigest()[:8]
+                output_path = os.path.join(temp_dir, f"komposition_md_{content_hash}.mp4")
+            
+            # Extract or build Haiku instructions from markdown content
+            if not haiku_instructions:
+                haiku_instructions = self._analyze_markdown_for_haiku_instructions(komposition_md)
+            
+            # Create markdown-native processor
+            processor = create_markdown_haiku_processor()
+            
+            # Process komposition markdown directly
+            title = self._extract_title_from_markdown(komposition_md)
+            logger.info(f"Processing markdown komposition with Haiku MCP: {title}")
+            
+            result = await processor.process_komposition_markdown(
+                komposition_md=komposition_md,
+                output_path=output_path,
+                creative_direction=haiku_instructions,
+                session_id="llm_service_session"  # Provide a default session ID
+            )
+            
+            if result.get("success"):
+                logger.info(f"✅ Markdown komposition processed successfully: {result.get('output_file', output_path)}")
+                return {
+                    "success": True,
+                    "output_file": result.get("output_file", output_path),
+                    "message": "Markdown komposition processed successfully using native Haiku understanding",
+                    "processing_details": result,
+                    "haiku_instructions_used": haiku_instructions,
+                    "processing_method": "markdown_native",
+                    "validation_passed": True
+                }
+            else:
+                # STEP 2: Analyze Haiku failure for improvement suggestions
+                error = result.get("error", "Unknown processing error")
+                logger.error(f"❌ Markdown komposition processing failed: {error}")
+                
+                # Analyze failure and generate improvement suggestions
+                logger.info("🔍 Analyzing Haiku failure for improvement suggestions...")
+                try:
+                    failure_analysis = analyze_haiku_processing_failure(
+                        komposition_md=komposition_md,
+                        haiku_result=result,
+                        validation_result=validation_result
+                    )
+                    logger.info(f"📋 Failure analysis completed: {failure_analysis.get('failure_type')} - {len(failure_analysis.get('improvement_suggestions', []))} suggestions generated")
+                    
+                    # STEP 3: Evaluate failure with outer LLM (Gemini) for improvement
+                    logger.info("🤖 Requesting Gemini evaluation of failure...")
+                    try:
+                        gemini_evaluation = await self.evaluate_haiku_failure_with_gemini(failure_analysis)
+                        
+                        if gemini_evaluation.get("success"):
+                            logger.info("✅ Gemini evaluation completed successfully")
+                            return {
+                                "success": False,
+                                "error": error,
+                                "message": "Markdown komposition processing failed - analyzed and evaluated for improvement",
+                                "failure_analysis": failure_analysis,
+                                "gemini_evaluation": gemini_evaluation,
+                                "corrected_komposition": gemini_evaluation.get("corrected_komposition"),
+                                "user_guidance": gemini_evaluation.get("user_communication"),
+                                "processing_method": "failed_with_full_analysis"
+                            }
+                        else:
+                            logger.warning(f"Gemini evaluation failed: {gemini_evaluation.get('error')}")
+                            return {
+                                "success": False,
+                                "error": error,
+                                "message": "Markdown komposition processing failed",
+                                "failure_analysis": failure_analysis,
+                                "gemini_evaluation_error": gemini_evaluation.get("error"),
+                                "processing_method": "failed_with_partial_analysis"
+                            }
+                            
+                    except Exception as eval_error:
+                        logger.error(f"Gemini evaluation failed: {eval_error}")
+                        return {
+                            "success": False,
+                            "error": error,
+                            "message": "Markdown komposition processing failed",
+                            "failure_analysis": failure_analysis,
+                            "gemini_evaluation_error": str(eval_error),
+                            "processing_method": "failed_with_analysis"
+                        }
+                except Exception as analysis_error:
+                    logger.error(f"Failed to analyze Haiku processing failure: {analysis_error}")
+                    return {
+                        "success": False,
+                        "error": error,
+                        "message": "Markdown komposition processing failed"
+                    }
+                
+        except Exception as e:
+            logger.error(f"Failed to process markdown komposition with Haiku: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Markdown FFmpeg processing integration error"
+            }
     
     def _build_haiku_instruction_prompt(self, haiku_data: Dict[str, str]) -> str:
         """Build detailed instruction prompt for Haiku LLM from structured data."""
@@ -865,6 +1024,181 @@ This maintains the illusion of a single intelligent creative assistant while the
             instructions.append("Maintain audio sync throughout, with gentle fade-ins and fade-outs")
         
         return " | ".join(instructions) if instructions else "Process with professional video standards and smooth transitions"
+    
+    def _analyze_markdown_for_haiku_instructions(self, komposition_md: str) -> str:
+        """Analyze markdown komposition and generate creative instructions for Haiku."""
+        instructions = []
+        
+        # Extract style information from markdown
+        if "vintage" in komposition_md.lower():
+            instructions.append("Apply vintage film effects with sepia tones and grain")
+        if "8-bit" in komposition_md.lower():
+            instructions.append("Add retro gaming visual style")
+        if "smooth" in komposition_md.lower() and "transition" in komposition_md.lower():
+            instructions.append("Use smooth crossfade transitions between segments")
+        if "fast" in komposition_md.lower() or "quick" in komposition_md.lower():
+            instructions.append("Apply quick cuts and dynamic transitions")
+        
+        # Extract BPM and timing information
+        import re
+        bpm_match = re.search(r'(\d+)\s*BPM', komposition_md, re.IGNORECASE)
+        if bpm_match:
+            bpm = bpm_match.group(1)
+            instructions.append(f"Sync all transitions to {bpm} BPM timing")
+        
+        # Extract duration
+        duration_match = re.search(r'(\d+)\s*seconds?', komposition_md, re.IGNORECASE)
+        if duration_match:
+            duration = duration_match.group(1)
+            instructions.append(f"Total duration should be {duration} seconds")
+        
+        # Extract effects from segments
+        if "grain" in komposition_md.lower():
+            instructions.append("Add film grain texture")
+        if "contrast" in komposition_md.lower():
+            instructions.append("Enhance contrast levels")
+        if "saturation" in komposition_md.lower():
+            instructions.append("Adjust color saturation")
+        
+        return ". ".join(instructions) if instructions else "Process according to komposition specifications"
+    
+    def _extract_title_from_markdown(self, komposition_md: str) -> str:
+        """Extract title from markdown komposition."""
+        import re
+        
+        # Try to find title in various formats
+        patterns = [
+            r'#\s*([^\n]+)',  # H1 heading
+            r'\*\*Title\*\*:\s*([^\n]+)',  # **Title**: format
+            r'Title:\s*([^\n]+)',  # Title: format
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, komposition_md, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        
+        return "Untitled Komposition"
+    
+    async def evaluate_haiku_failure_with_gemini(self, failure_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Use Gemini to evaluate Haiku processing failure and provide improvement suggestions.
+        
+        This implements the outer LLM evaluation requested by the user to analyze
+        failed Haiku processing and suggest improvements.
+        
+        Args:
+            failure_analysis: Analysis from haiku_validation.analyze_haiku_failure()
+            
+        Returns:
+            Gemini's evaluation with corrected komposition and suggestions
+        """
+        try:
+            if self.fallback_mode:
+                return {
+                    "success": False,
+                    "error": "Gemini evaluation not available in fallback mode",
+                    "corrected_komposition": None,
+                    "processing_strategy": "Manual intervention required",
+                    "user_communication": "Unable to analyze failure automatically"
+                }
+            
+            evaluation_prompt = failure_analysis.get("gemini_evaluation_prompt", "")
+            if not evaluation_prompt:
+                return {
+                    "success": False,
+                    "error": "No evaluation prompt available",
+                    "message": "Failed to create evaluation prompt from failure analysis"
+                }
+            
+            logger.info("🤖 Evaluating Haiku failure with Gemini...")
+            
+            # Send evaluation prompt to Gemini
+            response = await self._call_gemini(evaluation_prompt)
+            
+            # Parse Gemini's response for structured output
+            parsed_evaluation = self._parse_gemini_failure_evaluation(response)
+            
+            logger.info(f"✅ Gemini evaluation completed: {parsed_evaluation.get('processing_strategy', 'No strategy provided')}")
+            
+            return {
+                "success": True,
+                "evaluation_response": response,
+                "corrected_komposition": parsed_evaluation.get("corrected_komposition"),
+                "processing_strategy": parsed_evaluation.get("processing_strategy"),
+                "user_communication": parsed_evaluation.get("user_communication"),
+                "failure_type": failure_analysis.get("failure_type"),
+                "improvement_suggestions": failure_analysis.get("improvement_suggestions", [])
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to evaluate Haiku failure with Gemini: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Gemini evaluation failed"
+            }
+    
+    def _parse_gemini_failure_evaluation(self, gemini_response: str) -> Dict[str, Any]:
+        """Parse Gemini's failure evaluation response into structured format."""
+        parsed = {
+            "corrected_komposition": None,
+            "processing_strategy": None,
+            "user_communication": None
+        }
+        
+        try:
+            # Look for markdown sections in Gemini's response
+            import re
+            
+            # Extract corrected komposition (look for markdown code blocks)
+            komposition_match = re.search(r'```markdown\n(.*?)\n```', gemini_response, re.DOTALL)
+            if komposition_match:
+                parsed["corrected_komposition"] = komposition_match.group(1).strip()
+            
+            # Extract processing strategy
+            strategy_patterns = [
+                r'\*\*Processing Strategy\*\*:\s*([^\n]*(?:\n(?!\*\*)[^\n]*)*)',
+                r'## Processing Strategy\s*\n([^\n]*(?:\n(?!##)[^\n]*)*)',
+                r'Processing Strategy:\s*([^\n]*(?:\n(?![\*#])[^\n]*)*)'
+            ]
+            
+            for pattern in strategy_patterns:
+                strategy_match = re.search(pattern, gemini_response, re.MULTILINE | re.IGNORECASE)
+                if strategy_match:
+                    parsed["processing_strategy"] = strategy_match.group(1).strip()
+                    break
+            
+            # Extract user communication
+            comm_patterns = [
+                r'\*\*User Communication\*\*:\s*([^\n]*(?:\n(?!\*\*)[^\n]*)*)',
+                r'## User Communication\s*\n([^\n]*(?:\n(?!##)[^\n]*)*)',
+                r'User Communication:\s*([^\n]*(?:\n(?![\*#])[^\n]*)*)'
+            ]
+            
+            for pattern in comm_patterns:
+                comm_match = re.search(pattern, gemini_response, re.MULTILINE | re.IGNORECASE)
+                if comm_match:
+                    parsed["user_communication"] = comm_match.group(1).strip()
+                    break
+            
+            # Fallback: extract any section that looks like advice
+            if not parsed["processing_strategy"]:
+                advice_match = re.search(r'(?:suggestion|advice|strategy|approach)[^:]*:([^.\n]*(?:[.\n][^.\n]*){0,2})', 
+                                       gemini_response, re.IGNORECASE)
+                if advice_match:
+                    parsed["processing_strategy"] = advice_match.group(1).strip()
+            
+            return parsed
+            
+        except Exception as e:
+            logger.warning(f"Failed to parse Gemini evaluation response: {e}")
+            # Return raw response if parsing fails
+            return {
+                "corrected_komposition": None,
+                "processing_strategy": gemini_response[:200] + "..." if len(gemini_response) > 200 else gemini_response,
+                "user_communication": "Technical processing issue - please try with different media files"
+            }
 
 
 # Global instance
