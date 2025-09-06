@@ -400,9 +400,12 @@ class HaikuValidator:
 {chr(10).join(f"- {suggestion}" for suggestion in analysis['improvement_suggestions'])}
 
 **Please analyze this failure and provide**:
-1. **Corrected Komposition**: A revised komposition that should work better
-2. **Processing Strategy**: How to prevent this failure in the future  
-3. **User Communication**: How to explain this issue to the user in creative terms (no technical details)
+
+## 1. Processing Strategy
+How to prevent this failure in the future
+
+## 2. User Communication  
+Write a direct error message explaining exactly what went wrong and how to fix it. Be specific about the actual technical problem.
 
 Focus on ensuring real media files are used instead of synthetic content.
 """

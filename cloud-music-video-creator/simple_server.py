@@ -954,17 +954,28 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                     gemini_evaluation = result.get("gemini_evaluation", {})
                     corrected_komposition = result.get("corrected_komposition")
                     
-                    # Create a user-friendly failure message based on the failure type
-                    failure_type = failure_analysis.get("failure_type", "unknown")
-                    
-                    if failure_type == "validation_error":
-                        user_friendly_msg = "Your video project has some issues that need to be fixed before processing can begin."
-                    elif failure_type == "missing_media":
-                        user_friendly_msg = "Some media files referenced in your project couldn't be found."
-                    elif failure_type == "processing_error":
-                        user_friendly_msg = "There was an issue processing your video project."
+                    # Use Gemini evaluation for user-friendly failure message
+                    gemini_user_communication = gemini_evaluation.get("user_communication", "")
+                    if gemini_user_communication:
+                        # Extract the first option from Gemini's user communication suggestions
+                        import re
+                        option_match = re.search(r'\* \*\*Option \d+ \([^)]+\):\*\* "([^"]+)"', gemini_user_communication)
+                        if option_match:
+                            user_friendly_msg = option_match.group(1)
+                        else:
+                            # Use the full Gemini communication if no option pattern found
+                            user_friendly_msg = gemini_user_communication.strip()
                     else:
-                        user_friendly_msg = "Your video project encountered an issue during processing."
+                        # Fallback to type-based messages if no Gemini evaluation
+                        failure_type = failure_analysis.get("failure_type", "unknown")
+                        if failure_type == "validation_error":
+                            user_friendly_msg = "Your video project has some issues that need to be fixed before processing can begin."
+                        elif failure_type == "missing_media":
+                            user_friendly_msg = "Some media files referenced in your project couldn't be found."
+                        elif failure_type == "processing_error":
+                            user_friendly_msg = "There was an issue processing your video project."
+                        else:
+                            user_friendly_msg = "Your video project encountered an issue during processing."
                     
                     if corrected_komposition:
                         user_friendly_msg += " An improved version has been generated that should work better."
