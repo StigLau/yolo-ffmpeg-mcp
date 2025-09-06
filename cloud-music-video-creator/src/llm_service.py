@@ -887,6 +887,22 @@ This maintains the illusion of a single intelligent creative assistant while the
                 session_id="llm_service_session"  # Provide a default session ID
             )
             
+            # Check for authentication errors specifically
+            if not result.get("success") and result.get("error"):
+                error_msg = str(result.get("error", "")).lower()
+                if ("authentication" in error_msg or "apikey" in error_msg or 
+                    ("api" in error_msg and "key" in error_msg) or
+                    "anthropic_api_key" in error_msg):
+                    logger.error("❌ Anthropic API key not configured")
+                    return {
+                        "success": False,
+                        "error": result.get("error"),
+                        "message": "Video processing service requires API credentials",
+                        "processing_method": "authentication_failed",
+                        "user_friendly_error": "The video processing service needs proper API credentials to work. Please ensure the ANTHROPIC_API_KEY is configured.",
+                        "validation_details": validation_result
+                    }
+            
             if result.get("success"):
                 logger.info(f"✅ Markdown komposition processed successfully: {result.get('output_file', output_path)}")
                 return {

@@ -1073,8 +1073,35 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 # Enhanced failure handling with analysis and user guidance
                 error_message = result.get("error", "Unknown processing error")
                 
+                # Check for authentication-specific errors first
+                if result.get("processing_method") == "authentication_failed":
+                    auth_message = result.get("user_friendly_error", "Video processing service requires API credentials")
+                    logger.error(f"🔑 Authentication failed: {auth_message}")
+                    
+                    # Update job status for authentication failure  
+                    if job_id and job_id in active_jobs:
+                        active_jobs[job_id].update({
+                            "status": "failed",
+                            "progress": 0,
+                            "message": "🔑 Video processing service is currently unavailable. API credentials need to be configured by the system administrator.",
+                            "technical_error": error_message,
+                            "processing_method": "authentication_failed",
+                            "requires_admin_setup": True,
+                            "enhanced_failure_handling": True
+                        })
+                    
+                    return {
+                        "success": False,
+                        "error": error_message,
+                        "user_message": "🔑 Video processing service is currently unavailable. API credentials need to be configured by the system administrator.",
+                        "progress": 0,
+                        "processing_method": "authentication_failed",
+                        "requires_admin_setup": True,
+                        "enhanced_failure_handling": True
+                    }
+                
                 # Check if we have failure analysis and user guidance
-                if result.get("failure_analysis") and result.get("user_guidance"):
+                elif result.get("failure_analysis") and result.get("user_guidance"):
                     user_friendly_message = result.get("user_guidance")
                     logger.warning(f"🔍 Processing failed with analysis: {user_friendly_message}")
                     
