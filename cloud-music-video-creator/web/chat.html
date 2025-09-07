@@ -28,10 +28,28 @@
         
         .actions { margin-top: 10px; }
         .actions button { margin-right: 10px; padding: 8px 16px; background: #28a745; color: white; border: none; cursor: pointer; }
+        
+        .llm-selector { margin: 20px 0; text-align: center; }
+        .llm-toggle { display: inline-flex; background: #f0f0f0; border-radius: 25px; padding: 3px; }
+        .llm-option { padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: none; background: none; }
+        .llm-option.active { background: #007bff; color: white; }
+        .llm-option:not(.active) { color: #666; }
+        .llm-option:hover:not(.active) { background: #e0e0e0; }
     </style>
 </head>
 <body>
     <h1>🎬 Cloud Music Video Creator - Creative Assistant</h1>
+    
+    <div class="llm-selector">
+        <div class="llm-toggle">
+            <button class="llm-option active" id="geminiOption" onclick="selectLLM('gemini')">
+                🔮 Gemini Pro 2.5
+            </button>
+            <button class="llm-option" id="sonnetOption" onclick="selectLLM('sonnet')">
+                🧠 Claude Sonnet 4
+            </button>
+        </div>
+    </div>
     
     <div class="chat-container">
         <div class="chat-panel" id="chatPanel">
@@ -67,6 +85,19 @@
         let conversationHistory = [];
         let currentJobId = null;
         let pollInterval = null;
+        let selectedLLM = 'gemini'; // Default to Gemini
+        
+        function selectLLM(llm) {
+            selectedLLM = llm;
+            
+            // Update button states
+            document.getElementById('geminiOption').classList.toggle('active', llm === 'gemini');
+            document.getElementById('sonnetOption').classList.toggle('active', llm === 'sonnet');
+            
+            // Add system message about LLM switch
+            const llmName = llm === 'gemini' ? '🔮 Gemini Pro 2.5' : '🧠 Claude Sonnet 4';
+            addSystemMessage(`Switched to ${llmName} for creative assistance`);
+        }
         
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
@@ -119,7 +150,8 @@
                     body: JSON.stringify({
                         message: userMessage,
                         conversation_history: conversationHistory,
-                        current_komposition: currentKomposition
+                        current_komposition: currentKomposition,
+                        llm_provider: selectedLLM
                     })
                 });
                 

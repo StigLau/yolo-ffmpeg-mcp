@@ -212,6 +212,7 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             conversation_history = request_data.get("conversation_history", [])
             current_komposition = request_data.get("current_komposition")
             session_id = request_data.get("session_id")
+            llm_provider = request_data.get("llm_provider", "gemini")  # Default to Gemini
             
             # Create session if none provided
             if not session_id:
@@ -221,7 +222,7 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             
             # Process with real LLM
             response = asyncio.run(self.process_with_real_llm(
-                user_message, conversation_history, current_komposition, session_id
+                user_message, conversation_history, current_komposition, session_id, llm_provider
             ))
             
             # Add session_id to response
@@ -241,6 +242,24 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             request_data = json.loads(post_data.decode('utf-8'))
             
             komposition = request_data.get("komposition", "")
+            
+            # Ensure komposition is a string (not dict) for processing pipeline
+            if isinstance(komposition, dict):
+                logger.warning("⚠️ Received komposition as dict, converting to string")
+                # If it's a dict, it might be the old JSON format - extract the content
+                if "content" in komposition:
+                    komposition = komposition["content"]
+                elif "markdown" in komposition:
+                    komposition = komposition["markdown"]
+                else:
+                    # Convert dict to JSON string as fallback
+                    komposition = json.dumps(komposition, indent=2)
+                logger.info(f"✅ Converted komposition to string: {len(komposition)} chars")
+            elif not isinstance(komposition, str):
+                logger.error(f"❌ Invalid komposition type: {type(komposition)}")
+                komposition = str(komposition)
+            
+            logger.info(f"📝 Komposition type: {type(komposition)}, length: {len(komposition)}")
             
             # Create a video creation job using the komposition
             job_id = str(uuid.uuid4())
@@ -276,6 +295,10 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
     def process_video_creation(self, job_id, request_data):
         """Background task to process video creation"""
         job = active_jobs[job_id]
+        start_time = time.time()
+        
+        def get_elapsed_seconds():
+            return int(time.time() - start_time)
         
         try:
             logger.info(f"Processing video creation for job {job_id}")
@@ -283,32 +306,32 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             # Update status: Starting processing
             job.update({
                 "status": "processing",
-                "progress": 10,
-                "message": "Analyzing your request..."
+                "progress": 0,  # Keep for UI compatibility
+                "message": f"📊 Analyzing your request... ({get_elapsed_seconds()}s)"
             })
             
             time.sleep(1)  # Simulate analysis
             
             # Update status: Generating komposition
             job.update({
-                "progress": 25,
-                "message": "Creating komposition specification..."
+                "progress": 0,  # Keep for UI compatibility
+                "message": f"📝 Creating komposition specification... ({get_elapsed_seconds()}s)"
             })
             
             time.sleep(1)
             
             # Update status: LLM processing
             job.update({
-                "progress": 40,
-                "message": "Generating FFmpeg commands..."
+                "progress": 0,  # Keep for UI compatibility
+                "message": f"🧠 Generating FFmpeg commands... ({get_elapsed_seconds()}s)"
             })
             
             time.sleep(1.5)
             
             # Update status: Running actual pipeline
             job.update({
-                "progress": 60,
-                "message": "Processing video and audio..."
+                "progress": 0,  # Keep for UI compatibility
+                "message": f"🎬 Processing video and audio... ({get_elapsed_seconds()}s)"
             })
             
             # Run the actual video processing pipeline
@@ -317,8 +340,8 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             if result["success"]:
                 job.update({
                     "status": "completed",
-                    "progress": 100,
-                    "message": "Video creation completed successfully!",
+                    "progress": 100,  # 100% when completed
+                    "message": f"✅ Video creation completed successfully! ({get_elapsed_seconds()}s)",
                     "output_file": result.get("output_file"),
                     "video_url": f"/api/download/{job_id}",
                     "processing_time": result.get("total_duration", 0),
@@ -406,11 +429,11 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
         
         return media_files
 
-    async def process_with_real_llm(self, user_message, conversation_history, current_komposition, session_id):
+    async def process_with_real_llm(self, user_message, conversation_history, current_komposition, session_id, llm_provider="gemini"):
         """Process user message with REAL LLM integration"""
         
         # Get services
-        llm = get_llm_service()
+        llm = get_llm_service(llm_provider)
         km = get_komposition_manager()
         logger_service = get_interaction_logger()
         
@@ -884,6 +907,10 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
     def process_komposition_video(self, job_id, komposition):
         """Process video creation from komposition using real FFmpeg processing"""
         job = active_jobs[job_id]
+        start_time = time.time()
+        
+        def get_elapsed_seconds():
+            return int(time.time() - start_time)
         
         try:
             logger.info(f"Processing komposition video for job {job_id}")
@@ -895,8 +922,8 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             
             # Update status
             job.update({
-                "progress": 10,
-                "message": "Analyzing komposition structure..."
+                "progress": 0,  # Keep for UI compatibility
+                "message": f"📊 Analyzing komposition structure... ({get_elapsed_seconds()}s)"
             })
             
             # Check for cancellation
@@ -916,8 +943,8 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 return
             
             job.update({
-                "progress": 30,
-                "message": "Converting komposition to FFmpeg commands..."
+                "progress": 0,  # Keep for UI compatibility
+                "message": f"🔧 Converting komposition to FFmpeg commands... ({get_elapsed_seconds()}s)"
             })
             
             time.sleep(1)
@@ -928,15 +955,15 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 return
             
             job.update({
-                "progress": 60,
-                "message": "Executing video processing commands..."
+                "progress": 0,  # Keep for UI compatibility
+                "message": f"⚡ Executing video processing commands... ({get_elapsed_seconds()}s)"
             })
             
             if result["success"]:
                 job.update({
                     "status": "completed",
-                    "progress": 100,
-                    "message": "Komposition video created successfully!",
+                    "progress": 100,  # 100% when completed
+                    "message": f"🎉 Komposition video created successfully! ({get_elapsed_seconds()}s)",
                     "output_file": result.get("output_file"),
                     "video_url": f"/api/download/{job_id}",
                     "processing_method": result.get("processing_method"),

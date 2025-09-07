@@ -97,7 +97,8 @@ class MarkdownHaikuProcessor:
             if self.interaction_logger and result.get("success"):
                 commands = result.get("ffmpeg_commands", [])
                 self.interaction_logger.log_llm2_response(
-                    call_id="markdown_komposition_process",
+                    session_id=getattr(self, 'session_id', 'unknown'),
+                    call_id="markdown_komposition_process", 
                     response=f"Generated {len(commands)} FFmpeg commands for markdown komposition",
                     commands_generated=commands
                 )

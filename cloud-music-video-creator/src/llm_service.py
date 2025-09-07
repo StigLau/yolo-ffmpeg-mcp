@@ -9,6 +9,7 @@ Now includes FFmpeg processing integration via Haiku MCP Bridge.
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
@@ -108,7 +109,17 @@ class LLMService:
     """Service for handling LLM integration with creative komposition workflows"""
     
     def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-1.5-flash"):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        # Auto-detect model provider and set appropriate API key
+        if model_name.startswith("claude") or model_name.startswith("sonnet"):
+            self.api_key = api_key or os.getenv('ANTHROPIC_API_KEY')
+            self.provider = "claude"
+        elif model_name.startswith("gpt"):
+            self.api_key = api_key or os.getenv('OPENAI_API_KEY') 
+            self.provider = "openai"
+        else:  # Default to Gemini
+            self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            self.provider = "gemini"
+            
         self.model_name = model_name
         self.client = None
         self.fallback_mode = not self.api_key
@@ -134,19 +145,32 @@ class LLMService:
             self.fallback_mode = True
     
     def _initialize_client(self):
-        """Initialize the LLM client"""
+        """Initialize the LLM client based on provider"""
         try:
-            if self.model_name.startswith("gemini"):
+            if self.provider == "gemini":
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
                 self.client = genai.GenerativeModel(self.model_name)
                 logger.info(f"Initialized {self.model_name} client")
+            elif self.provider == "claude":
+                try:
+                    import anthropic
+                    self.client = anthropic.Anthropic(api_key=self.api_key)
+                    logger.info(f"Initialized {self.model_name} client")
+                except ImportError:
+                    logger.error("Anthropic client not installed. Install with: pip install anthropic")
+                    self.fallback_mode = True
+            elif self.provider == "openai":
+                try:
+                    import openai
+                    self.client = openai.OpenAI(api_key=self.api_key)
+                    logger.info(f"Initialized {self.model_name} client")
+                except ImportError:
+                    logger.error("OpenAI client not installed. Install with: pip install openai")
+                    self.fallback_mode = True
             else:
-                logger.error(f"Unsupported model: {self.model_name}")
+                logger.error(f"Unsupported provider: {self.provider}")
                 self.fallback_mode = True
-        except ImportError:
-            logger.error("Google AI client not installed - running in fallback mode")
-            self.fallback_mode = True
         except Exception as e:
             logger.error(f"Failed to initialize LLM client: {e}")
             self.fallback_mode = True
@@ -165,18 +189,24 @@ class LLMService:
         
         try:
             # Build the conversation context
-            system_prompt = self._build_system_prompt()
+            system_prompt = self._build_system_prompt(user_message)
             context = self._build_conversation_context(
                 user_message, conversation_history, current_komposition, available_media
             )
             
-            # Generate response using LLM
+            # Generate response using appropriate LLM
+            prompt = system_prompt + "\n\n" + context
+            
             if self.model_name == "claude-internal":
-                response = await self._call_internal_claude(system_prompt + "\n\n" + context)
-            elif self.model_name.startswith("gemini"):
-                response = await self._call_gemini(system_prompt + "\n\n" + context)
+                response = await self._call_internal_claude(prompt)
+            elif self.provider == "gemini":
+                response = await self._call_gemini(prompt)
+            elif self.provider == "claude":
+                response = await self._call_claude(prompt)
+            elif self.provider == "openai":
+                response = await self._call_openai(prompt)
             else:
-                raise ValueError(f"Unsupported model: {self.model_name}")
+                raise ValueError(f"Unsupported provider: {self.provider}")
             
             # Parse the structured response
             parsed_response = self._parse_llm_response(response, current_komposition)
@@ -192,141 +222,14 @@ class LLMService:
             logger.error(f"LLM processing failed: {e}")
             return self._fallback_processing(user_message, current_komposition)
     
-    def _build_system_prompt(self) -> str:
-        """Build the system prompt for the LLM"""
-        return """You are a creative music video assistant specialized in komposition creation and editing.
-
-Your role:
-- Help users create and refine kompositions for music videos
-- Understand musical timing (BPM, beats, bars, intro/verse/refrain structure)
-- Translate creative intent into technical specifications
-- Generate komposition markdown files with proper structure
-- Guide users through iterative refinement of their vision
-- ACCESS AND MANAGE media files through the registry system
-- Work with stored kompositions and their versions
-
-INTELLIGENT MEDIA MATCHING SYSTEM:
-When users reference media files with partial names or abbreviations:
-1. AUTOMATICALLY search registry for similar filenames
-2. Use fuzzy matching logic:
-   - "JJV" → look for files containing "JJV" (like "JJVtt947FfI_136.mp4")
-   - "wZ5" → look for files containing "wZ5" (like "_wZ5Hof5tXY_136.mp4")
-   - "subnautic" → look for files with "Subnautic" in name/description
-3. Confidence levels:
-   - High confidence (>80%): USE IT automatically and mention what you found
-   - Medium confidence (50-80%): ASK "Did you mean [filename]?"
-   - Low confidence (<50%): LIST available options and ask user to clarify
-
-PROACTIVE ASSIGNMENT RULES - CRITICAL:
-- ALWAYS fill media IDs when creating kompositions
-- NEVER leave placeholders like "Waiting for user input" or "(to be provided by user)"
-- Use registry_actions: ["list_media_files()"] FIRST, then assign actual media_001, media_002 etc.
-- When user says "choose 3 segments from JJV, _wZ5": automatically assign media_001, media_002, media_001 (alternating)
-- For thematic audio matching: "Subnautic" → automatically suggest "Subnautic Measures.flac"
-
-MEDIA ASSIGNMENT PATTERNS:
-✅ GOOD: "Using media_001 (JJVtt947FfI_136.mp4) for segments 1,3,5 and media_002 (_wZ5Hof5tXY_136.mp4) for segments 2,4,6"
-❌ BAD: "Source: (Waiting for user input - JJV/wZ5 video ID)"
-
-✅ GOOD: "Perfect! Using media_004 (Subnautic Measures.flac) - the name perfectly matches your Subnautic theme!"
-❌ BAD: "Audio: Subnautica-themed track (to be provided by user)"
-
-REGISTRY TOOLS AVAILABLE:
-- list_media_files() - Show available media files with metadata
-- register_media_file(path, metadata) - Register new media file
-- get_media_info(media_id) - Get detailed media information
-- list_kompositions() - Show user's kompositions
-- save_komposition(komposition_data) - Save structured komposition
-- get_komposition(komposition_id) - Load existing komposition
-
-Response format:
-Always respond with JSON containing:
-{
-    "response": "Your conversational response to the user",
-    "komposition": "Updated komposition markdown (if changes made)",
-    "action": "video_creation_requested|komposition_updated|discussion|registry_search|media_register|null",
-    "reasoning": "Brief explanation of what you changed and why",
-    "registry_actions": ["tool_name(args)"] // Optional: registry tools to call
-}
-
-CRITICAL WORKFLOW:
-1. When user requests komposition: FIRST call list_media_files()
-2. Match user terms to actual files using fuzzy logic
-3. Create komposition with REAL media IDs (never placeholders)
-4. Confirm matches: "Using media_001 (filename) for 'user_term'"
-5. Auto-assign thematically appropriate audio
-
-Focus on:
-- Musical structure and timing
-- Visual effects that match the mood
-- Beat synchronization using actual media durations
-- Intelligent media file matching and assignment
-- NO placeholder content - only real media references
-- Clear, professional komposition specifications with confirmed media assignments
-
-HAIKU LLM INSTRUCTION SYSTEM:
-When creating kompositions that will be processed by Haiku MCP, include detailed technical instructions:
-
-1. VISUAL STYLE INSTRUCTIONS:
-   - Specific FFmpeg filters to apply: "Use sepia colorchannelmixer for vintage feel"
-   - Transition preferences: "Crossfade between segments with 1-second overlap"
-   - Color grading: "Boost saturation by 20% for vibrant look"
-   - Effects timing: "Apply vignette during chorus sections only"
-
-2. AUDIO PROCESSING INSTRUCTIONS:
-   - Sync requirements: "Align video cuts to beat at 0, 8, 16, 24 seconds"
-   - Audio levels: "Keep original audio at 70% volume, add processed audio at full"
-   - Fade handling: "2-second crossfade between audio segments"
-
-3. TECHNICAL SPECIFICATIONS:
-   - Output format: "Export as MP4 H.264, CRF 23 for web delivery"
-   - Resolution handling: "Maintain 1920x1080, letterbox if needed"
-   - Frame rate: "Convert all sources to 30fps for consistency"
-
-4. CREATIVE DIRECTION FOR HAIKU:
-   Include in komposition metadata a "haiku_instructions" field with specific directions:
-   ```json
-   "haiku_instructions": {
-     "style": "Apply vintage film grain with warm color temperature",
-     "transitions": "Use quick cuts on beat drops, smooth fades elsewhere", 
-     "effects": "Emphasize contrast during high-energy sections",
-     "timing": "Beat-sync at BPM 120, segment changes on measure boundaries"
-   }
-   ```
-
-AUTOMATIC HAIKU INSTRUCTION GENERATION:
-When creating ANY komposition, automatically analyze the user's creative vision and translate it into technical instructions for video processing:
-
-USER SAYS → YOU AUTOMATICALLY GENERATE HAIKU INSTRUCTIONS:
-- "vintage feel" → "Apply sepia colorchannelmixer, add film grain noise, warm color temperature"
-- "energetic sections" → "Boost contrast and saturation during high-energy moments, quick cuts on beat"  
-- "dreamy atmosphere" → "Use gblur sigma=2, soft brightness adjustments, gentle fades"
-- "120 BPM track" → "Beat-sync all cuts to 120 BPM timing, transitions on measure boundaries"
-- "smooth transitions" → "Use crossfade effects with 1-second overlap between segments"
-
-CRITICAL USER EXPERIENCE RULES:
-The user does NOT know about the technical implementation. You must:
-1. Listen to their creative vision ("I want it moody and dark")
-2. AUTOMATICALLY translate this to technical specs ("Low-key lighting, desaturated colors, heavy contrast")
-3. Include these as haiku_instructions in the komposition metadata
-4. NEVER mention "Haiku", "FFmpeg", "technical LLM", or any technical processing details
-5. Always speak in creative/artistic terms: "video processing", "visual effects", "rendering"
-
-FORBIDDEN WORDS/PHRASES (never say these to users):
-❌ "Haiku LLM", "FFmpeg", "MCP server", "technical processing"
-❌ "I'll tell the FFmpeg processor to...", "The Haiku system will..."
-✅ "I'll apply vintage effects", "The video will render with smooth transitions"
-
-EXAMPLE WORKFLOW:
-User: "Create a vintage music video with smooth transitions"
-You respond: "I'll create a beautiful vintage-style komposition with smooth crossfade transitions between segments..." 
-You internally generate: haiku_instructions = "Apply vintage sepia grading, film grain texture, smooth crossfades between segments"
-
-WHEN PROCESSING COMPLETES:
-❌ "FFmpeg processing completed successfully"
-✅ "Your music video has been rendered and is ready!"
-
-This maintains the illusion of a single intelligent creative assistant while the technical work happens invisibly behind the scenes."""
+    def _build_system_prompt(self, user_input: str = "") -> str:
+        """Build provider-specific system prompt for the LLM"""
+        try:
+            from .llm.prompts import get_user_prompt
+        except ImportError:
+            # Fallback to absolute import
+            from llm.prompts import get_user_prompt
+        return get_user_prompt(self.provider, user_input)
     
     def _build_conversation_context(
         self,
@@ -400,33 +303,121 @@ This maintains the illusion of a single intelligent creative assistant while the
     async def _call_gemini(self, prompt: str) -> str:
         """Call Gemini API"""
         try:
+            logger.info(f"Gemini prompt length: {len(prompt)}")
             response = self.client.generate_content(prompt)
-            return response.text
+            result = response.text
+            logger.info(f"Gemini response length: {len(result) if result else 0}")
+            if result:
+                logger.info(f"Gemini response preview: {result[:200]}...")
+            else:
+                logger.warning("Gemini returned empty response")
+            return result
         except Exception as e:
             logger.error(f"Gemini API call failed: {e}")
+            raise
+    
+    async def _call_claude(self, prompt: str) -> str:
+        """Call Claude API"""
+        try:
+            logger.info(f"Claude prompt length: {len(prompt)}")
+            response = self.client.messages.create(
+                model=self.model_name,
+                max_tokens=4096,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            result = response.content[0].text
+            logger.info(f"Claude response length: {len(result) if result else 0}")
+            if result:
+                logger.info(f"Claude response preview: {result[:200]}...")
+            else:
+                logger.warning("Claude returned empty response")
+            return result
+        except Exception as e:
+            logger.error(f"Claude API call failed: {e}")
+            raise
+    
+    async def _call_openai(self, prompt: str) -> str:
+        """Call OpenAI API"""
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=4096
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"OpenAI API call failed: {e}")
             raise
     
     def _parse_llm_response(self, llm_response: str, current_komposition: Optional[str]) -> ChatResponse:
         """Parse the LLM response into structured format"""
         
+        logger.info(f"Parsing response length: {len(llm_response)}")
+        logger.info(f"Response preview: {llm_response[:100]}...")
+        
+        # First try to extract markdown komposition (for Sonnet)
+        komposition = self._extract_markdown_komposition(llm_response)
+        if komposition:
+            logger.info(f"Extracted markdown komposition: {len(komposition)} chars")
+            return ChatResponse(
+                response_text=llm_response,
+                updated_komposition=komposition
+            )
+        
         try:
-            # Try to extract JSON from response
+            # Try to extract JSON from response (for other providers)
             json_start = llm_response.find('{')
             json_end = llm_response.rfind('}') + 1
+            
+            logger.info(f"JSON start: {json_start}, JSON end: {json_end}")
             
             if json_start >= 0 and json_end > json_start:
                 json_str = llm_response[json_start:json_end]
                 parsed = json.loads(json_str)
                 
+                # Handle different response formats
+                response_text = ""
+                komposition = parsed.get("komposition")
+                
+                # Try different field names for response text
+                if "response" in parsed:
+                    response_text = parsed["response"]
+                elif "message" in parsed:
+                    response_text = parsed["message"]
+                elif "conversation" in parsed and parsed["conversation"]:
+                    # Handle Gemini conversation format
+                    for msg in parsed["conversation"]:
+                        if msg.get("speaker") == "assistant":
+                            response_text = msg.get("message", "")
+                            break
+                elif "messages" in parsed and parsed["messages"]:
+                    # Handle Gemini messages format
+                    for msg in parsed["messages"]:
+                        if msg.get("role") == "assistant":
+                            response_text = msg.get("content", "")
+                            break
+                
+                # If still no response text found and there's text before JSON, use that
+                if not response_text and json_start > 0:
+                    text_before_json = llm_response[:json_start].strip()
+                    # Remove markdown code block indicators
+                    text_before_json = text_before_json.replace("```json", "").replace("```", "").strip()
+                    if text_before_json:
+                        response_text = text_before_json
+                        logger.info(f"Using text before JSON as response: {len(response_text)} chars")
+                
+                logger.info(f"Extracted response text length: {len(response_text)}")
+                
                 return ChatResponse(
-                    response_text=parsed.get("response", ""),
-                    updated_komposition=parsed.get("komposition"),
+                    response_text=response_text,
+                    updated_komposition=komposition,
                     action=parsed.get("action"),
                     metadata={"reasoning": parsed.get("reasoning"), "registry_actions": parsed.get("registry_actions")},
                     registry_data={}
                 )
             else:
                 # If no JSON found, treat entire response as text
+                logger.info(f"No JSON found, using response as plain text: {len(llm_response)} chars")
                 return ChatResponse(
                     response_text=llm_response,
                     updated_komposition=current_komposition
@@ -438,6 +429,68 @@ This maintains the illusion of a single intelligent creative assistant while the
                 response_text=llm_response,
                 updated_komposition=current_komposition
             )
+            
+    def _extract_markdown_komposition(self, response: str) -> Optional[str]:
+        """Extract markdown komposition from response if present"""
+        
+        # First try to extract from markdown code blocks
+        markdown_patterns = [
+            r'```markdown\s*\n(.*?)\n```',  # Standard markdown blocks
+            r'```\s*\n(# .*?)\n```',       # Generic code blocks starting with #
+        ]
+        
+        for pattern in markdown_patterns:
+            matches = re.findall(pattern, response, re.DOTALL)
+            for match in matches:
+                if self._validate_komposition_content(match):
+                    logger.info(f"Found valid komposition in markdown code block: {len(match)} chars")
+                    return match.strip()
+        
+        # Fallback: Look for komposition starting with # and containing required sections
+        lines = response.split('\n')
+        komposition_lines = []
+        in_komposition = False
+        
+        for line in lines:
+            # Start capturing when we see a markdown title
+            if line.startswith('# ') and not in_komposition:
+                # Check if this looks like a komposition title
+                title_lower = line.lower()
+                if any(keyword in title_lower for keyword in ['video', 'music', 'komposition', 'dream', 'vintage', 'subnautic', 'journey']):
+                    in_komposition = True
+                    komposition_lines.append(line)
+            elif in_komposition:
+                komposition_lines.append(line)
+                
+                # Stop if we encounter another major section or end marker
+                if line.strip() == '---' and len(komposition_lines) > 10:
+                    # Found end marker and we have substantial content
+                    komposition_lines.append('')  # Add final newline
+                    break
+        
+        if komposition_lines and len(komposition_lines) > 5:
+            komposition = '\n'.join(komposition_lines).strip()
+            
+            if self._validate_komposition_content(komposition):
+                logger.info(f"Found valid markdown komposition: {len(komposition)} chars")
+                return komposition
+                
+        return None
+    
+    def _validate_komposition_content(self, content: str) -> bool:
+        """Validate that content looks like a real komposition"""
+        
+        # Check for required sections
+        required_sections = ['Basic Parameters', 'Segments', 'Technical Specs']
+        sections_found = sum(1 for section in required_sections if section in content)
+        
+        # Check for real file references (not placeholders)
+        has_real_files = bool(re.search(r'media_\d+\s*\([^)]+\.(mp4|flac|wav|mp3)\)', content))
+        
+        # Check for substantial content (not just placeholders)
+        has_real_effects = bool(re.search(r'- \*\*Effects\*\*:\s*\n\s+- [^T][^o]', content))  # Not "To be defined"
+        
+        return (sections_found >= 2 and has_real_files) or (sections_found >= 3 and has_real_effects)
     
     def _fallback_processing(self, user_message: str, current_komposition: Optional[str]) -> ChatResponse:
         """Fallback processing when LLM is unavailable"""
@@ -763,7 +816,10 @@ This maintains the illusion of a single intelligent creative assistant while the
         """
         try:
             # Import FFmpeg processor
-            from .ffmpeg_processor import create_haiku_ffmpeg_processor
+            try:
+                from .ffmpeg_processor import create_haiku_ffmpeg_processor
+            except ImportError:
+                from ffmpeg_processor import create_haiku_ffmpeg_processor
             
             # Create output path if not provided
             if not output_path:
@@ -842,7 +898,10 @@ This maintains the illusion of a single intelligent creative assistant while the
         """
         try:
             # STEP 1: Pre-validation before Haiku processing
-            from .haiku_validation import validate_before_haiku_processing, analyze_haiku_processing_failure
+            try:
+                from .haiku_validation import validate_before_haiku_processing, analyze_haiku_processing_failure
+            except ImportError:
+                from haiku_validation import validate_before_haiku_processing, analyze_haiku_processing_failure
             
             logger.info("🔍 Pre-validating komposition before Haiku processing...")
             try:
@@ -859,7 +918,10 @@ This maintains the illusion of a single intelligent creative assistant while the
                 }
             
             # Import markdown-native processor
-            from .markdown_ffmpeg_processor import create_markdown_haiku_processor
+            try:
+                from .markdown_ffmpeg_processor import create_markdown_haiku_processor
+            except ImportError:
+                from markdown_ffmpeg_processor import create_markdown_haiku_processor
             
             # Create output path if not provided
             if not output_path:
@@ -1220,9 +1282,16 @@ This maintains the illusion of a single intelligent creative assistant while the
 # Global instance
 llm_service = None
 
-def get_llm_service() -> LLMService:
+def get_llm_service(provider: str = "gemini") -> LLMService:
     """Get or create the global LLM service instance"""
     global llm_service
-    # Always create a new instance to avoid caching issues
-    llm_service = LLMService()
+    # Create instance with specific provider model
+    if provider == "sonnet" or provider == "claude":
+        model_name = "claude-3-5-sonnet-20241022"  # Latest Sonnet model
+    elif provider == "openai":
+        model_name = "gpt-4o-mini"
+    else:  # Default to Gemini
+        model_name = "gemini-1.5-flash"
+    
+    llm_service = LLMService(model_name=model_name)
     return llm_service
