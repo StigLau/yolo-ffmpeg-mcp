@@ -1,0 +1,60 @@
+{
+  "name": "komposteur-mcp-server",
+  "version": "1.0.0",
+  "description": "TypeScript MCP server wrapping Komposteur uberjar for music video creation",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/main/ts/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "clean": "rm -rf dist",
+    "prepare": "npm run build",
+    "komposteur:download": "node scripts/download-komposteur.js",
+    "komposteur:validate": "node scripts/validate-komposteur.js"
+  },
+  "keywords": [
+    "mcp",
+    "komposteur",
+    "music-video",
+    "youtube-dl",
+    "s3",
+    "composition",
+    "typescript"
+  ],
+  "author": "Stig Lau",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "zod": "^3.22.4",
+    "yaml": "^2.3.4",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.7",
+    "tsx": "^4.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/StigLau/yolo-ffmpeg-mcp"
+  },
+  "komposteur": {
+    "jarUrl": "https://github.com/StigLau/komposteur/packages/2597233",
+    "localPath": "~/.m2/repository/no/lau/kompost/mcp/uber-kompost-1.0.0-shaded.jar",
+    "fallbackPath": "./lib/komposteur-uber.jar",
+    "version": "1.0.0"
+  }
+}

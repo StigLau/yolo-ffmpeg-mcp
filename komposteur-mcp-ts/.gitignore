@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Generated content (per CLAUDE.md requirements)
+generated/
+*.log
+*.tmp
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# JAR files (downloaded at runtime)
+lib/
+*.jar
+
+# Test coverage
+coverage/
+.nyc_output
