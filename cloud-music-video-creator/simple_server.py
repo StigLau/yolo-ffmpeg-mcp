@@ -39,6 +39,10 @@ web_dir = Path(__file__).parent / "web"
 
 
 class VideoCreatorHandler(BaseHTTPRequestHandler):
+    # Class-level media cache shared across all instances
+    _media_cache = None
+    _cache_timestamp = 0
+    _cache_duration = 10  # seconds
     
     def do_GET(self):
         """Handle GET requests"""
@@ -388,12 +392,6 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 "error": str(e)
             }
     
-    def __init__(self):
-        """Initialize server with media cache"""
-        self._media_cache = None
-        self._cache_timestamp = 0
-        self._cache_duration = 10  # seconds
-    
     def scan_available_media_files(self, force_refresh=False):
         """Scan available media files in the source directory with caching"""
         import os
@@ -403,10 +401,10 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
         
         # Return cached results if fresh and not forcing refresh
         if (not force_refresh and 
-            self._media_cache is not None and 
-            (current_time - self._cache_timestamp) < self._cache_duration):
-            logger.info(f"📱 Using cached media list: {len(self._media_cache)} files")
-            return self._media_cache
+            VideoCreatorHandler._media_cache is not None and 
+            (current_time - VideoCreatorHandler._cache_timestamp) < VideoCreatorHandler._cache_duration):
+            logger.info(f"📱 Using cached media list: {len(VideoCreatorHandler._media_cache)} files")
+            return VideoCreatorHandler._media_cache
         
         logger.info(f"🔄 Scanning media directories (force_refresh={force_refresh})")
         media_files = []
@@ -455,8 +453,8 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 logger.info(f"📁 Directory {media_dir} does not exist")
         
         # Update cache
-        self._media_cache = media_files
-        self._cache_timestamp = current_time
+        VideoCreatorHandler._media_cache = media_files
+        VideoCreatorHandler._cache_timestamp = current_time
         
         logger.info(f"✅ Media scan complete: {len(media_files)} files found")
         return media_files
