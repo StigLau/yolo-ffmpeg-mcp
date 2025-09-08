@@ -388,46 +388,152 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
                 "error": str(e)
             }
     
-    def scan_available_media_files(self):
-        """Scan available media files in the source directory"""
+    def __init__(self):
+        """Initialize server with media cache"""
+        self._media_cache = None
+        self._cache_timestamp = 0
+        self._cache_duration = 10  # seconds
+    
+    def scan_available_media_files(self, force_refresh=False):
+        """Scan available media files in the source directory with caching"""
         import os
-        import subprocess
+        import time
         
+        current_time = time.time()
+        
+        # Return cached results if fresh and not forcing refresh
+        if (not force_refresh and 
+            self._media_cache is not None and 
+            (current_time - self._cache_timestamp) < self._cache_duration):
+            logger.info(f"📱 Using cached media list: {len(self._media_cache)} files")
+            return self._media_cache
+        
+        logger.info(f"🔄 Scanning media directories (force_refresh={force_refresh})")
         media_files = []
         media_dirs = ["/tmp/music/source", "/tmp/music", "/tmp/kompo"]
         
         for media_dir in media_dirs:
             if os.path.exists(media_dir):
-                for filename in os.listdir(media_dir):
-                    if filename.startswith('.'):
-                        continue
+                logger.info(f"📁 Scanning {media_dir}")
+                try:
+                    files_in_dir = os.listdir(media_dir)
+                    logger.info(f"  Found {len(files_in_dir)} total items")
                     
-                    filepath = os.path.join(media_dir, filename)
-                    if os.path.isfile(filepath):
-                        # Get file size
-                        file_size = os.path.getsize(filepath)
-                        size_mb = round(file_size / (1024 * 1024), 1)
+                    for filename in files_in_dir:
+                        if filename.startswith('.'):
+                            continue
                         
-                        # Determine media type
-                        ext = filename.lower().split('.')[-1]
-                        if ext in ['mp4', 'avi', 'mov', 'mkv']:
-                            media_type = 'video'
-                        elif ext in ['mp3', 'wav', 'flac', 'm4a']:
-                            media_type = 'audio'
-                        elif ext in ['jpg', 'jpeg', 'png', 'gif']:
-                            media_type = 'image'
-                        else:
-                            media_type = 'unknown'
-                        
-                        media_files.append({
-                            'filename': filename,
-                            'filepath': filepath,
-                            'size_mb': size_mb,
-                            'type': media_type,
-                            'directory': media_dir
-                        })
+                        filepath = os.path.join(media_dir, filename)
+                        if os.path.isfile(filepath):
+                            # Get file size
+                            file_size = os.path.getsize(filepath)
+                            size_mb = round(file_size / (1024 * 1024), 1)
+                            
+                            # Determine media type
+                            ext = filename.lower().split('.')[-1] if '.' in filename else ''
+                            if ext in ['mp4', 'avi', 'mov', 'mkv']:
+                                media_type = 'video'
+                            elif ext in ['mp3', 'wav', 'flac', 'm4a']:
+                                media_type = 'audio'
+                            elif ext in ['jpg', 'jpeg', 'png', 'gif']:
+                                media_type = 'image'
+                            else:
+                                media_type = 'unknown'
+                            
+                            media_files.append({
+                                'filename': filename,
+                                'filepath': filepath,
+                                'size_mb': size_mb,
+                                'type': media_type,
+                                'directory': media_dir
+                            })
+                            logger.info(f"  📄 {filename} ({size_mb}MB, {media_type})")
+                            
+                except Exception as e:
+                    logger.warning(f"⚠️ Error scanning {media_dir}: {e}")
+            else:
+                logger.info(f"📁 Directory {media_dir} does not exist")
         
+        # Update cache
+        self._media_cache = media_files
+        self._cache_timestamp = current_time
+        
+        logger.info(f"✅ Media scan complete: {len(media_files)} files found")
         return media_files
+    
+    def find_exact_media_file(self, llm_reference, available_media):
+        """
+        Find exact media file match for LLM reference using fuzzy matching.
+        
+        Args:
+            llm_reference: Reference from LLM like "media_001 (A simple jam [...] [PLnPZVqiyjA].mp4)"
+            available_media: List of available media files
+            
+        Returns:
+            Matching media file dict or None
+        """
+        import re
+        from difflib import SequenceMatcher
+        
+        # Extract filename from LLM reference - look for content in parentheses
+        filename_match = re.search(r'\(([^)]+)\)', llm_reference)
+        if not filename_match:
+            logger.warning(f"⚠️ Could not extract filename from LLM reference: {llm_reference}")
+            return None
+            
+        llm_filename = filename_match.group(1)
+        logger.info(f"🔍 Looking for file matching: {llm_filename}")
+        
+        best_match = None
+        best_score = 0
+        
+        for media_file in available_media:
+            actual_filename = media_file['filename']
+            
+            # Exact match check first
+            if llm_filename == actual_filename:
+                logger.info(f"✅ Found exact match: {actual_filename}")
+                return media_file
+            
+            # Fuzzy matching using different strategies
+            scores = []
+            
+            # Strategy 1: Direct similarity
+            scores.append(SequenceMatcher(None, llm_filename.lower(), actual_filename.lower()).ratio())
+            
+            # Strategy 2: Check if LLM filename is substring of actual
+            if llm_filename.lower() in actual_filename.lower():
+                scores.append(0.9)
+            
+            # Strategy 3: Check if actual filename starts with LLM filename
+            if actual_filename.lower().startswith(llm_filename.lower()):
+                scores.append(0.85)
+                
+            # Strategy 4: Check ID patterns like [PLnPZVqiyjA] or [4IrBDSTMaEU]
+            llm_ids = re.findall(r'\[([A-Za-z0-9_-]+)\]', llm_filename)
+            actual_ids = re.findall(r'\[([A-Za-z0-9_-]+)\]', actual_filename)
+            
+            if llm_ids and actual_ids:
+                for llm_id in llm_ids:
+                    for actual_id in actual_ids:
+                        if llm_id == actual_id:
+                            scores.append(0.95)  # High score for ID match
+            
+            max_score = max(scores) if scores else 0
+            
+            if max_score > best_score:
+                best_score = max_score
+                best_match = media_file
+                
+            logger.info(f"  📊 {actual_filename}: score {max_score:.2f}")
+        
+        # Only return match if confidence is high enough
+        if best_score >= 0.7:
+            logger.info(f"✅ Best match (score {best_score:.2f}): {best_match['filename']}")
+            return best_match
+        else:
+            logger.warning(f"❌ No good match found for: {llm_filename} (best score: {best_score:.2f})")
+            return None
 
     async def process_with_real_llm(self, user_message, conversation_history, current_komposition, session_id, llm_provider="gemini"):
         """Process user message with REAL LLM integration"""
@@ -445,8 +551,14 @@ class VideoCreatorHandler(BaseHTTPRequestHandler):
             if not current_komposition:
                 current_komposition = km.get_current_komposition(session_id)
             
+            # Detect if user mentions new downloads or changes - force refresh media scan
+            refresh_keywords = ['download', 'new video', 'just got', 'added', 'uploaded', 'fresh']
+            force_refresh = any(keyword in user_message.lower() for keyword in refresh_keywords)
+            if force_refresh:
+                logger.info("🔄 User mentioned new content - forcing media refresh")
+            
             # Scan available media files
-            available_media = self.scan_available_media_files()
+            available_media = self.scan_available_media_files(force_refresh=force_refresh)
             
             # Process with LLM (include media context)
             llm_response = await llm.process_chat_message(

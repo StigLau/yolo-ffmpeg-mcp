@@ -70,9 +70,12 @@ class HaikuValidator:
                 validation["success"] = False
                 return validation
             
-            # 2. Validate media file availability
+            # 2. Validate media file availability with fuzzy matching
             missing_files = []
             available_files = []
+            
+            # Get available media for fuzzy matching
+            available_media_files = self._get_available_media_files()
             
             for media_file in media_files:
                 file_path = media_file["full_path"]
@@ -85,7 +88,21 @@ class HaikuValidator:
                     if file_size < 1024:  # Less than 1KB
                         validation["warnings"].append(f"Media file {media_file['filename']} is very small ({file_size} bytes)")
                 else:
-                    missing_files.append(media_file)
+                    # Try fuzzy matching to find actual file
+                    llm_reference = f"media_xxx ({media_file['filename']})"
+                    actual_match = self._find_fuzzy_media_match(llm_reference, available_media_files)
+                    
+                    if actual_match:
+                        logger.info(f"🔍 Fuzzy match found: {media_file['filename']} → {actual_match['filename']}")
+                        # Update the media file reference to the actual file
+                        media_file["filename"] = actual_match["filename"]
+                        media_file["full_path"] = actual_match["filepath"]
+                        media_file["file_size"] = os.path.getsize(actual_match["filepath"])
+                        media_file["fuzzy_matched"] = True
+                        available_files.append(media_file)
+                        validation["warnings"].append(f"Used fuzzy matching: '{media_file['filename']}' matched to '{actual_match['filename']}'")
+                    else:
+                        missing_files.append(media_file)
             
             validation["validation_details"]["available_files"] = available_files
             validation["validation_details"]["missing_files"] = missing_files
@@ -175,6 +192,101 @@ class HaikuValidator:
                 unique_media.append(media)
         
         return unique_media
+    
+    def _get_available_media_files(self):
+        """Get list of actually available media files for fuzzy matching"""
+        media_files = []
+        
+        for media_dir in self.required_media_dirs:
+            if os.path.exists(media_dir):
+                try:
+                    for filename in os.listdir(media_dir):
+                        if filename.startswith('.'):
+                            continue
+                        
+                        filepath = os.path.join(media_dir, filename)
+                        if os.path.isfile(filepath):
+                            # Get file size
+                            file_size = os.path.getsize(filepath)
+                            size_mb = round(file_size / (1024 * 1024), 1)
+                            
+                            # Determine media type
+                            ext = filename.lower().split('.')[-1] if '.' in filename else ''
+                            if ext in ['mp4', 'avi', 'mov', 'mkv']:
+                                media_type = 'video'
+                            elif ext in ['mp3', 'wav', 'flac', 'm4a']:
+                                media_type = 'audio'
+                            elif ext in ['jpg', 'jpeg', 'png', 'gif']:
+                                media_type = 'image'
+                            else:
+                                media_type = 'unknown'
+                            
+                            media_files.append({
+                                'filename': filename,
+                                'filepath': filepath,
+                                'size_mb': size_mb,
+                                'type': media_type,
+                                'directory': media_dir
+                            })
+                except Exception as e:
+                    logger.warning(f"Error scanning {media_dir}: {e}")
+        
+        return media_files
+    
+    def _find_fuzzy_media_match(self, llm_reference, available_media):
+        """Find fuzzy match for LLM media reference using same logic as simple_server"""
+        import re
+        from difflib import SequenceMatcher
+        
+        # Extract filename from LLM reference - look for content in parentheses
+        filename_match = re.search(r'\(([^)]+)\)', llm_reference)
+        if not filename_match:
+            return None
+            
+        llm_filename = filename_match.group(1)
+        
+        best_match = None
+        best_score = 0
+        
+        for media_file in available_media:
+            actual_filename = media_file['filename']
+            
+            # Exact match check first
+            if llm_filename == actual_filename:
+                return media_file
+            
+            # Fuzzy matching using different strategies
+            scores = []
+            
+            # Strategy 1: Direct similarity
+            scores.append(SequenceMatcher(None, llm_filename.lower(), actual_filename.lower()).ratio())
+            
+            # Strategy 2: Check if LLM filename is substring of actual
+            if llm_filename.lower() in actual_filename.lower():
+                scores.append(0.9)
+            
+            # Strategy 3: Check if actual filename starts with LLM filename
+            if actual_filename.lower().startswith(llm_filename.lower()):
+                scores.append(0.85)
+                
+            # Strategy 4: Check ID patterns like [PLnPZVqiyjA] or [4IrBDSTMaEU]
+            llm_ids = re.findall(r'\[([A-Za-z0-9_-]+)\]', llm_filename)
+            actual_ids = re.findall(r'\[([A-Za-z0-9_-]+)\]', actual_filename)
+            
+            if llm_ids and actual_ids:
+                for llm_id in llm_ids:
+                    for actual_id in actual_ids:
+                        if llm_id == actual_id:
+                            scores.append(0.95)  # High score for ID match
+            
+            max_score = max(scores) if scores else 0
+            
+            if max_score > best_score:
+                best_score = max_score
+                best_match = media_file
+        
+        # Only return match if confidence is high enough
+        return best_match if best_score >= 0.7 else None
     
     def validate_komposition_quality(self, komposition_md: str) -> Dict[str, Any]:
         """

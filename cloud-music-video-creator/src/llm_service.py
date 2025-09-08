@@ -906,7 +906,28 @@ class LLMService:
             logger.info("🔍 Pre-validating komposition before Haiku processing...")
             try:
                 validation_result = validate_before_haiku_processing(komposition_md)
+                
+                # NEW: Enforce validation - stop processing if validation fails
+                if not validation_result.get("success", False):
+                    logger.error(f"❌ Validation failed - blocking processing")
+                    errors = validation_result.get("errors", [])
+                    missing_files = validation_result.get("validation_details", {}).get("missing_files", [])
+                    
+                    error_msg = "Komposition validation failed: " + "; ".join(errors)
+                    if missing_files:
+                        error_msg += f" Missing files: {[f['filename'] for f in missing_files]}"
+                    
+                    return {
+                        "success": False,
+                        "error": error_msg,
+                        "message": "Processing blocked due to validation failures",
+                        "validation_details": validation_result,
+                        "processing_method": "validation_enforced_stop",
+                        "available_alternatives": validation_result.get("validation_details", {}).get("suggested_alternatives", [])
+                    }
+                
                 logger.info(f"✅ Pre-validation passed: {len(validation_result.get('validation_details', {}).get('available_files', []))} media files validated")
+                
             except Exception as validation_error:
                 logger.error(f"❌ Pre-validation failed: {validation_error}")
                 return {
