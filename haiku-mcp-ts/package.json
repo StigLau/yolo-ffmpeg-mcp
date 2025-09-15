@@ -5,13 +5,18 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "bin": {
+    "haiku-mcp-server": "./bin/server.js"
+  },
   "exports": {
     ".": "./dist/index.js",
-    "./lib": "./dist/lib/index.js",
-    "./server": "./dist/server.js"
+    "./lib": "./dist/lib/index.js", 
+    "./server": "./dist/server.js",
+    "./bin": "./bin/server.js"
   },
   "files": [
     "dist/**/*",
+    "bin/**/*",
     "README.md",
     "CLAUDE.md"
   ],
