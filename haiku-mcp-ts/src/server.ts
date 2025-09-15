@@ -11,12 +11,30 @@ import {
   ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig } from './config.js';
+import type { Config } from './config.js';
 import { HaikuClient } from './llm/haiku-client.js';
 import { GeminiFlashClient } from './llm/gemini-client.js';
 import { VideoProcessor } from './tools/video-processor.js';
 import { YouTubeDownloader } from './tools/youtube-downloader.js';
 import { BaseLLMClient } from './llm/types.js';
 import { FileManager } from './registry/file-manager.js';
+// Remove circular dependency - define HaikuServerConfig locally
+interface HaikuServerConfig {
+  llm?: {
+    primary?: 'anthropic' | 'gemini';
+    fallback?: 'anthropic' | 'gemini';
+  };
+  ffmpeg?: any;
+  youtube?: any;
+  registry?: {
+    cacheDir?: string;
+    maxFileSize?: string;
+  };
+  response_limits?: {
+    max_tokens?: number;
+    strip_metadata?: boolean;
+  };
+}
 
 class HaikuMCPServer {
   private server: Server;
@@ -25,6 +43,8 @@ class HaikuMCPServer {
   private videoProcessor!: VideoProcessor;
   private youtubeDownloader!: YouTubeDownloader;
   private fileManager!: FileManager;
+  private customConfig?: HaikuServerConfig;
+  private fullConfig?: Config;
 
   constructor() {
     this.server = new Server({
@@ -37,6 +57,20 @@ class HaikuMCPServer {
     });
 
     this.setupToolHandlers();
+  }
+
+  /**
+   * Set custom configuration for factory function usage
+   */
+  setCustomConfig(config: HaikuServerConfig) {
+    this.customConfig = config;
+  }
+
+  /**
+   * Set full configuration, bypassing default config loading
+   */
+  setFullConfig(config: Config) {
+    this.fullConfig = config;
   }
 
   async initialize() {
