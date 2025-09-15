@@ -26,34 +26,20 @@ jobs:
     
     strategy:
       matrix:
-        # Test with both bun and node for compatibility
-        runtime: [bun-latest, node-20]
+        # Test with bun only - simpler and faster
+        runtime: [bun-latest]
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
     - name: Setup Bun
-      if: matrix.runtime == 'bun-latest'
       uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
     
-    - name: Setup Node.js
-      if: matrix.runtime == 'node-20'
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        registry-url: https://npm.pkg.github.com
-        scope: '@kompo'
-    
-    - name: Install dependencies (Bun)
-      if: matrix.runtime == 'bun-latest'
+    - name: Install dependencies
       run: bun install
-    
-    - name: Install dependencies (npm)
-      if: matrix.runtime == 'node-20'
-      run: npm ci
     
     # Linting disabled - package has different ESLint config requirements
     # - name: Run linting
@@ -65,28 +51,13 @@ jobs:
     #     fi
     
     - name: Build TypeScript
-      run: |
-        if command -v bun >/dev/null 2>&1; then
-          bun run build
-        else
-          npm run build
-        fi
+      run: bun run build
     
     - name: Run tests
-      run: |
-        if command -v bun >/dev/null 2>&1; then
-          bun test || echo "Tests not yet implemented"
-        else
-          npm test || echo "Tests not yet implemented"
-        fi
+      run: bun test || echo "Tests not yet implemented"
     
     - name: Verify package can be built
-      run: |
-        if command -v bun >/dev/null 2>&1; then
-          bun run package
-        else
-          npm run package
-        fi
+      run: bun run package
 
   publish-beta:
     needs: test
