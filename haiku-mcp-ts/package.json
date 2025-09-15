@@ -1,5 +1,5 @@
 {
-  "name": "@kompo/haiku-mcp-server",
+  "name": "@stiglau/haiku-mcp-server",
   "version": "1.0.0-beta.1",
   "description": "Cost-optimized MCP server using Haiku/Gemini Flash for FFMPEG operations",
   "main": "dist/index.js",
