@@ -14,7 +14,7 @@
   "author": "Stig Lau",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@anthropic-ai/sdk": "^0.27.0",
     "zod": "^3.22.4"
   },
