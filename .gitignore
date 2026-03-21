@@ -118,7 +118,6 @@ bin/
 
 # Maven
 .m2/
-target/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -131,7 +130,6 @@ buildNumber.properties
 
 # Gradle
 .gradle/
-build/
 gradle-app.setting
 !gradle-wrapper.jar
 !gradle-wrapper.properties
@@ -141,7 +139,6 @@ gradle-wrapper.properties
 *.iws
 *.iml
 *.ipr
-out/
 .idea_modules/
 
 # Eclipse
@@ -160,9 +157,6 @@ out/
 /nbdist/
 /.nb-gradle/
 
-# VS Code
-.vscode/
-
 # Generated files
 *.xjb
 *.generated.*
@@ -172,10 +166,6 @@ out/
 proguard/
 mapping.txt
 *.pro.tmp
-
-# JVM Crash logs
-hs_err_pid*
-replay_pid*
 
 # Komposteur/Integration artifacts
 integration/*/target/
@@ -188,11 +178,7 @@ integration/*/build/
 **/uber-kompost*.jar
 **/komposteur-core*.jar
 
-# Aider files (contain sensitive information)
-.aider.chat.history.md
-.aider.input.history
-.aider.tags.cache.*
-.aider/
+# Aider files
 .aider*
 
 # OAuth and sensitive files
@@ -201,8 +187,11 @@ test-oauth-flow.py
 youtube-upload.sh
 YOUTUBE_AUTH_ANALYSIS.md
 
-# Generated video files (can be large)
-*.mp4
-*.mov
-*.avi
+# Generated databases
+*.db
 
+# Generated/empty marker files
+.modified
+
+# Test media (large binary files - use tests/files/ for small test assets)
+.testdata/

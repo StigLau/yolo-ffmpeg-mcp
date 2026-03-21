@@ -1,0 +1,40 @@
+{
+  "_id": "Bergen Nature Music Video",
+  "type": "Komposition",
+  "bpm": 120,
+  "config": {
+    "width": 1280,
+    "height": 720,
+    "framerate": 24,
+    "extension": "mp4"
+  },
+  "beatpattern": {
+    "frombeat": 0,
+    "tobeat": 32,
+    "masterbpm": 120
+  },
+  "segments": [
+    {
+      "id": "Mountain View Clouds",
+      "sourceid": "Bergen_In_Motion",
+      "start": 0,
+      "duration": 8,
+      "end": 8
+    },
+    {
+      "id": "Rooftop Sunset",
+      "sourceid": "Bergen_In_Motion",
+      "start": 8,
+      "duration": 8,
+      "end": 16
+    },
+    {
+      "id": "Green Waterfall",
+      "sourceid": "Bergen_In_Motion",
+      "start": 16,
+      "duration": 16,
+      "end": 32
+    }
+  ],
+  "sources": []
+}

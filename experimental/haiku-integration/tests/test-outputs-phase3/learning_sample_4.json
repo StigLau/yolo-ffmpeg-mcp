@@ -1,0 +1,80 @@
+{
+  "metadata": {
+    "title": "Generated Music Video",
+    "bpm": 110,
+    "estimatedDuration": 17.454545454545453,
+    "created": "2025-08-24T22:51:51Z",
+    "generated_by": "haiku-llm",
+    "source_prompt": "Create an old school hip-hop video with vintage color grading at 110 BPM"
+  },
+  "segments": [
+    {
+      "id": "segment_01",
+      "startBeat": 0,
+      "durationBeats": 8,
+      "startTime": 0.0,
+      "duration": 4.363636363636363,
+      "effects": [
+        {
+          "type": "vintage_color",
+          "parameters": {
+            "warmth": 1.3,
+            "saturation": 0.75,
+            "grain": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "segment_02",
+      "startBeat": 8,
+      "durationBeats": 8,
+      "startTime": 4.363636363636363,
+      "duration": 4.363636363636363,
+      "effects": [
+        {
+          "type": "vintage_color",
+          "parameters": {
+            "warmth": 1.3,
+            "saturation": 0.75,
+            "grain": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "segment_03",
+      "startBeat": 16,
+      "durationBeats": 8,
+      "startTime": 8.727272727272727,
+      "duration": 4.363636363636363,
+      "effects": [
+        {
+          "type": "vintage_color",
+          "parameters": {
+            "warmth": 1.3,
+            "saturation": 0.75,
+            "grain": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "segment_04",
+      "startBeat": 24,
+      "durationBeats": 8,
+      "startTime": 13.090909090909092,
+      "duration": 4.363636363636363,
+      "effects": [
+        {
+          "type": "vintage_color",
+          "parameters": {
+            "warmth": 1.3,
+            "saturation": 0.75,
+            "grain": 0.4
+          }
+        }
+      ]
+    }
+  ]
+}

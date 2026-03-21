@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "file_path": "/tmp/music/source/JJVtt947FfI_136.mp4",
+  "analysis": {
+    "format_analysis": {
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "size_bytes": 17238807,
+      "duration": 223.88,
+      "bitrate": 616001
+    },
+    "video_analysis": {
+      "codec": "h264",
+      "profile": "High",
+      "pixel_format": "yuv420p",
+      "resolution": "1280x720",
+      "fps": 25.0,
+      "compatibility_assessment": "\u2705 universal"
+    },
+    "audio_analysis": {
+      "sync_status": "\u274c no_audio_stream"
+    }
+  },
+  "quality_assessment": {
+    "quality_score": 0.9,
+    "issues_found": [
+      "No audio stream detected"
+    ],
+    "recommendations": [
+      "Excellent compatibility - ready for all platforms"
+    ],
+    "overall_status": "\u26a0\ufe0f needs_attention"
+  },
+  "confidence": 0.92,
+  "processing_time": 1.0,
+  "cost_usd": 0.05
+}

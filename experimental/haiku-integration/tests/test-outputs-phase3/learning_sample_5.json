@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "title": "Generated Music Video",
+    "bpm": 125,
+    "estimatedDuration": 15.36,
+    "created": "2025-08-24T22:51:52Z",
+    "generated_by": "haiku-llm",
+    "source_prompt": "Create a simple music video with fade transitions at 125 BPM, with fade to white transitions"
+  },
+  "segments": [
+    {
+      "id": "segment_01",
+      "startBeat": 0,
+      "durationBeats": 8,
+      "startTime": 0.0,
+      "duration": 3.84,
+      "effects": [
+        {
+          "type": "fade_white_out",
+          "parameters": {
+            "duration": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "segment_02",
+      "startBeat": 8,
+      "durationBeats": 8,
+      "startTime": 3.84,
+      "duration": 3.84,
+      "effects": [
+        {
+          "type": "fade_white_out",
+          "parameters": {
+            "duration": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "segment_03",
+      "startBeat": 16,
+      "durationBeats": 8,
+      "startTime": 7.68,
+      "duration": 3.84,
+      "effects": [
+        {
+          "type": "fade_white_out",
+          "parameters": {
+            "duration": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "segment_04",
+      "startBeat": 24,
+      "durationBeats": 8,
+      "startTime": 11.52,
+      "duration": 3.84,
+      "effects": [
+        {
+          "type": "fade_white_out",
+          "parameters": {
+            "duration": 0.5
+          }
+        }
+      ]
+    }
+  ]
+}

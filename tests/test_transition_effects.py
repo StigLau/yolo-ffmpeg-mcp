@@ -3,7 +3,7 @@ Test suite for Transition Effects System
 =======================================
 
 This test validates the advanced transition effects system based on 
-documents/Describing_effects.md specifications.
+docs/ai-generated/Describing_effects.md specifications.
 
 Features tested:
 - Effects tree processing with gradient wipe and crossfade transitions

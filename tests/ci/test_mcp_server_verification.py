@@ -24,8 +24,9 @@ import sys
 # Add src to path for Python MCP imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-TEST_VIDEO = "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/JJVtt947FfI_136.mp4"
-TEST_AUDIO = "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/16BL - Deep In My Soul (Original Mix).mp3"
+TEST_FILES_DIR = Path(__file__).resolve().parent.parent / "files"
+TEST_VIDEO = str(TEST_FILES_DIR / "JJVtt947FfI_136.mp4")
+TEST_AUDIO = str(TEST_FILES_DIR / "16BL - Deep In My Soul (Original Mix).mp3")
 OUTPUT_DIR = "/tmp/kompo/haiku-ffmpeg/ci-tests/"
 
 class TestMCPServerVerification:
