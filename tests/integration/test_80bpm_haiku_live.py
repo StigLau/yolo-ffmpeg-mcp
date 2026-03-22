@@ -33,8 +33,9 @@ SEGMENTS = [
     {"segment_id": 6, "start_time": 13.11, "duration": 3.0}
 ]
 
-VIDEO_SOURCE = "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/JJVtt947FfI_136.mp4"
-AUDIO_SOURCE = "/Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/Subnautic Measures.flac"
+TEST_FILES_DIR = Path(__file__).resolve().parent.parent / "files"
+VIDEO_SOURCE = str(TEST_FILES_DIR / "JJVtt947FfI_136.mp4")
+AUDIO_SOURCE = str(TEST_FILES_DIR / "Subnautic Measures.flac")
 OUTPUT_DIR = "/tmp/kompo/haiku-ffmpeg/80bpm-live/"
 
 def create_optimized_prompt() -> str:

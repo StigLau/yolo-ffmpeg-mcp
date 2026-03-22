@@ -24,11 +24,16 @@ import os
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.server import (
-    list_files, generate_komposition_from_description, verify_music_video,
-    cleanup_temp_files, file_manager
-)
+from src.server import mcp, file_manager
 from src.config import SecurityConfig
+
+
+async def call_tool(name, **kwargs):
+    """Helper to call MCP tools and parse JSON response."""
+    result = await mcp.call_tool(name, kwargs)
+    if result and len(result) > 0:
+        return json.loads(result[0].text)
+    return {}
 
 # Add Komposteur integration
 sys.path.insert(0, str(Path(__file__).parent / "integration" / "komposteur"))
@@ -73,7 +78,8 @@ class NaturalLanguageMusicVideoCreator:
         await self.log_step("Generating komposition from natural language", f"Description: '{description}'")
         
         try:
-            result = await generate_komposition_from_description(
+            result = await call_tool(
+                'generate_komposition_from_description',
                 description=description,
                 title="Natural Language Music Video",
                 custom_bpm=120
@@ -179,7 +185,7 @@ class NaturalLanguageMusicVideoCreator:
             self.kompost_file_path.unlink()
             print(f"   🗑️ Removed: {self.kompost_file_path}")
         
-        await cleanup_temp_files()
+        await call_tool('cleanup_temp_files')
     
     async def create_music_video_from_description(self, description: str) -> Dict[str, Any]:
         """Main workflow: Natural language → Music video"""

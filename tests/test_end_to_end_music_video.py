@@ -18,6 +18,7 @@ Workflow:
 """
 
 import asyncio
+import json
 import shutil
 import tempfile
 from pathlib import Path
@@ -28,11 +29,16 @@ import os
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.server import (
-    list_files, get_file_info, process_file, cleanup_temp_files,
-    file_manager, ffmpeg
-)
+from src.server import mcp, file_manager, ffmpeg
 from src.config import SecurityConfig
+
+
+async def call_tool(name, **kwargs):
+    """Helper to call MCP tools and parse JSON response."""
+    result = await mcp.call_tool(name, kwargs)
+    if result and len(result) > 0:
+        return json.loads(result[0].text)
+    return {}
 
 class MusicVideoCreator:
     """Simulates an LLM creating a music video using MCP tools"""
@@ -71,44 +77,44 @@ class MusicVideoCreator:
         """Discover and categorize available media files"""
         await self.log_step("Discovering media assets", "Analyzing available files for music video creation")
         
-        files_result = await list_files()
+        files_result = await call_tool('list_files')
         files = files_result.get('files', [])
-        
+
         # Categorize files
         videos = []
         audio = []
         images = []
-        
+
         for file in files:
-            ext = file.extension.lower()
+            ext = file['extension'].lower()
             if ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']:
                 # Get detailed info for each video
-                info = await get_file_info(file.id)
+                info = await call_tool('get_file_info', file_id=file['id'])
                 video_props = info.get('media_info', {}).get('video_properties', {})
-                
+
                 videos.append({
                     'file': file,
                     'resolution': video_props.get('resolution'),
                     'duration': video_props.get('duration', 0),
                     'has_audio': video_props.get('has_audio', False)
                 })
-                print(f"   🎥 Video: {file.name} ({video_props.get('resolution', 'unknown')}, {video_props.get('duration', 0):.1f}s)")
-                
+                print(f"   🎥 Video: {file['name']} ({video_props.get('resolution', 'unknown')}, {video_props.get('duration', 0):.1f}s)")
+
             elif ext in ['.mp3', '.flac', '.wav', '.m4a', '.ogg']:
-                info = await get_file_info(file.id)
+                info = await call_tool('get_file_info', file_id=file['id'])
                 audio_props = info.get('media_info', {}).get('video_properties', {})
-                
+
                 audio.append({
                     'file': file,
                     'duration': audio_props.get('duration', 0)
                 })
-                print(f"   🎵 Audio: {file.name} ({audio_props.get('duration', 0):.1f}s)")
-                
+                print(f"   🎵 Audio: {file['name']} ({audio_props.get('duration', 0):.1f}s)")
+
             elif ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']:
                 images.append({
                     'file': file
                 })
-                print(f"   🖼️ Image: {file.name}")
+                print(f"   🖼️ Image: {file['name']}")
         
         print(f"   Found: {len(videos)} videos, {len(audio)} audio tracks, {len(images)} images")
         
@@ -126,42 +132,38 @@ class MusicVideoCreator:
         
         # Create clips from each video
         for i, video in enumerate(videos[:3]):  # Use first 3 videos
-            file_id = video['file'].id
+            file_id = video['file']['id']
             duration = video['duration']
-            
+
             # Extract different segments based on video index
             if i == 0:
-                # First video: extract 5 seconds starting at 2 seconds
                 start_time = min(2, duration - 5)
                 clip_duration = min(5, duration - start_time)
-                await self.log_step(f"   Extracting clip from {video['file'].name}", f"5 seconds starting at {start_time}s")
-                
+                await self.log_step(f"   Extracting clip from {video['file']['name']}", f"5 seconds starting at {start_time}s")
             elif i == 1:
-                # Second video: extract 4 seconds starting at 1 second
                 start_time = min(1, duration - 4)
                 clip_duration = min(4, duration - start_time)
-                await self.log_step(f"   Extracting clip from {video['file'].name}", f"4 seconds starting at {start_time}s")
-                
+                await self.log_step(f"   Extracting clip from {video['file']['name']}", f"4 seconds starting at {start_time}s")
             else:
-                # Third video: extract 6 seconds starting at 3 seconds
                 start_time = min(3, duration - 6)
                 clip_duration = min(6, duration - start_time)
-                await self.log_step(f"   Extracting clip from {video['file'].name}", f"6 seconds starting at {start_time}s")
-            
+                await self.log_step(f"   Extracting clip from {video['file']['name']}", f"6 seconds starting at {start_time}s")
+
             # Trim the video
-            result = await process_file(
+            result = await call_tool(
+                'process_file',
                 input_file_id=file_id,
                 operation="trim",
                 output_extension="mp4",
                 params=f"start={start_time} duration={clip_duration}"
             )
-            
-            if result.success:
-                clips.append(result.output_file_id)
-                self.created_files.append(result.output_file_id)
+
+            if result.get('success'):
+                clips.append(result['output_file_id'])
+                self.created_files.append(result['output_file_id'])
                 print(f"   ✅ Created clip: {clip_duration}s video clip")
             else:
-                print(f"   ❌ Failed to create clip: {result.message}")
+                print(f"   ❌ Failed to create clip: {result.get('message')}")
                 
         return clips
         
@@ -172,21 +174,22 @@ class MusicVideoCreator:
         image_videos = []
         
         for image in images[:2]:  # Use first 2 images
-            await self.log_step(f"   Converting {image['file'].name}", "3-second video clip")
-            
-            result = await process_file(
-                input_file_id=image['file'].id,
+            await self.log_step(f"   Converting {image['file']['name']}", "3-second video clip")
+
+            result = await call_tool(
+                'process_file',
+                input_file_id=image['file']['id'],
                 operation="image_to_video",
                 output_extension="mp4",
                 params="duration=3"
             )
-            
-            if result.success:
-                image_videos.append(result.output_file_id)
-                self.created_files.append(result.output_file_id)
+
+            if result.get('success'):
+                image_videos.append(result['output_file_id'])
+                self.created_files.append(result['output_file_id'])
                 print(f"   ✅ Created 3s video from image")
             else:
-                print(f"   ❌ Failed to convert image: {result.message}")
+                print(f"   ❌ Failed to convert image: {result.get('message')}")
                 
         return image_videos
         
@@ -215,19 +218,20 @@ class MusicVideoCreator:
         for next_clip in sequence[1:]:
             await self.log_step(f"   Concatenating clips", f"Adding next segment to sequence")
             
-            result = await process_file(
+            result = await call_tool(
+                'process_file',
                 input_file_id=combined_video,
-                operation="concatenate_simple", 
+                operation="concatenate_simple",
                 output_extension="mp4",
                 params=f"second_video={next_clip}"
             )
-            
-            if result.success:
-                combined_video = result.output_file_id
-                self.created_files.append(result.output_file_id)
+
+            if result.get('success'):
+                combined_video = result['output_file_id']
+                self.created_files.append(result['output_file_id'])
                 print(f"   ✅ Concatenated successfully")
             else:
-                print(f"   ❌ Concatenation failed: {result.message}")
+                print(f"   ❌ Concatenation failed: {result.get('message')}")
                 break
                 
         return combined_video
@@ -242,28 +246,29 @@ class MusicVideoCreator:
             
         # Use the first audio track as background music
         music_track = audio_tracks[0]['file']
-        await self.log_step(f"   Using: {music_track.name}", "Replacing video audio with music")
-        
-        result = await process_file(
+        await self.log_step(f"   Using: {music_track['name']}", "Replacing video audio with music")
+
+        result = await call_tool(
+            'process_file',
             input_file_id=video_id,
             operation="replace_audio",
-            output_extension="mp4", 
-            params=f"audio_file={music_track.id}"
+            output_extension="mp4",
+            params=f"audio_file={music_track['id']}"
         )
-        
-        if result.success:
-            self.created_files.append(result.output_file_id)
+
+        if result.get('success'):
+            self.created_files.append(result['output_file_id'])
             print(f"   ✅ Background music added successfully")
-            return result.output_file_id
+            return result['output_file_id']
         else:
-            print(f"   ❌ Failed to add music: {result.message}")
+            print(f"   ❌ Failed to add music: {result.get('message')}")
             return video_id
             
     async def verify_final_output(self, final_video_id: str) -> Dict[str, Any]:
         """Verify the final music video properties"""
         await self.log_step("Verifying final output", "Checking music video properties and quality")
         
-        info = await get_file_info(final_video_id)
+        info = await call_tool('get_file_info', file_id=final_video_id)
         
         if info.get('media_info', {}).get('success'):
             video_props = info['media_info'].get('video_properties', {})
@@ -294,7 +299,7 @@ class MusicVideoCreator:
     async def cleanup(self):
         """Clean up created files"""
         await self.log_step("Cleaning up", "Removing temporary files")
-        await cleanup_temp_files()
+        await call_tool('cleanup_temp_files')
         print(f"   🗑️ Cleaned up {len(self.created_files)} temporary files")
         
     async def create_music_video(self) -> Dict[str, Any]:

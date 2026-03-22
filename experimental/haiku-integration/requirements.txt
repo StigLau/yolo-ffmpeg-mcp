@@ -1,0 +1,18 @@
+# Haiku LLM Integration Requirements
+# Core dependencies for API integration
+
+aiohttp>=3.9.0
+asyncio-throttle>=1.0.0
+python-dotenv>=1.0.0
+
+# Optional dependencies for enhanced features
+pydantic>=2.0.0          # For data validation
+tenacity>=8.0.0          # For retry logic enhancement
+click>=8.0.0             # Alternative CLI framework
+
+# Development dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.10.0
+black>=23.0.0
+mypy>=1.0.0

@@ -1,0 +1,147 @@
+{
+  "success": true,
+  "timing_analysis": {
+    "bpm": 120,
+    "beat_duration_seconds": 0.5,
+    "total_segments": 12,
+    "beats_per_segment": 4,
+    "total_beats": 48,
+    "theoretical_duration": 24.0,
+    "actual_duration": 24.0,
+    "timing_strategy": "BEAT_SYNCHRONIZED"
+  },
+  "beat_boundaries": [
+    0.0,
+    2.0,
+    4.0,
+    6.0,
+    8.0,
+    10.0,
+    12.0,
+    14.0,
+    16.0,
+    18.0,
+    20.0,
+    22.0,
+    24.0
+  ],
+  "segment_timing": [
+    {
+      "segment_id": "seg_01",
+      "start_beat": 0,
+      "end_beat": 4,
+      "start_time": 0.0,
+      "end_time": 2.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_02",
+      "start_beat": 4,
+      "end_beat": 8,
+      "start_time": 2.0,
+      "end_time": 4.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_03",
+      "start_beat": 8,
+      "end_beat": 12,
+      "start_time": 4.0,
+      "end_time": 6.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_04",
+      "start_beat": 12,
+      "end_beat": 16,
+      "start_time": 6.0,
+      "end_time": 8.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_05",
+      "start_beat": 16,
+      "end_beat": 20,
+      "start_time": 8.0,
+      "end_time": 10.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_06",
+      "start_beat": 20,
+      "end_beat": 24,
+      "start_time": 10.0,
+      "end_time": 12.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_07",
+      "start_beat": 24,
+      "end_beat": 28,
+      "start_time": 12.0,
+      "end_time": 14.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_08",
+      "start_beat": 28,
+      "end_beat": 32,
+      "start_time": 14.0,
+      "end_time": 16.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_09",
+      "start_beat": 32,
+      "end_beat": 36,
+      "start_time": 16.0,
+      "end_time": 18.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_10",
+      "start_beat": 36,
+      "end_beat": 40,
+      "start_time": 18.0,
+      "end_time": 20.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_11",
+      "start_beat": 40,
+      "end_beat": 44,
+      "start_time": 20.0,
+      "end_time": 22.0,
+      "duration": 2.0,
+      "beats": 4
+    },
+    {
+      "segment_id": "seg_12",
+      "start_beat": 44,
+      "end_beat": 48,
+      "start_time": 22.0,
+      "end_time": 24.0,
+      "duration": 2.0,
+      "beats": 4
+    }
+  ],
+  "validation": {
+    "beat_alignment": "\u2705 mathematically_precise",
+    "duration_match": true,
+    "segment_count": true,
+    "timing_consistency": "\u2705 uniform_beat_intervals"
+  },
+  "confidence": 0.95,
+  "processing_time": 0.2,
+  "cost_usd": 0.01
+}

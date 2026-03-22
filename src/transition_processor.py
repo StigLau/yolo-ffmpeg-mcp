@@ -1,6 +1,6 @@
 """
 Transition Effects Processor - Advanced visual effects and transitions system
-Based on the specifications from documents/Describing_effects.md
+Based on the specifications from docs/ai-generated/Describing_effects.md
 """
 import json
 import asyncio

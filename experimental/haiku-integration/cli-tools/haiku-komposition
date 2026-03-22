@@ -1,0 +1,410 @@
+#!/usr/bin/env -S uv run python3
+"""
+Haiku LLM CLI Tool - Komposition Generator
+Generates video komposition JSON from natural language descriptions
+"""
+import argparse
+import json
+import sys
+import time
+import asyncio
+from pathlib import Path
+
+# Add lib directory to path for API client
+sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
+
+try:
+    from haiku_api_client import haiku_client, HaikuResponse
+    from sonnet_validator import validate_with_sonnet, ValidationResult
+    from pattern_learner import optimize_prompt, learn_from_success, get_learning_stats
+    from budget_monitor import record_operation, get_budget_status, check_budget_available
+    API_AVAILABLE = True
+    SONNET_AVAILABLE = True
+    LEARNING_AVAILABLE = True
+    BUDGET_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Haiku API client not available: {e}")
+    print("Falling back to simulation mode")
+    API_AVAILABLE = False
+    SONNET_AVAILABLE = False
+    LEARNING_AVAILABLE = False
+    BUDGET_AVAILABLE = False
+
+async def call_haiku_llm_api(prompt, bmp=120, confidence_threshold=0.8) -> dict:
+    """
+    Real Haiku API call for komposition generation
+    """
+    system_prompt = """You are a video komposition expert. Generate valid JSON kompositions from natural language descriptions.
+
+Focus on:
+- Precise BPM timing calculations
+- Segment structure with beat alignment  
+- Effect parameters based on style descriptions
+- Audio integration settings
+
+Return only valid JSON in this format:
+{
+  "metadata": {
+    "title": "string",
+    "bpm": number,
+    "estimatedDuration": number,
+    "created": "ISO datetime",
+    "generated_by": "haiku-llm"
+  },
+  "segments": [
+    {
+      "id": "string",
+      "startBeat": number,
+      "durationBeats": number, 
+      "startTime": number,
+      "duration": number,
+      "effects": []
+    }
+  ],
+  "audio": {
+    "backgroundMusic": "string",
+    "volume": number
+  }
+}"""
+    
+    try:
+        async with haiku_client() as client:
+            response = await client.call_haiku(prompt, system_prompt, confidence_threshold)
+            
+            if response.success:
+                try:
+                    # Parse JSON response
+                    komposition = json.loads(response.content)
+                    
+                    return {
+                        "success": True,
+                        "komposition": komposition,
+                        "confidence": response.confidence,
+                        "processing_time": response.processing_time,
+                        "cost_usd": response.cost_usd,
+                        "escalation_needed": response.escalation_needed
+                    }
+                except json.JSONDecodeError as e:
+                    return {
+                        "success": False,
+                        "error": f"Invalid JSON response: {e}",
+                        "confidence": 0.0,
+                        "processing_time": response.processing_time,
+                        "cost_usd": response.cost_usd,
+                        "escalation_needed": True,
+                        "raw_content": response.content
+                    }
+            else:
+                return {
+                    "success": False,
+                    "error": response.error,
+                    "confidence": 0.0,
+                    "processing_time": response.processing_time,
+                    "cost_usd": response.cost_usd,
+                    "escalation_needed": True
+                }
+                
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"API call failed: {e}",
+            "confidence": 0.0,
+            "processing_time": 0.0,
+            "cost_usd": 0.0,
+            "escalation_needed": True
+        }
+
+def simulate_haiku_llm_call(prompt, bpm=120, confidence_threshold=0.8):
+    """
+    Simulates Haiku LLM API call for komposition generation
+    In real implementation, this would call Anthropic's Haiku API
+    """
+    # Simulate processing time (Haiku is fast!)
+    time.sleep(0.5)
+    
+    # Extract key information from prompt for simulation
+    segments = 12 if "12 segments" in prompt else 4
+    beats_per_segment = 4 if "4 beats" in prompt else 8
+    
+    # Generate sample komposition JSON
+    komposition = {
+        "metadata": {
+            "title": "Generated Music Video",
+            "bpm": bpm,
+            "estimatedDuration": (segments * beats_per_segment * 60) / bpm,
+            "created": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "generated_by": "haiku-llm",
+            "source_prompt": prompt
+        },
+        "segments": []
+    }
+    
+    # Generate segments based on prompt analysis
+    for i in range(segments):
+        segment = {
+            "id": f"segment_{i+1:02d}",
+            "startBeat": i * beats_per_segment,
+            "durationBeats": beats_per_segment,
+            "startTime": (i * beats_per_segment * 60) / bpm,
+            "duration": (beats_per_segment * 60) / bpm,
+            "effects": []
+        }
+        
+        # Add effects based on prompt keywords
+        if "old school" in prompt.lower():
+            segment["effects"].append({
+                "type": "vintage_color",
+                "parameters": {
+                    "warmth": 1.3,
+                    "saturation": 0.75,
+                    "grain": 0.4
+                }
+            })
+        
+        if "fade to white" in prompt.lower():
+            segment["effects"].append({
+                "type": "fade_white_out",
+                "parameters": {
+                    "duration": 0.5
+                }
+            })
+            
+        komposition["segments"].append(segment)
+    
+    # Add audio configuration
+    if "wav" in prompt.lower() or "audio" in prompt.lower():
+        komposition["audio"] = {
+            "backgroundMusic": "extracted_from_prompt",
+            "volume": 0.8,
+            "fadeIn": 1.0,
+            "fadeOut": 2.0
+        }
+    
+    # Simulate confidence scoring
+    keyword_matches = sum([
+        1 for keyword in ["bpm", "segments", "beats", "music", "video"]
+        if keyword in prompt.lower()
+    ])
+    confidence = min(0.95, 0.6 + (keyword_matches * 0.1))
+    
+    return {
+        "success": True,
+        "komposition": komposition,
+        "confidence": confidence,
+        "processing_time": 0.5,
+        "cost_usd": 0.03,
+        "escalation_needed": confidence < confidence_threshold
+    }
+
+async def async_main(args):
+    """Async main function to handle API calls"""
+    try:
+        print(f"🎵 Haiku Komposition Generator")
+        print(f"Input: {args.input}")
+        print(f"BPM: {args.bpm}")
+        
+        # Try real API first, fall back to simulation
+        if API_AVAILABLE:
+            print("🔗 Connecting to Haiku API...")
+            result = await call_haiku_llm_api(args.input, args.bpm, args.confidence_threshold)
+        else:
+            print("🎭 Using simulation mode...")
+            result = simulate_haiku_llm_call(args.input, args.bpm, args.confidence_threshold)
+            
+        return result
+    except Exception as e:
+        print(f"❌ Error in async_main: {e}")
+        return {"success": False, "error": str(e), "confidence": 0.0, "processing_time": 0.0, "cost_usd": 0.0, "escalation_needed": True}
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate video komposition from natural language")
+    parser.add_argument("--input", help="Natural language description")
+    parser.add_argument("--bpm", type=int, default=120, help="BPM for timing calculations")
+    parser.add_argument("--confidence-threshold", type=float, default=0.8, help="Minimum confidence score")
+    parser.add_argument("--output", help="Output file path")
+    parser.add_argument("--template", help="Template type (music_video, short_form, etc)")
+    parser.add_argument("--api-mode", action="store_true", help="Force API mode (vs simulation)")
+    parser.add_argument("--simulation-mode", action="store_true", help="Force simulation mode")
+    parser.add_argument("--learning-stats", action="store_true", help="Show pattern learning statistics")
+    parser.add_argument("--budget-status", action="store_true", help="Show current budget status and usage")
+    
+    args = parser.parse_args()
+    
+    # Handle learning stats request
+    if args.learning_stats:
+        if LEARNING_AVAILABLE:
+            stats = get_learning_stats()
+            print("🧠 Pattern Learning Statistics:")
+            print(f"   Total patterns learned: {stats['total_patterns']}")
+            print(f"   Total successful kompositions: {stats['total_successes']}")
+            print(f"   Average confidence: {stats['avg_confidence']:.2f}")
+            if stats['total_patterns'] > 0:
+                print(f"   BPM range: {stats['bpm_range'][0]}-{stats['bpm_range'][1]}")
+                print(f"   Popular effects:")
+                for effect, count in stats['popular_effects']:
+                    print(f"     {effect}: {count} uses")
+        else:
+            print("⚠️ Pattern learning not available")
+        return 0
+    
+    # Handle budget status request
+    if args.budget_status:
+        if BUDGET_AVAILABLE:
+            status = get_budget_status()
+            print("💰 Budget Status & Usage:")
+            print(f"   Daily usage: ${status.daily_usage:.3f} / ${status.daily_limit:.3f} ({status.daily_percent_used:.1f}%)")
+            print(f"   Daily remaining: ${status.daily_remaining:.3f}")
+            print(f"   Weekly usage: ${status.weekly_usage:.3f} / ${status.weekly_limit:.3f}")
+            print(f"   Monthly usage: ${status.monthly_usage:.3f} / ${status.monthly_limit:.3f}")
+            print(f"   Total operations today: {status.total_operations}")
+            print(f"   Average cost per operation: ${status.avg_cost_per_operation:.4f}")
+            
+            if status.is_over_limit:
+                print("   ⚠️ DAILY BUDGET LIMIT EXCEEDED")
+            elif status.daily_percent_used > 80:
+                print("   ⚠️ Approaching daily budget limit")
+            else:
+                print("   ✅ Budget status: OK")
+                
+            if status.active_alerts:
+                print(f"   Active alerts: {len(status.active_alerts)}")
+                for alert in status.active_alerts[-3:]:  # Show last 3 alerts
+                    print(f"     • {alert.alert_type}: {alert.message}")
+        else:
+            print("⚠️ Budget monitoring not available")
+        return 0
+    
+    # Check if input is required but missing
+    if not args.input and not args.learning_stats and not args.budget_status:
+        parser.error("--input is required unless using --learning-stats or --budget-status")
+    
+    try:
+        # Override API availability based on arguments
+        global API_AVAILABLE
+        if args.simulation_mode:
+            API_AVAILABLE = False
+        elif args.api_mode and not API_AVAILABLE:
+            print("❌ API mode requested but API client not available")
+            return 1
+        
+        # Check budget before proceeding
+        estimated_cost = 0.03  # Rough estimate for simulation, real cost varies
+        if BUDGET_AVAILABLE:
+            budget_ok, budget_message = check_budget_available(estimated_cost)
+            if not budget_ok:
+                print(f"❌ Budget limit exceeded: {budget_message}")
+                return 1
+            elif "Warning" in budget_message:
+                print(f"⚠️ {budget_message}")
+        
+        # Optimize prompt using learned patterns
+        original_prompt = args.input
+        if LEARNING_AVAILABLE:
+            optimization = optimize_prompt(args.input, args.bpm)
+            if optimization.confidence_boost > 0.05:  # Meaningful improvement
+                print(f"🧠 Pattern-optimized prompt: +{optimization.confidence_boost:.2f} confidence")
+                print(f"💡 {optimization.reasoning}")
+                args.input = optimization.optimized_prompt
+        
+        # Run async main
+        result = asyncio.run(async_main(args))
+        
+        # Handle escalation to Sonnet if needed
+        if result["escalation_needed"] and SONNET_AVAILABLE:
+            print(f"⚠️ Confidence {result['confidence']:.2f} below threshold {args.confidence_threshold}")
+            print("🧠 Escalating to Sonnet for validation...")
+            
+            try:
+                # Create HaikuResponse object for validation
+                from haiku_api_client import HaikuResponse
+                haiku_response = HaikuResponse(
+                    success=result["success"],
+                    content=json.dumps(result["komposition"]),
+                    confidence=result["confidence"],
+                    cost_usd=result["cost_usd"],
+                    processing_time=result["processing_time"],
+                    escalation_needed=result["escalation_needed"]
+                )
+                
+                validation = asyncio.run(validate_with_sonnet(haiku_response, args.input, args.bpm))
+                
+                if validation.validated and validation.improved_komposition:
+                    print(f"✅ Sonnet validation completed: {validation.confidence:.2f}")
+                    print(f"💡 {validation.validation_notes}")
+                    result["komposition"] = json.loads(validation.improved_komposition)
+                    result["confidence"] = validation.confidence
+                    result["cost_usd"] += validation.cost_usd
+                    result["processing_time"] += validation.processing_time
+                    result["escalation_needed"] = False
+                else:
+                    print(f"❌ Sonnet validation failed: {validation.error or 'Low confidence'}")
+                    if validation.validation_notes:
+                        print(f"📝 Notes: {validation.validation_notes}")
+            except Exception as e:
+                print(f"❌ Sonnet validation error: {e}")
+                print("🧠 Would escalate to Sonnet but API key not configured")
+        elif result["escalation_needed"]:
+            print(f"⚠️ Confidence {result['confidence']:.2f} below threshold {args.confidence_threshold}")
+            print("🧠 Would escalate to Sonnet but Sonnet validator not available")
+        else:
+            print(f"✅ High confidence: {result['confidence']:.2f}")
+        
+        # Record usage for budget monitoring
+        escalation_used = result.get("escalation_needed", False) and SONNET_AVAILABLE
+        if BUDGET_AVAILABLE:
+            alert = record_operation(
+                "haiku_komposition",
+                result["cost_usd"],
+                result["confidence"],
+                result["processing_time"],
+                len(original_prompt),
+                result["success"],
+                escalation_used
+            )
+            if alert:
+                print(f"🚨 Budget Alert: {alert.message}")
+        
+        # Learn from successful results
+        if LEARNING_AVAILABLE and result["success"] and result["confidence"] >= 0.7:
+            learn_from_success(
+                original_prompt,  # Use original prompt for learning
+                args.bpm,
+                result["komposition"],
+                result["confidence"],
+                result["processing_time"]
+            )
+            print("🧠 Learned from this successful komposition")
+        
+        print(f"💰 Cost: ${result['cost_usd']:.3f}")
+        print(f"⚡ Processing time: {result['processing_time']:.1f}s")
+        
+        # Output results
+        if args.output:
+            with open(args.output, 'w') as f:
+                json.dump(result["komposition"], f, indent=2)
+            print(f"📄 Komposition saved to: {args.output}")
+        else:
+            print("\n📋 Generated Komposition:")
+            print(json.dumps(result["komposition"], indent=2))
+        
+        # Return JSON with metadata for programmatic use
+        output_data = {
+            "komposition_file": args.output if args.output else "stdout",
+            "confidence": result["confidence"],
+            "cost": result["cost_usd"],
+            "processing_time": result["processing_time"],
+            "escalation_needed": result["escalation_needed"],
+            "segments": len(result["komposition"]["segments"]),
+            "estimated_duration": result["komposition"]["metadata"]["estimatedDuration"]
+        }
+        
+        print(f"\n🔧 CLI Result: {json.dumps(output_data)}")
+        
+        return 0
+        
+    except Exception as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())

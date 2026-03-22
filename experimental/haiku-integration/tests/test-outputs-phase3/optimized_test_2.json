@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "title": "Generated Music Video",
+    "bpm": 120,
+    "estimatedDuration": 16.0,
+    "created": "2025-08-24T22:51:54Z",
+    "generated_by": "haiku-llm",
+    "source_prompt": "Make a music video with transitions at 130 BPM, with vintage color grading"
+  },
+  "segments": [
+    {
+      "id": "segment_01",
+      "startBeat": 0,
+      "durationBeats": 8,
+      "startTime": 0.0,
+      "duration": 4.0,
+      "effects": []
+    },
+    {
+      "id": "segment_02",
+      "startBeat": 8,
+      "durationBeats": 8,
+      "startTime": 4.0,
+      "duration": 4.0,
+      "effects": []
+    },
+    {
+      "id": "segment_03",
+      "startBeat": 16,
+      "durationBeats": 8,
+      "startTime": 8.0,
+      "duration": 4.0,
+      "effects": []
+    },
+    {
+      "id": "segment_04",
+      "startBeat": 24,
+      "durationBeats": 8,
+      "startTime": 12.0,
+      "duration": 4.0,
+      "effects": []
+    }
+  ]
+}

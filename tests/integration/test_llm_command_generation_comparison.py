@@ -16,6 +16,10 @@ import time
 from pathlib import Path
 from typing import Dict, List, Any
 
+TEST_FILES_DIR = Path(__file__).resolve().parent.parent / "files"
+VIDEO_SOURCE = str(TEST_FILES_DIR / "JJVtt947FfI_136.mp4")
+AUDIO_SOURCE = str(TEST_FILES_DIR / "Subnautic Measures.flac")
+
 # Exact parameters from successful Python MCP implementation
 REFERENCE_SEGMENTS = [
     {"segment_id": 1, "start_time": 84.82, "duration": 2.0, "end_time": 86.82},
@@ -26,7 +30,7 @@ REFERENCE_SEGMENTS = [
     {"segment_id": 6, "start_time": 13.11, "duration": 2.0, "end_time": 15.11}
 ]
 
-REFERENCE_COMMAND = """ffmpeg -y -i /Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/JJVtt947FfI_136.mp4 -i /Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/Subnautic Measures.flac -filter_complex [0:v]trim=start=84.82:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg0];[0:v]trim=start=180.33:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg1];[0:v]trim=start=167.33:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg2];[0:v]trim=start=42.98:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg3];[0:v]trim=start=17.95:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg4];[0:v]trim=start=13.11:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg5];color=white:size=1280x720:duration=1.0[trans0];color=white:size=1280x720:duration=1.0[trans1];color=white:size=1280x720:duration=1.0[trans2];color=white:size=1280x720:duration=1.0[trans3];color=white:size=1280x720:duration=1.0[trans4];[seg0][trans0][seg1][trans1][seg2][trans2][seg3][trans3][seg4][trans4][seg5]concat=n=11:v=1:a=0[finalvideo];[1:a]atrim=duration=17.0[finalaudio] -map [finalvideo] -map [finalaudio] -c:v libx264 -preset medium -c:a aac -b:a 128k -pix_fmt yuv420p /tmp/kompo/haiku-ffmpeg/120bpm-music-videos/120bpm_subnautic_direct.mp4"""
+REFERENCE_COMMAND = f"""ffmpeg -y -i {VIDEO_SOURCE} -i {AUDIO_SOURCE} -filter_complex [0:v]trim=start=84.82:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg0];[0:v]trim=start=180.33:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg1];[0:v]trim=start=167.33:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg2];[0:v]trim=start=42.98:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg3];[0:v]trim=start=17.95:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg4];[0:v]trim=start=13.11:duration=2.0,setpts=PTS-STARTPTS,colorbalance=rs=0.1:gs=-0.1:bs=-0.2:rm=0.05:gm=0:bm=-0.05,eq=contrast=1.1:brightness=0.02:saturation=0.9,vignette=angle=PI/4[seg5];color=white:size=1280x720:duration=1.0[trans0];color=white:size=1280x720:duration=1.0[trans1];color=white:size=1280x720:duration=1.0[trans2];color=white:size=1280x720:duration=1.0[trans3];color=white:size=1280x720:duration=1.0[trans4];[seg0][trans0][seg1][trans1][seg2][trans2][seg3][trans3][seg4][trans4][seg5]concat=n=11:v=1:a=0[finalvideo];[1:a]atrim=duration=17.0[finalaudio] -map [finalvideo] -map [finalaudio] -c:v libx264 -preset medium -c:a aac -b:a 128k -pix_fmt yuv420p /tmp/kompo/haiku-ffmpeg/120bpm-music-videos/120bpm_subnautic_direct.mp4"""
 
 OUTPUT_DIR = "/tmp/kompo/haiku-ffmpeg/llm-comparison/"
 
@@ -35,8 +39,8 @@ def create_standardized_prompt() -> str:
     return f"""Create a 120 BPM music video using FFMPEG with these exact specifications:
 
 REQUIREMENTS:
-- Input video: /Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/JJVtt947FfI_136.mp4
-- Input audio: /Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/Subnautic Measures.flac
+- Input video: {VIDEO_SOURCE}
+- Input audio: {AUDIO_SOURCE}
 - Tempo: 120 BPM (4 beats = 2.0 seconds per segment)
 - Total duration: exactly 17.0 seconds
 - Output: /tmp/kompo/haiku-ffmpeg/120bpm-music-videos/output.mp4
@@ -76,8 +80,8 @@ def create_simplified_prompt_for_comparison() -> str:
 - Output as H.264 MP4 with YUV420P format
 
 Input files:
-- Video: /Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/JJVtt947FfI_136.mp4
-- Audio: /Users/stiglau/utvikling/privat/lm-ai/mcp/yolo-ffmpeg-mcp/.testdata/Subnautic Measures.flac
+- Video: {VIDEO_SOURCE}
+- Audio: {AUDIO_SOURCE}
 
 Segment times: 84.82s, 180.33s, 167.33s, 42.98s, 17.95s, 13.11s (2s each)
 

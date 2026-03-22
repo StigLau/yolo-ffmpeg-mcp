@@ -1,0 +1,28 @@
+{
+  "name": "kompolight",
+  "version": "1.0.0",
+  "description": "TypeScript MCP server for FFMPEG operations with Haiku LLM integration",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/server.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": ["mcp", "ffmpeg", "video", "processing", "haiku", "llm"],
+  "author": "Stig Lau",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@anthropic-ai/sdk": "^0.27.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

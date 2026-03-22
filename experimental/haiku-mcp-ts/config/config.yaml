@@ -1,0 +1,42 @@
+server:
+  name: "haiku-mcp-server-test"
+  version: "1.0.0"
+
+llm:
+  primary: "haiku"
+  fallback: "gemini_flash" 
+  timeout_seconds: 30
+  max_retries: 1
+
+models:
+  haiku:
+    provider: "anthropic"
+    model: "claude-3-haiku-20240307"
+    api_key: "${ANTHROPIC_API_KEY}"
+    max_tokens: 500
+    
+  gemini_flash:
+    provider: "google"
+    model: "gemini-1.5-flash"
+    api_key: "${GEMINI_API_KEY}"
+    max_tokens: 500
+
+ffmpeg:
+  timeout_seconds: 60
+  temp_directory: "/tmp/kompo/haiku-ffmpeg/temp"
+  cleanup_on_exit: true
+
+youtube:
+  timeout_seconds: 120
+  max_duration_seconds: 600
+  quality: "best[height<=480]"
+
+logging:
+  level: "DEBUG"
+  include_ffmpeg_logs: false
+  sanitize_responses: true
+
+response_limits:
+  max_tokens: 200
+  strip_metadata: true
+  include_performance_stats: true

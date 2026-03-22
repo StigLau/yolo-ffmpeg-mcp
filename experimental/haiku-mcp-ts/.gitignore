@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+*.log
+
+# Build outputs
+dist/
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+server.log
+*.cjs
+*.mjsclient.js
