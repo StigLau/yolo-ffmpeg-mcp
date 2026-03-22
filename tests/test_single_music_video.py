@@ -14,22 +14,30 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+
+async def call_tool(name, **kwargs):
+    """Helper to call MCP tools and parse JSON response."""
+    from src.server import mcp
+    result = await mcp.call_tool(name, kwargs)
+    if result and len(result) > 0:
+        return json.loads(result[0].text)
+    return {}
+
+
 async def test_single_music_video():
     """Test creating a single music video from natural language"""
     print("🎬 Single Natural Language Music Video Test")
     print("=" * 60)
-    
+
     description = "Create a simple 30-second music video with available clips and background music"
-    
+
     try:
-        # Import MCP server functions
-        from src.server import generate_komposition_from_description
-        
         print(f"📝 Description: '{description}'")
         print(f"\n🔄 Step 1: Generating komposition from natural language...")
-        
+
         # Generate komposition
-        result = await generate_komposition_from_description(
+        result = await call_tool(
+            'generate_komposition_from_description',
             description=description,
             title="Test Music Video",
             custom_bpm=120

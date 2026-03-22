@@ -15,16 +15,22 @@ Workflow:
 """
 
 import asyncio
+import json
 import sys
 from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.server import (
-    list_files, analyze_video_content, get_video_insights, 
-    smart_trim_suggestions, process_file, file_manager
-)
+from src.server import mcp, file_manager
+
+
+async def call_tool(name, **kwargs):
+    """Helper to call MCP tools and parse JSON response."""
+    result = await mcp.call_tool(name, kwargs)
+    if result and len(result) > 0:
+        return json.loads(result[0].text)
+    return {}
 
 
 class IntelligentVideoEditor:
@@ -47,19 +53,19 @@ class IntelligentVideoEditor:
         try:
             # Step 1: Find video files
             await self.log_step("Finding video files for analysis")
-            files_result = await list_files()
-            video_files = [f for f in files_result['files'] if f.extension.lower() in ['.mp4', '.mov', '.avi']]
-            
+            files_result = await call_tool('list_files')
+            video_files = [f for f in files_result.get('files', []) if f['extension'].lower() in ['.mp4', '.mov', '.avi']]
+
             if not video_files:
                 print("❌ No video files found for testing")
                 return False
-                
+
             test_video = video_files[0]
-            print(f"   📹 Selected: {test_video.name} (ID: {test_video.id})")
-            
+            print(f"   📹 Selected: {test_video['name']} (ID: {test_video['id']})")
+
             # Step 2: Analyze video content
             await self.log_step("Analyzing video content", "Scene detection + object recognition")
-            analysis_result = await analyze_video_content(test_video.id)
+            analysis_result = await call_tool('analyze_video_content', file_id=test_video['id'])
             
             if not analysis_result['success']:
                 print(f"   ❌ Analysis failed: {analysis_result['error']}")
@@ -71,7 +77,7 @@ class IntelligentVideoEditor:
             
             # Step 3: Get intelligent insights
             await self.log_step("Extracting intelligent insights", "Content understanding for editing")
-            insights_result = await get_video_insights(test_video.id)
+            insights_result = await call_tool('get_video_insights', file_id=test_video['id'])
             
             if not insights_result['success']:
                 print(f"   ❌ Insights failed: {insights_result['error']}")
@@ -95,7 +101,7 @@ class IntelligentVideoEditor:
             best_strategy = None
             
             for duration in durations:
-                trim_result = await smart_trim_suggestions(test_video.id, duration)
+                trim_result = await call_tool('smart_trim_suggestions', file_id=test_video['id'], desired_duration=duration)
                 
                 if trim_result['success'] and trim_result['suggestions']:
                     print(f"   📐 {duration}s suggestions: {len(trim_result['suggestions'])} strategies available")
@@ -122,28 +128,29 @@ class IntelligentVideoEditor:
                 print(f"   📝 Reason: {first_segment.get('reasons', ['intelligent selection'])}")
                 
                 # Apply the trim
-                trim_result = await process_file(
-                    input_file_id=test_video.id,
+                trim_result = await call_tool(
+                    'process_file',
+                    input_file_id=test_video['id'],
                     operation="trim",
                     output_extension="mp4",
                     params=f"start={trim_start} duration={trim_duration}"
                 )
-                
-                if trim_result.success:
-                    self.processed_files.append(trim_result.output_file_id)
-                    print(f"   ✅ Intelligent trim successful! Output: {trim_result.output_file_id}")
+
+                if trim_result.get('success'):
+                    self.processed_files.append(trim_result['output_file_id'])
+                    print(f"   ✅ Intelligent trim successful! Output: {trim_result['output_file_id']}")
                 else:
-                    print(f"   ❌ Trim failed: {trim_result.message}")
+                    print(f"   ❌ Trim failed: {trim_result.get('message')}")
                     
             # Step 6: Test caching
             await self.log_step("Testing metadata caching", "Verifying persistent storage")
             
             # Get insights again - should use cache
-            cached_insights = await get_video_insights(test_video.id)
+            cached_insights = await call_tool('get_video_insights', file_id=test_video['id'])
             
             if cached_insights['success']:
                 print(f"   ✅ Cache hit successful - instant insights retrieval")
-                print(f"   💾 Metadata stored at: /tmp/music/metadata/{test_video.id}_analysis.json")
+                print(f"   💾 Metadata stored at: /tmp/music/metadata/{test_video['id']}_analysis.json")
             else:
                 print(f"   ❌ Cache test failed")
                 
