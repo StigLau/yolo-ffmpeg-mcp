@@ -46,6 +46,10 @@ class TestMCPServerVerification:
         if not cls.test_audio_available:
             print(f"⚠️ Test audio not available: {TEST_AUDIO}")
     
+    @pytest.mark.skipif(
+        not Path('haiku-mcp-ts').exists(),
+        reason="haiku-mcp-ts directory not present"
+    )
     def test_typescript_mcp_server_startup(self):
         """Test TypeScript Haiku MCP server starts correctly"""
         try:
@@ -71,6 +75,10 @@ class TestMCPServerVerification:
         except Exception as e:
             pytest.fail(f"TypeScript MCP compilation error: {e}")
     
+    @pytest.mark.skipif(
+        not Path('haiku-mcp-ts').exists(),
+        reason="haiku-mcp-ts directory not present"
+    )
     def test_typescript_mcp_client_connection(self):
         """Test TypeScript MCP client can connect and execute tools"""
         if not self.test_video_available:
@@ -119,27 +127,31 @@ class TestMCPServerVerification:
             pytest.fail(f"TypeScript client error: {e}")
     
     def test_python_mcp_server_functionality(self):
-        """Test Python MCP server basic functionality"""
+        """Test Python MCP server modules can be imported and are structured correctly."""
         try:
-            # Test Python server can import and initialize
-            from server import app
-            
-            # Test tool discovery
-            tools = app.list_tools()
-            assert len(tools.tools) > 0, "No tools registered"
-            
-            # Verify expected tools exist
-            tool_names = [tool.name for tool in tools.tools]
-            expected_tools = ['process_file', 'create_music_video', 'yolo_smart_video_concat']
-            
-            for expected_tool in expected_tools:
-                assert expected_tool in tool_names, f"Missing tool: {expected_tool}"
-            
+            from src.tools import ALL_MODULES, register_all
+            assert len(ALL_MODULES) > 0, "No tool modules registered"
+
+            # Verify each module has a register function
+            for module in ALL_MODULES:
+                assert hasattr(module, 'register'), f"Module {module.__name__} missing register()"
+                assert callable(module.register), f"Module {module.__name__}.register is not callable"
+
+            # Verify key modules are present
+            module_names = [m.__name__.split('.')[-1] for m in ALL_MODULES]
+            expected = ['file_management', 'komposition', 'video_effects', 'audio_effects']
+            for name in expected:
+                assert name in module_names, f"Missing expected module: {name}"
+
         except ImportError as e:
             pytest.fail(f"Python MCP server import failed: {e}")
         except Exception as e:
             pytest.fail(f"Python MCP server error: {e}")
     
+    @pytest.mark.skipif(
+        not Path('haiku-mcp-ts').exists(),
+        reason="haiku-mcp-ts directory not present"
+    )
     def test_ffmpeg_command_accuracy(self):
         """Test FFMPEG command generation accuracy"""
         if not self.test_video_available:
@@ -210,6 +222,10 @@ class TestMCPServerVerification:
         except Exception as e:
             pytest.fail(f"FFMPEG command accuracy test failed: {e}")
     
+    @pytest.mark.skipif(
+        not Path('haiku-mcp-ts').exists(),
+        reason="haiku-mcp-ts directory not present"
+    )
     def test_music_video_workflow_integration(self):
         """Test complete music video creation workflow"""
         if not self.test_video_available or not self.test_audio_available:
@@ -281,12 +297,12 @@ class TestMCPServerVerification:
             
         try:
             # Test Python FastTrack AI capabilities
-            from haiku_subagent import HaikuSubagent
+            from src.haiku_subagent import HaikuSubagent
             
             haiku = HaikuSubagent(fallback_enabled=True)  # Enable fallback for CI
             
             # Test heuristic analysis (works without API key)
-            analysis = asyncio.run(haiku.analyze_video_files([TEST_VIDEO]))
+            analysis = asyncio.run(haiku.analyze_video_files([Path(TEST_VIDEO)]))
             
             assert hasattr(analysis, 'recommended_strategy'), "No strategy recommendation"
             assert hasattr(analysis, 'confidence'), "No confidence score"

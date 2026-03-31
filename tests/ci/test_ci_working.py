@@ -14,6 +14,7 @@ import subprocess
 import json
 import time
 import os
+import pytest
 from pathlib import Path
 
 # Test configuration
@@ -23,6 +24,10 @@ def ensure_output_dir():
     """Ensure output directory exists"""
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
+@pytest.mark.skipif(
+    not Path('haiku-mcp-ts').exists(),
+    reason="haiku-mcp-ts directory not present"
+)
 def test_typescript_mcp_compilation():
     """Test TypeScript MCP server compiles successfully"""
     print("🔧 Testing TypeScript MCP compilation...")
@@ -55,6 +60,10 @@ def test_typescript_mcp_compilation():
     except Exception as e:
         raise Exception(f"TypeScript compilation error: {e}")
 
+@pytest.mark.skipif(
+    not Path('haiku-mcp-ts').exists(),
+    reason="haiku-mcp-ts directory not present"
+)
 def test_typescript_mcp_server_startup():
     """Test TypeScript MCP server starts without errors"""
     print("🚀 Testing TypeScript MCP server startup...")
@@ -100,32 +109,32 @@ def test_ffmpeg_availability_and_basic_commands():
             raise Exception("Invalid FFMPEG version output")
         
         print("   ✅ FFMPEG availability: SUCCESS")
-        
+
     except subprocess.TimeoutExpired:
         raise Exception("FFMPEG version check timeout")
     except FileNotFoundError:
         raise Exception("FFMPEG not installed")
     except Exception as e:
         raise Exception(f"FFMPEG availability error: {e}")
-    
+
     # Test music video workflow patterns
     test_patterns = [
         # Video processing with audio drop (music video pattern)
         {
             'name': 'Video with audio drop',
-            'cmd': ['ffmpeg', '-f', 'lavfi', '-i', 'testsrc2=duration=2:size=320x240:rate=30', 
+            'cmd': ['ffmpeg', '-f', 'lavfi', '-i', 'testsrc2=duration=2:size=320x240:rate=30',
                     '-an', '-t', '2', '-y', f'{OUTPUT_DIR}/test_video_no_audio.mp4'],
             'expected_size': 1000  # Minimum expected file size
         },
-        
+
         # Audio processing for music video
         {
-            'name': 'Audio processing', 
-            'cmd': ['ffmpeg', '-f', 'lavfi', '-i', 'sine=frequency=1000:duration=2', 
+            'name': 'Audio processing',
+            'cmd': ['ffmpeg', '-f', 'lavfi', '-i', 'sine=frequency=1000:duration=2',
                     '-c:a', 'mp3', '-t', '2', '-y', f'{OUTPUT_DIR}/test_audio.mp3'],
             'expected_size': 1000
         },
-        
+
         # Combined audio-video (final music video)
         {
             'name': 'Music video assembly',
@@ -136,136 +145,61 @@ def test_ffmpeg_availability_and_basic_commands():
             'expected_size': 2000
         }
     ]
-    
+
     for pattern in test_patterns:
         try:
             result = subprocess.run(pattern['cmd'], capture_output=True, text=True, timeout=15)
             if result.returncode != 0:
                 raise Exception(f"{pattern['name']} failed: {result.stderr}")
-            
+
             # Verify output file was created
             output_file = Path(pattern['cmd'][-1])
             if not output_file.exists():
                 raise Exception(f"{pattern['name']} output not created")
-            
+
             file_size = output_file.stat().st_size
             if file_size < pattern['expected_size']:
                 raise Exception(f"{pattern['name']} output too small: {file_size} bytes")
-            
+
             print(f"   ✅ {pattern['name']}: {file_size:,} bytes")
-            
+
         except subprocess.TimeoutExpired:
             raise Exception(f"{pattern['name']} timeout")
         except Exception as e:
             raise Exception(f"{pattern['name']} error: {e}")
-    
-    return True
 
 def test_mcp_tool_structure():
-    """Test MCP tool structure can be validated"""
+    """Test MCP tool structure can be validated via direct imports."""
     print("🔍 Testing MCP tool structure...")
-    
-    try:
-        # Test Python MCP server structure via module inspection
-        result = subprocess.run([
-            'python3', '-c', '''
-import sys
-import os
-sys.path.insert(0, "src")
 
-# Test basic imports work
-try:
-    import models
-    import config
-    print("✅ Core modules importable")
-except Exception as e:
-    print(f"❌ Import error: {e}")
-    exit(1)
+    # Test core module imports (runs inside uv-managed pytest, so deps available)
+    from src.models import FileInfo, ProcessResult
+    print("   ✅ Model structures available")
 
-# Test configuration loading
-try:
-    from config import load_config
-    cfg = load_config()
-    print(f"✅ Configuration loaded: {cfg.temp_dir}")
-except Exception as e:
-    print(f"⚠️ Config loading issue: {e}")
+    from src.config import SecurityConfig
+    print("   ✅ Config module importable")
 
-# Test model structures
-try:
-    from models import VideoProcessingRequest, VideoProcessingResult
-    print("✅ Model structures available")
-except Exception as e:
-    print(f"❌ Model structure error: {e}")
-    exit(1)
+    from src.tools import ALL_MODULES
+    assert len(ALL_MODULES) > 0, "No tool modules registered"
+    print(f"   ✅ {len(ALL_MODULES)} tool modules registered")
 
-print("✅ MCP structure validation complete")
-'''
-        ], capture_output=True, text=True, timeout=10)
-        
-        if result.returncode != 0:
-            raise Exception(f"MCP structure validation failed: {result.stderr}")
-        
-        output = result.stdout
-        if "MCP structure validation complete" not in output:
-            raise Exception(f"Incomplete validation: {output}")
-        
-        print("   ✅ MCP tool structure: SUCCESS")
-        return True
-        
-    except subprocess.TimeoutExpired:
-        raise Exception("MCP structure validation timeout")
-    except Exception as e:
-        raise Exception(f"MCP structure validation error: {e}")
+    print("   ✅ MCP tool structure: SUCCESS")
 
 def test_haiku_ai_basic_integration():
-    """Test Haiku AI integration basics"""
+    """Test Haiku AI integration basics via direct imports."""
     print("🧠 Testing Haiku AI basic integration...")
-    
-    try:
-        # Test Haiku subagent can be imported and initialized
-        result = subprocess.run([
-            'python3', '-c', '''
-import sys
-sys.path.insert(0, "src")
 
-try:
-    from haiku_subagent import HaikuSubagent
-    print("✅ Haiku subagent importable")
-    
-    # Test basic initialization
+    from src.haiku_subagent import HaikuSubagent
+    print("   ✅ Haiku subagent importable")
+
     haiku = HaikuSubagent(fallback_enabled=True)
-    print("✅ Haiku subagent initializable")
-    
-    # Test creative transitions (heuristic function)
+    print("   ✅ Haiku subagent initializable")
+
     transitions = haiku.get_creative_transitions()
-    print(f"✅ Creative transitions: {len(transitions)} available")
-    
-    if len(transitions) == 0:
-        print("❌ No transitions available")
-        exit(1)
-    
-    print("✅ Haiku AI basic integration complete")
-    
-except Exception as e:
-    print(f"❌ Haiku integration error: {e}")
-    exit(1)
-'''
-        ], capture_output=True, text=True, timeout=10)
-        
-        if result.returncode != 0:
-            raise Exception(f"Haiku AI integration failed: {result.stderr}")
-        
-        output = result.stdout
-        if "Haiku AI basic integration complete" not in output:
-            raise Exception(f"Incomplete integration: {output}")
-        
-        print("   ✅ Haiku AI integration: SUCCESS")
-        return True
-        
-    except subprocess.TimeoutExpired:
-        raise Exception("Haiku AI integration timeout")
-    except Exception as e:
-        raise Exception(f"Haiku AI integration error: {e}")
+    assert len(transitions) > 0, "No creative transitions available"
+    print(f"   ✅ Creative transitions: {len(transitions)} available")
+
+    print("   ✅ Haiku AI integration: SUCCESS")
 
 def test_ci_environment_requirements():
     """Test CI environment has required tools"""
@@ -296,8 +230,6 @@ def test_ci_environment_requirements():
     
     if missing_requirements:
         raise Exception(f"Missing CI requirements: {missing_requirements}")
-    
-    return True
 
 def run_ci_tests():
     """Run all CI tests and report results"""
