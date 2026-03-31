@@ -4,6 +4,8 @@ Each module exposes a register(mcp, deps) function that registers
 MCP tools/prompts using @mcp.tool() / @mcp.prompt() decorators.
 """
 
+import logging
+
 from . import (
     file_management,
     prompts,
@@ -19,6 +21,8 @@ from . import (
     download_youtube,
     haiku_integration,
 )
+
+logger = logging.getLogger(__name__)
 
 ALL_MODULES = [
     file_management,
@@ -38,6 +42,25 @@ ALL_MODULES = [
 
 
 def register_all(mcp, deps):
-    """Register all tool modules with the MCP server."""
+    """Register all tool modules with the MCP server.
+
+    Each module is registered independently so that one broken module
+    does not take down the entire server. Failures are logged and skipped.
+    """
+    registered = []
+    failed = []
     for module in ALL_MODULES:
-        module.register(mcp, deps)
+        try:
+            module.register(mcp, deps)
+            registered.append(module.__name__)
+        except Exception as e:
+            module_name = module.__name__
+            failed.append(module_name)
+            logger.error("Failed to register tool module %s: %s", module_name, e)
+    if failed:
+        logger.warning(
+            "Server started with %d/%d modules. Failed: %s",
+            len(registered), len(ALL_MODULES), ", ".join(failed),
+        )
+    else:
+        logger.info("All %d tool modules registered successfully.", len(registered))
