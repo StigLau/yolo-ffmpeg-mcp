@@ -1,106 +1,82 @@
 # FFMPEG MCP Server - Project Context
 
-## Project Status: COMPLETE AND FUNCTIONAL ✅
-
-This is a fully working FFMPEG MCP (Model Context Protocol) server with comprehensive testing completed.
+**Updated**: 2026-03-30 (post-modular restructure)
 
 ## Architecture Overview
 
+The server was restructured from a monolithic `server.py` (7248 lines) into a modular
+architecture with 13 tool modules, each registered independently.
+
 ### Core Components
+- **Server** (`src/server.py`) - Thin orchestrator: init components, delegate to tools/
+- **ServerDeps** (`src/server_deps.py`) - Namedtuple bundling all shared components
+- **Tool Modules** (`src/tools/`) - 13 modules, each with `register(mcp, deps)`
 - **FileManager** (`src/file_manager.py`) - Secure file handling with ID-based references
 - **FFMPEGWrapper** (`src/ffmpeg_wrapper.py`) - Safe FFMPEG command building and execution
 - **SecurityConfig** (`src/config.py`) - Security settings and validation
-- **Server** (`src/server.py`) - Main MCP server with 6 tools
 
-### Key Features
-- **Security**: ID-based file references (no direct path exposure)
-- **Validation**: File size, extension, and directory restrictions
-- **Operations**: 6 FFMPEG operations (convert, extract_audio, trim, resize, normalize_audio, to_mp3)
-- **Error Handling**: Comprehensive error handling and timeout protection
+### Registration Flow
+```
+server.py (orchestrator)
+  -> initializes all components (FileManager, FFMPEGWrapper, etc.)
+  -> bundles into ServerDeps namedtuple
+  -> calls register_all(mcp, deps) from tools/__init__.py
+     -> each tool module: register(mcp, deps) using @mcp.tool()
+     -> failures are isolated per-module (logged, not fatal)
+```
 
-## File Structure
-```
-/Users/stiglau/utvikling/privat/yolo-ffmpeg-mcp/
-├── src/
-│   ├── __init__.py
-│   ├── server.py           # Main MCP server (6 tools)
-│   ├── file_manager.py     # File mapping and security
-│   ├── ffmpeg_wrapper.py   # FFMPEG command builder
-│   └── config.py          # Security configuration
-├── tests/
-│   ├── __init__.py
-│   └── test_ffmpeg_integration.py  # Comprehensive integration tests
-├── tests/files/
-│   └── PXL_20250306_132546255.mp4  # Test video file
-├── pyproject.toml         # UV project configuration
-├── uv.lock               # Dependencies lock file
-└── CLAUDE.md             # MCP server documentation
-```
+### Tool Modules (`src/tools/`)
+| Module | Purpose |
+|--------|---------|
+| `file_management.py` | list_files, process_file, batch_process |
+| `komposition.py` | Beat-synchronized music video processing |
+| `komposition_generation.py` | Description-to-video pipeline |
+| `composition.py` | Speech-aware composition planning |
+| `speech.py` | Speech detection (Silero VAD) |
+| `video_effects.py` | Visual effects and chains |
+| `audio_effects.py` | Audio processing and mastering |
+| `format_management.py` | Aspect ratio and format conversion |
+| `video_comparison.py` | A/B video comparison |
+| `download_youtube.py` | YouTube download/upload/Shorts |
+| `haiku_integration.py` | AI-powered video strategy |
+| `process_monitoring.py` | Timeout and zombie process management |
+| `prompts.py` | MCP prompt definitions |
 
 ## Working Directories
-- **Source files**: `/tmp/music/source/` (contains test video)
-- **Temp files**: `/tmp/music/temp/` (generated outputs)
+- **Source files**: `/tmp/music/source/`
+- **Temp files**: `/tmp/music/temp/`
+- **Screenshots**: `/tmp/music/screenshots/{sourceRef}/`
+- **Metadata**: `/tmp/music/metadata/`
 
 ## Dependencies (UV managed)
-- `mcp` - MCP protocol implementation
+- `mcp` / `fastmcp` - MCP protocol
 - `pydantic` - Data validation
-- `pytest` + `pytest-asyncio` - Testing framework
-
-## MCP Tools Available
-1. **list_files()** - List source files with secure IDs
-2. **get_file_info(file_id)** - Get detailed metadata 
-3. **get_available_operations()** - Show FFMPEG operations
-4. **process_file(input_file_id, operation, output_extension, **params)** - Process files
-5. **cleanup_temp_files()** - Remove temporary files
-
-## Test Results (ALL PASSING ✅)
-- File listing and registration
-- Metadata extraction with ffprobe
-- MP3 conversion (86KB output generated)
-- Video trimming (1.6MB output generated)
-- Error handling and validation
-- Security features verified
-
-## Current Server Status
-- **MCP Inspector running** at http://127.0.0.1:6274
-- **Test video available**: PXL_20250306_132546255.mp4 (8.6MB, 3.57s duration)
-- **Generated outputs**: MP3 and trimmed MP4 files in temp directory
+- `anthropic` - Claude Haiku subagent
+- `opencv-python` / `scenedetect` - Video analysis
+- `pytest` + `pytest-asyncio` - Testing
+- `aiohttp` - Async HTTP
+- `docker` - Container management (optional)
 
 ## Key Commands
 ```bash
 # Start MCP server
 uv run python -m src.server
 
-# Test with Inspector  
+# Test with Inspector
 npx @modelcontextprotocol/inspector uv run python -m src.server
 
-# Run tests
-uv run pytest tests/test_ffmpeg_integration.py -v -s
+# Run CI tests
+uv run pytest tests/ci/ -x -q
 
-# Install dependencies
-uv add mcp pydantic
-uv add --dev pytest pytest-asyncio
+# Run all tests
+uv run pytest tests/ -v -s
 ```
 
 ## Security Implementation
 - File access restricted to allowed directories only
 - All file references use secure IDs (format: `file_12345678`)
-- Input validation for extensions, file sizes, operations
-- Process timeout protection (5 minutes)
-- Command whitelisting with parameter validation
-
-## FFMPEG Operations
-- **convert**: Video/audio format conversion
-- **extract_audio**: Extract audio from video 
-- **trim**: Trim video/audio (requires start, duration params)
-- **resize**: Resize video (requires width, height params)
-- **normalize_audio**: Normalize audio levels
-- **to_mp3**: Convert to MP3 format
-
-## Next Steps for Claude
-1. Server is fully functional and tested
-2. Can be used immediately for FFMPEG operations
-3. Ready for integration with Claude Code MCP configuration
-4. All security measures implemented and verified
-
-**This project is production-ready with comprehensive testing completed.**
+- Input validation for extensions, file sizes (500MB limit), operations
+- Process timeout protection with cleanup callbacks
+- Optional imports: heavy deps wrapped in `try/except ImportError`
+- API key handling: `ANTHROPIC_API_KEY` from env, with fallback mode
+- Cost controls: `CostLimits(daily_limit=5.0, per_analysis_limit=0.10)`

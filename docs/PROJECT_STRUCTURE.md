@@ -1,144 +1,91 @@
 # FFMPEG MCP Server - Project Structure Guide
 
-## 📁 Organized Project Layout for LLMs and Humans
+**Updated**: 2026-03-30 (post-modular restructure)
 
-This document provides a comprehensive overview of the project structure, optimized for both LLM navigation and human understanding.
+This document provides a comprehensive overview of the project structure after the
+split from a monolithic `server.py` (7248 lines) into 13 modular tool files.
 
-## 🎯 Core System (`src/`)
+## Core System (`src/`)
 
-### MCP Server Core
-- **`server.py`** - Main MCP server with 15+ production tools
+### MCP Server (Modular Architecture)
+- **`server.py`** - Thin orchestrator: initializes components, delegates to `tools/`
+- **`server_deps.py`** - `ServerDeps` namedtuple bundling all shared components
+- **`tools/__init__.py`** - `register_all()` iterates `ALL_MODULES` with per-module error isolation
+- **`tools/file_management.py`** - list_files, process_file, batch_process, etc.
+- **`tools/komposition.py`** - Beat-synchronized music video processing
+- **`tools/komposition_generation.py`** - Description-to-video pipeline
+- **`tools/composition.py`** - Speech-aware composition planning
+- **`tools/speech.py`** - Speech detection (Silero VAD)
+- **`tools/video_effects.py`** - Visual effects and chains
+- **`tools/audio_effects.py`** - Audio processing and mastering
+- **`tools/format_management.py`** - Aspect ratio and format conversion
+- **`tools/video_comparison.py`** - A/B video comparison
+- **`tools/download_youtube.py`** - YouTube download/upload/Shorts
+- **`tools/haiku_integration.py`** - AI-powered video strategy
+- **`tools/process_monitoring.py`** - Timeout and zombie process management
+- **`tools/prompts.py`** - MCP prompt definitions
+
+### Shared Components
 - **`file_manager.py`** - Secure file ID mapping and validation
-- **`config.py`** - Security configuration and settings
-
-### Video Processing Engine
+- **`config.py`** - `SecurityConfig`: paths, limits, extensions
 - **`ffmpeg_wrapper.py`** - Safe FFMPEG command building and execution
 - **`content_analyzer.py`** - AI-powered video content analysis
-- **`video_normalizer.py`** - Video format standardization
+- **`komposition_processor.py`** - Beat-synchronized processing
+- **`speech_detector.py`** - Silero VAD speech detection
+- **`format_manager.py`** - Aspect ratio and format management
+- **`haiku_subagent.py`** - Claude Haiku for video analysis
+- **`timeout_manager.py`** - Operation timeout management
+- **`models.py`** - `FileInfo`, `ProcessResult` Pydantic models
 
-### Intelligent Composition System
-- **`komposition_generator.py`** - Generate komposition from text descriptions
-- **`komposition_processor.py`** - Beat-synchronized music video processing
-- **`komposition_build_planner.py`** - Build plan creation with dependency resolution
-- **`composition_planner.py`** - High-level composition planning
-- **`music_video_builder.py`** - Complete music video workflow orchestration
+## Testing Infrastructure (`tests/`)
 
-### Speech Detection & Audio Processing
-- **`speech_detector.py`** - AI-powered speech detection using Silero VAD
-- **`speech_komposition_processor.py`** - Speech-aware video composition
-- **`enhanced_speech_analyzer.py`** - Advanced speech analysis capabilities
+| Directory | Purpose | CI Safe? |
+|-----------|---------|----------|
+| `tests/ci/` | Core unit tests, no external deps | Yes |
+| `tests/dev/` | Developer tests, may need FFmpeg/APIs | No |
+| `tests/docker/` | Container-specific tests | No |
+| `tests/data/`, `tests/files/` | Test fixtures and media | N/A |
 
-### Resource Management
-- **`resource_manager.py`** - Resource registry and cache management
-- **`deterministic_id_generator.py`** - Consistent file ID generation
-- **`transition_processor.py`** - Video transition effects processing
+### Key CI Tests
+- `test_unit_core.py` - Core component unit tests
+- `test_ci_working.py` - Server functionality (direct imports)
+- `test_mcp_server_verification.py` - Tool module structure verification
+- `test_integration_basic.py` - Basic integration tests
+- `test_workflow_minimal.py` - Minimal workflow validation
 
-## 🧪 Testing Infrastructure (`tests/`)
+## Documentation (`docs/`)
 
-### CI/CD Tests
-- **`ci/`** - Automated CI/CD pipeline tests
-  - `test_unit_core.py` - Core component unit tests
-  - `test_integration_basic.py` - Basic integration tests
-  - `test_mcp_server.py` - MCP server functionality tests
-  - `test_workflow_minimal.py` - Minimal workflow validation
+- **`docs/guides/`** - Setup guides, specs, workflows
+- **`docs/ai-generated/`** - AI-written docs (organized by topic)
+- **`docs/architecture/`** - Architecture planning docs
+- **`docs/reports/`** - Analysis reports
 
-### Development Tests
-- **`dev/`** - Development and feature tests
-  - `test_speech_features.py` - Speech detection testing
-  - `test_resource_system.py` - Resource management tests
+## KCP Discovery Chain
 
-### Production Tests
-- **`test_ffmpeg_integration.py`** - FFMPEG integration tests
-- **`test_end_to_end_music_video.py`** - Complete workflow validation
-- **`test_intelligent_content_analysis.py`** - Content analysis tests
-- **`test_komposition_music_video.py`** - Komposition system tests
+```
+knowledge.yaml          # KCP manifest: units, intents, triggers
+CLAUDE.md               # Project instructions
+.claude/skills/         # Executable skills for agent sessions
+.claude/agents/         # Subagent definitions
+.claude/subagents/      # Subagent implementations
+```
 
-### Test Data & Media
-- **`files/`** - Test videos, audio, and images
-- **`data/`** - Test komposition JSON files and configurations
+## Deployment
 
-## 📚 Documentation (`documents/`)
+- **`docker/`** - Dockerfile variants
+- **`deployment/`** - Deploy configs (docker-compose, build scripts)
+- **`config/`** - Configuration files
 
-### Human-Authored Specifications
-- **`WORKFLOW_EXAMPLES.md`** - Complete production workflows
-- **`DOCKER_SETUP.md`** - Production deployment guide
-- **`SPEECH_DETECTION_FEATURE_SPEC.md`** - Speech feature specifications
+## LLM Navigation Guide
 
-### AI-Generated Documentation (`ai-generated/`)
-- **`mcp-config/`** - MCP server configuration documentation
-- **`workflow-analysis/`** - Workflow efficiency analysis
-- **`komposition/`** - Beat-synchronized video system docs
-- **`speech-detection/`** - Speech detection implementation docs
-- **`feature-requests/`** - Feature requests and continuation guides
-
-## 🛠️ Tools & Utilities
-
-### Scripts (`scripts/`)
-- **`run_ci_tests.sh`** - CI/CD test execution
-- **`video_validator.py`** - Automated video validation
-- **`main.py`** - Main entry point (moved from root)
-- **`run_tests.py`** - Test runner utility (moved from root)
-
-### Analysis Tools (`tools/analysis/`)
-- **`analyze_transition_artifacts.py`** - Transition artifact analysis
-- **`fix_transition_artifacts.py`** - Artifact correction utilities
-- **`rebuild_frame_accurate_video.py`** - Frame-accurate video rebuilding
-
-## 📖 Examples & Workflows
-
-### Video Workflow Examples (`examples/video-workflows/`)
-- **`create_beat_synchronized_video.py`** - Beat synchronization examples
-- **`create_final_production.py`** - Production workflow examples
-- **`build_your_video.py`** - Interactive video building
-- **`working_demo_production.py`** - Demo production workflows
-
-### Komposition Examples (`examples/komposition-examples/`)
-- **`music_video_komposition.json`** - Complete music video komposition
-- **`simple_music_video_komposition.json`** - Basic komposition example
-- **`final_speech_music_video.json`** - Speech-synchronized video example
-- **`correct_multi_video_komposition.json`** - Multi-source video composition
-
-## 🗄️ Archive (`archive/`)
-
-### Legacy Tests (`legacy-tests/`)
-- Historical test files moved from root for reference
-- Contains `test_*.py` files from earlier development phases
-
-## 🐳 Deployment & Configuration
-
-### Docker Infrastructure
-- **`Dockerfile.ci`** - CI/CD optimized container
-- **`Dockerfile`** - Production container
-- **`docker-compose.yml`** - Multi-service deployment
-- **`build-docker.sh`** - Automated Docker build script
-
-### CI/CD Pipeline
-- **`.github/workflows/ci.yml`** - GitHub Actions workflow
-- **`pyproject.toml`** - Python project configuration
-- **`uv.lock`** - Dependency lock file
-
-## 🧭 LLM Navigation Guide
-
-### Quick File Access by Function Area
+**Adding a new tool**: Create `src/tools/my_tool.py` with `def register(mcp, deps):`, add to `src/tools/__init__.py`
 
 **Core Video Processing**: `src/ffmpeg_wrapper.py`, `src/content_analyzer.py`
 
-**Music Video Creation**: `src/komposition_*.py`, `src/music_video_builder.py`
+**Music Video Creation**: `src/tools/komposition.py`, `src/tools/komposition_generation.py`
 
-**Speech Detection**: `src/speech_*.py`, `src/enhanced_speech_analyzer.py`
+**Speech Detection**: `src/tools/speech.py`, `src/speech_detector.py`
 
-**Testing**: `tests/ci/`, `tests/test_*.py`
+**Testing**: `tests/ci/` -- run with `uv run pytest tests/ci/ -x -q`
 
-**Examples**: `examples/video-workflows/`, `examples/komposition-examples/`
-
-**Documentation**: `documents/WORKFLOW_EXAMPLES.md`, `documents/ai-generated/`
-
-### Problem Area Transitions
-
-1. **Video Processing Issues** → Check `src/ffmpeg_wrapper.py`, `src/content_analyzer.py`
-2. **Music Video Problems** → Navigate to `src/komposition_processor.py`, `examples/komposition-examples/`
-3. **Speech Detection** → Focus on `src/speech_detector.py`, `documents/ai-generated/speech-detection/`
-4. **Testing Issues** → Reference `tests/ci/`, `scripts/video_validator.py`
-5. **Configuration** → Check `src/config.py`, `documents/ai-generated/mcp-config/`
-
-This structure enables rapid context switching between problem domains while maintaining logical organization for human developers.
+**Examples**: `examples/komposition-examples/`, `examples/video-workflows/`
