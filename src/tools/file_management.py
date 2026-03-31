@@ -21,7 +21,6 @@ def register(mcp, deps):
 
     @mcp.tool()
     @timing_decorator
-    @timing_decorator
     async def list_files() -> Dict[str, Any]:
         """🎬 CORE WORKFLOW - List available source files with smart suggestions and quick actions
 
