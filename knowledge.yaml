@@ -1,0 +1,109 @@
+# Knowledge Context Protocol (KCP) manifest for yolo-ffmpeg-mcp
+# Enables AI agents to discover and understand this service
+version: "1.0"
+service: yolo-ffmpeg-mcp
+description: MCP server for AI-guided FFmpeg video processing
+
+units:
+  - id: service-overview
+    intent: Understand what this project does and how to get started
+    scope: project-wide
+    audience: [developer, ai-agent, operator]
+    triggers:
+      - "what is this"
+      - "how to start"
+      - "project overview"
+      - "getting started"
+    source: CLAUDE.md
+    depends_on: []
+
+  - id: mcp-tools
+    intent: Discover available MCP tools and their parameters
+    scope: src/tools/
+    audience: [ai-agent, developer]
+    triggers:
+      - "what tools are available"
+      - "MCP tool"
+      - "tool registration"
+      - "list tools"
+      - "how to add a tool"
+    source: src/tools/__init__.py
+    depends_on: [service-overview]
+
+  - id: fasttrack-analysis
+    intent: AI-powered video content analysis and scene detection
+    scope: src/content_analyzer.py, src/tools/file_management.py
+    audience: [ai-agent]
+    triggers:
+      - "analyze video"
+      - "scene detection"
+      - "content analysis"
+      - "video intelligence"
+    source: src/content_analyzer.py
+    depends_on: [mcp-tools]
+
+  - id: komposition-generation
+    intent: Beat-synchronized music video creation from descriptions
+    scope: src/tools/komposition_generation.py, src/tools/komposition.py
+    audience: [ai-agent, developer]
+    triggers:
+      - "create music video"
+      - "komposition"
+      - "beat sync"
+      - "generate video from description"
+      - "composition planning"
+    source: src/tools/komposition_generation.py
+    depends_on: [mcp-tools, fasttrack-analysis]
+
+  - id: multi-agent-orchestration
+    intent: Coordinate specialized subagents for complex video workflows
+    scope: .claude/agents/, .claude/subagents/, src/haiku_subagent.py
+    audience: [ai-agent, operator]
+    triggers:
+      - "multi-agent"
+      - "subagent"
+      - "orchestration"
+      - "FastTrack"
+      - "Komposteur"
+      - "Build Detective"
+      - "cost management"
+    source: .claude/skills/multi-agent/skill.md
+    depends_on: [service-overview, mcp-tools]
+
+  - id: video-processing
+    intent: FFmpeg video operations, effects, format conversion
+    scope: src/tools/video_effects.py, src/tools/format_management.py, src/tools/audio_effects.py
+    audience: [ai-agent, developer]
+    triggers:
+      - "video effect"
+      - "format conversion"
+      - "audio effect"
+      - "aspect ratio"
+      - "YouTube Shorts"
+      - "ffmpeg command"
+    source: .claude/skills/video-processing/skill.md
+    depends_on: [mcp-tools]
+
+  - id: testing
+    intent: Test infrastructure, CI patterns, and quality assurance
+    scope: tests/
+    audience: [developer, ci]
+    triggers:
+      - "run tests"
+      - "CI failing"
+      - "test pattern"
+      - "pytest"
+    source: .claude/skills/testing/skill.md
+    depends_on: [service-overview]
+
+  - id: deployment
+    intent: Docker deployment and MCP server configuration
+    scope: docker/, deployment/, Dockerfile
+    audience: [operator, developer]
+    triggers:
+      - "deploy"
+      - "docker"
+      - "container"
+      - "MCP config"
+    source: .claude/skills/deployment/skill.md
+    depends_on: [service-overview]
