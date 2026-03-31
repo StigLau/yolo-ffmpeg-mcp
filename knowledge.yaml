@@ -3,6 +3,7 @@
 version: "1.0"
 service: yolo-ffmpeg-mcp
 description: MCP server for AI-guided FFmpeg video processing
+validated: 2026-03-30
 
 units:
   - id: service-overview
@@ -14,8 +15,10 @@ units:
       - "how to start"
       - "project overview"
       - "getting started"
+      - "README"
     source: CLAUDE.md
     depends_on: []
+    validated: 2026-03-30
 
   - id: mcp-tools
     intent: Discover available MCP tools and their parameters
@@ -27,8 +30,29 @@ units:
       - "tool registration"
       - "list tools"
       - "how to add a tool"
+      - "register_all"
+      - "ALL_MODULES"
     source: src/tools/__init__.py
     depends_on: [service-overview]
+    enables: [video-processing, komposition-generation, fasttrack-analysis]
+    validated: 2026-03-30
+
+  - id: server-architecture
+    intent: Understand the modular server architecture and how components connect
+    scope: src/server.py, src/server_deps.py, src/tools/__init__.py
+    audience: [developer, ai-agent]
+    triggers:
+      - "server architecture"
+      - "how does the server work"
+      - "ServerDeps"
+      - "modular structure"
+      - "register_all"
+      - "tool module pattern"
+    source: src/server.py
+    depends_on: [service-overview]
+    enables: [mcp-tools]
+    context: "Split from 7248-line monolithic server.py into thin orchestrator + 13 tool modules"
+    validated: 2026-03-30
 
   - id: fasttrack-analysis
     intent: AI-powered video content analysis and scene detection
@@ -39,8 +63,12 @@ units:
       - "scene detection"
       - "content analysis"
       - "video intelligence"
+      - "FastTrack"
     source: src/content_analyzer.py
     depends_on: [mcp-tools]
+    enables: [komposition-generation]
+    context: "Uses HaikuSubagent for cost-effective analysis ($0.02-0.05/analysis)"
+    validated: 2026-03-30
 
   - id: komposition-generation
     intent: Beat-synchronized music video creation from descriptions
@@ -52,8 +80,12 @@ units:
       - "beat sync"
       - "generate video from description"
       - "composition planning"
+      - "music video workflow"
     source: src/tools/komposition_generation.py
     depends_on: [mcp-tools, fasttrack-analysis]
+    enables: [video-processing]
+    context: "120 BPM formula: 16 beats = 8 seconds. Separate video/audio streams."
+    validated: 2026-03-30
 
   - id: multi-agent-orchestration
     intent: Coordinate specialized subagents for complex video workflows
@@ -66,9 +98,15 @@ units:
       - "FastTrack"
       - "Komposteur"
       - "Build Detective"
+      - "VDVIL"
+      - "VideoRenderer"
       - "cost management"
+      - "delegation"
     source: .claude/skills/multi-agent/skill.md
     depends_on: [service-overview, mcp-tools]
+    enables: [fasttrack-analysis, komposition-generation]
+    context: "FastTrack->Audio(VDVIL)->Beat-sync(Komposteur)->Crossfades(VideoRenderer)->Assembly(YOLO)"
+    validated: 2026-03-30
 
   - id: video-processing
     intent: FFmpeg video operations, effects, format conversion
@@ -81,8 +119,13 @@ units:
       - "aspect ratio"
       - "YouTube Shorts"
       - "ffmpeg command"
+      - "crossfade"
+      - "transition"
+      - "yuv420p"
     source: .claude/skills/video-processing/skill.md
     depends_on: [mcp-tools]
+    context: "Final output always YUV420P. Intermediate can use YUV444P for quality."
+    validated: 2026-03-30
 
   - id: testing
     intent: Test infrastructure, CI patterns, and quality assurance
@@ -93,8 +136,14 @@ units:
       - "CI failing"
       - "test pattern"
       - "pytest"
+      - "flaky test"
+      - "test_typescript_mcp"
+      - "uv run pytest"
     source: .claude/skills/testing/skill.md
     depends_on: [service-overview]
+    enables: [ci-debugging]
+    context: "CI tests in tests/ci/ require no external deps. Use uv run pytest, not raw pytest."
+    validated: 2026-03-30
 
   - id: deployment
     intent: Docker deployment and MCP server configuration
@@ -105,5 +154,40 @@ units:
       - "docker"
       - "container"
       - "MCP config"
+      - "Claude Desktop config"
+      - "MCP Inspector"
     source: .claude/skills/deployment/skill.md
     depends_on: [service-overview]
+    context: "Server works without ANTHROPIC_API_KEY (fallback mode, Haiku analysis disabled)"
+    validated: 2026-03-30
+
+  - id: security
+    intent: Security configuration, file access controls, and cost limits
+    scope: src/config.py, src/file_manager.py, src/haiku_subagent.py
+    audience: [developer, operator]
+    triggers:
+      - "security"
+      - "file access"
+      - "allowed directories"
+      - "cost limit"
+      - "API key"
+      - "file ID"
+    source: src/config.py
+    depends_on: [service-overview]
+    context: "Extension whitelist, 500MB size limit, sandboxed dirs, daily cost limit $5.00"
+    validated: 2026-03-30
+
+  - id: ci-debugging
+    intent: Patterns for debugging CI failures and build issues
+    scope: .claude/skills/ci-debugging/, tests/ci/
+    audience: [developer, ci]
+    triggers:
+      - "CI broken"
+      - "build failed"
+      - "import error"
+      - "test failing in CI"
+      - "Build Detective"
+    source: .claude/skills/ci-debugging/skill.md
+    depends_on: [testing]
+    context: "90% of CI failures from LLM code changes are simple fixes (<10 lines)"
+    validated: 2026-03-30
