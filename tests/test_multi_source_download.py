@@ -15,9 +15,9 @@ import sys
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from download_service import DownloadService, DownloadRequest
+from src.download_service import DownloadService, DownloadRequest
 
 async def test_multi_source_downloads():
     """Test downloads from multiple source types"""

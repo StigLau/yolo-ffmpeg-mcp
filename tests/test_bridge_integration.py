@@ -3,10 +3,10 @@
 import sys
 import asyncio
 from pathlib import Path
-sys.path.insert(0, 'src')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 async def test_hybrid_bridge():
-    from mcp_hybrid_bridge import MCPHybridBridge, BridgeMode
+    from src.mcp_hybrid_bridge import MCPHybridBridge, BridgeMode
     
     print('🔧 Manual Integration Test: MCP Hybrid Bridge')
     print('='*50)

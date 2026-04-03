@@ -22,7 +22,7 @@ from pathlib import Path
 import sys
 
 # Add src to path for Python MCP imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 TEST_FILES_DIR = Path(__file__).resolve().parent.parent / "files"
 TEST_VIDEO = str(TEST_FILES_DIR / "JJVtt947FfI_136.mp4")

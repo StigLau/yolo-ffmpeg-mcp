@@ -27,8 +27,8 @@ async def test_python_fasttrack_ai():
     try:
         # Import and test FastTrack directly
         import sys
-        sys.path.insert(0, 'src')
-        from haiku_subagent import HaikuSubagent
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+        from src.haiku_subagent import HaikuSubagent
         
         # Initialize Haiku subagent
         haiku = HaikuSubagent()

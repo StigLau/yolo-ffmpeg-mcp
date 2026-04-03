@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, 'src')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.containerized_ffmpeg import ContainerizedFFmpeg, is_containerized_ffmpeg_available
 from src.ffmpeg_wrapper import FFMPEGWrapper

@@ -9,9 +9,9 @@ import pytest
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from format_manager import FormatManager, AspectRatio, CropMode, FormatSpec, COMMON_PRESETS
+from src.format_manager import FormatManager, AspectRatio, CropMode, FormatSpec, COMMON_PRESETS
 
 
 class TestFormatManager:
@@ -101,7 +101,7 @@ class TestFormatManager:
     
     def test_generate_ffmpeg_filters(self):
         """Test FFmpeg filter generation"""
-        from format_manager import VideoAnalysis
+        from src.format_manager import VideoAnalysis
         
         # Create mock analysis
         analysis = VideoAnalysis(
@@ -138,7 +138,7 @@ class TestFormatManager:
     
     def test_needs_conversion(self):
         """Test conversion requirement detection"""
-        from format_manager import VideoAnalysis
+        from src.format_manager import VideoAnalysis
         
         analysis = VideoAnalysis(
             file_id="test",
@@ -169,7 +169,7 @@ class TestFormatManager:
     
     def test_suggest_target_format_mixed_orientations(self):
         """Test target format suggestion with mixed orientations"""
-        from format_manager import VideoAnalysis
+        from src.format_manager import VideoAnalysis
         
         analyses = [
             VideoAnalysis("vid1", 1920, 1080, 10.0, 30.0, 1920/1080, CropMode.CENTER_CROP, {}),  # Landscape

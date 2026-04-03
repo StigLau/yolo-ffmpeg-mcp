@@ -15,9 +15,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ai_context_enhancement import (
+from src.ai_context_enhancement import (
     AIContextEnhancer,
     VideoCharacteristics,
     ProcessingComplexity,

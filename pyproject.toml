@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "aiohttp>=3.12.15",
     "docker>=7.1.0",
-    "fastmcp>=2.7.1",
+    "fastmcp>=2.14.2",
     "mcp>=1.9.3",
     "opencv-python>=4.11.0.86",
     "pydantic>=2.11.5",

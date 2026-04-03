@@ -12,10 +12,10 @@ import sys
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from download_service import get_download_service
-from file_manager import FileManager
+from src.download_service import get_download_service
+from src.file_manager import FileManager
 
 async def test_youtube_download():
     """Test YouTube download functionality"""
@@ -173,7 +173,7 @@ async def test_mcp_interface():
     
     # Import the MCP tools
     try:
-        from server import download_youtube_video, get_download_info
+        from src.server import download_youtube_video, get_download_info
         
         test_url = "https://www.youtube.com/watch?v=wR0unWhn9iw"
         

@@ -20,7 +20,7 @@ class TestSpeechDetection:
     def test_speech_detector_import(self):
         """Test speech detector can be imported"""
         try:
-            from speech_detector import SpeechDetector
+            from src.speech_detector import SpeechDetector
             assert SpeechDetector is not None
         except ImportError as e:
             pytest.skip(f"Speech detector not available: {e}")
@@ -28,7 +28,7 @@ class TestSpeechDetection:
     def test_speech_detector_initialization(self):
         """Test speech detector initialization"""
         try:
-            from speech_detector import SpeechDetector
+            from src.speech_detector import SpeechDetector
             detector = SpeechDetector()
             assert detector is not None
         except Exception as e:
@@ -38,7 +38,7 @@ class TestSpeechDetection:
     async def test_speech_detection_mcp_tool(self):
         """Test speech detection via MCP tool"""
         try:
-            from server import mcp
+            from src.server import mcp
             import json
             
             # Get available files
@@ -78,7 +78,7 @@ class TestSpeechFileSpecific:
     async def test_lookin_video_speech(self):
         """Test speech detection on lookin video (if available)"""
         try:
-            from server import mcp
+            from src.server import mcp
             import json
             
             # Look for lookin video specifically
@@ -116,7 +116,7 @@ class TestSpeechFileSpecific:
     async def test_dagny_video_speech(self):
         """Test speech detection on Dagny video (if available)"""
         try:
-            from server import mcp
+            from src.server import mcp
             import json
             
             # Look for Dagny video
@@ -152,7 +152,7 @@ class TestSpeechInsights:
     async def test_speech_insights_tool(self):
         """Test get_speech_insights MCP tool"""
         try:
-            from server import mcp
+            from src.server import mcp
             import json
             
             # Get available files
@@ -192,7 +192,7 @@ class TestSpeechKomposition:
     async def test_speech_komposition_tool(self):
         """Test speech komposition processing"""
         try:
-            from server import mcp
+            from src.server import mcp
             import json
             import tempfile
             

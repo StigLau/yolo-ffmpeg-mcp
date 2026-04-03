@@ -3,11 +3,11 @@
 import sys
 import asyncio
 from pathlib import Path
-sys.path.insert(0, 'src')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 async def test_fixed_video_intelligence():
-    from video_intelligence import VideoIntelligenceAnalyzer
-    from mcp_hybrid_bridge import MCPHybridBridge
+    from src.video_intelligence import VideoIntelligenceAnalyzer
+    from src.mcp_hybrid_bridge import MCPHybridBridge
     
     print('🧠 Testing Fixed Video Intelligence')
     print('='*50)

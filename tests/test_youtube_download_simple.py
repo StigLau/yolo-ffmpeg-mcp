@@ -13,10 +13,10 @@ import json
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from download_service import get_download_service
-from file_manager import FileManager
+from src.download_service import get_download_service
+from src.file_manager import FileManager
 
 async def test_download_integration():
     """Test basic download functionality"""

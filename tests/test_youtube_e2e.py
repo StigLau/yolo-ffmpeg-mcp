@@ -14,18 +14,18 @@ from unittest.mock import patch, MagicMock, AsyncMock
 
 # Import MCP server components for E2E testing
 import sys
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+sys.path.append(str(Path(__file__).parent.parent))
 
 try:
-    from server import (
+    from src.server import (
         upload_youtube_video, 
         validate_youtube_video,
         create_video_from_description,
         list_files,
         process_file
     )
-    from file_manager import FileManager
-    from youtube_upload_service import upload_to_youtube, validate_youtube_shorts
+    from src.file_manager import FileManager
+    from src.youtube_upload_service import upload_to_youtube, validate_youtube_shorts
     MCP_COMPONENTS_AVAILABLE = True
 except ImportError as e:
     print(f"MCP components not available: {e}")

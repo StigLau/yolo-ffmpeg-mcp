@@ -12,12 +12,12 @@ import sys
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from download_service import get_download_service
-from file_manager import FileManager
-from content_analyzer import VideoContentAnalyzer
-from komposition_generator import KompositionGenerator
+from src.download_service import get_download_service
+from src.file_manager import FileManager
+from src.content_analyzer import VideoContentAnalyzer
+from src.komposition_generator import KompositionGenerator
 
 async def test_full_workflow():
     """Test complete workflow: Download → Analysis → Music Video Creation"""
@@ -208,8 +208,8 @@ async def test_mcp_integration():
     
     try:
         # Test the download service availability
-        from download_service import get_download_service
-        from file_manager import FileManager
+        from src.download_service import get_download_service
+        from src.file_manager import FileManager
         
         file_manager = FileManager()
         download_service = get_download_service(file_manager)

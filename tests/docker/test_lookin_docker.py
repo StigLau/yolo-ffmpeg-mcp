@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # Add src to path
-sys.path.append('/app/src')
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 async def test_lookin_speech_detection():
     print("🎤 Testing Speech Detection on lookin.mp4 in Docker")
@@ -17,8 +17,8 @@ async def test_lookin_speech_detection():
     
     try:
         # Import modules (should work in Docker with dependencies)
-        from server import list_files, detect_speech_segments, get_speech_insights
-        from speech_detector import SPEECH_DEPS_AVAILABLE
+        from src.server import list_files, detect_speech_segments, get_speech_insights
+        from src.speech_detector import SPEECH_DEPS_AVAILABLE
         
         print(f"📦 Speech dependencies available: {SPEECH_DEPS_AVAILABLE}")
         

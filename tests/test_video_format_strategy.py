@@ -5,16 +5,17 @@ Tests that video format strategy is working correctly
 """
 import asyncio
 import sys
+from pathlib import Path
 import os
-sys.path.insert(0, 'src')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 async def test_video_format_imports():
     """Test that all video format components import correctly"""
     try:
         # Test core imports with absolute imports
-        from komposition_processor_mcp import KompositionProcessor
-        from file_manager import FileManager
-        from ffmpeg_wrapper import FFMPEGWrapper
+        from src.komposition_processor_mcp import KompositionProcessor
+        from src.file_manager import FileManager
+        from src.ffmpeg_wrapper import FFMPEGWrapper
         
         print("✅ All video format components import successfully")
         return True
@@ -25,9 +26,9 @@ async def test_video_format_imports():
 async def test_compatibility_encoding_method():
     """Test that ensure_compatibility_encoding method exists and is callable"""
     try:
-        from komposition_processor_mcp import KompositionProcessor
-        from file_manager import FileManager
-        from ffmpeg_wrapper import FFMPEGWrapper
+        from src.komposition_processor_mcp import KompositionProcessor
+        from src.file_manager import FileManager
+        from src.ffmpeg_wrapper import FFMPEGWrapper
         
         file_manager = FileManager()
         ffmpeg_wrapper = FFMPEGWrapper(file_manager)

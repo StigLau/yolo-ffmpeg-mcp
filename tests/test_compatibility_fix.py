@@ -1,11 +1,12 @@
 import asyncio
 import sys
-sys.path.insert(0, 'src')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 async def test_compatibility():
-    from video_operations import process_file_as_finished
-    from file_manager import FileManager  
-    from ffmpeg_wrapper import FFMPEGWrapper
+    from src.video_operations import process_file_as_finished
+    from src.file_manager import FileManager  
+    from src.ffmpeg_wrapper import FFMPEGWrapper
     
     file_manager = FileManager()
     ffmpeg_wrapper = FFMPEGWrapper(file_manager)

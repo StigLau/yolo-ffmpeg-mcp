@@ -15,10 +15,10 @@ import sys
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from enhanced_komposition_generator import generate_enhanced_komposition_from_description
+    from src.enhanced_komposition_generator import generate_enhanced_komposition_from_description
 except ImportError as e:
     print(f"Import error: {e}")
     print("Trying to import directly...")

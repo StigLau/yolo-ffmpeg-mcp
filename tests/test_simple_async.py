@@ -3,10 +3,10 @@
 import sys
 import asyncio
 from pathlib import Path
-sys.path.insert(0, 'src')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 async def test_simple_async():
-    from async_interface import AsyncMCPInterface, TaskPriority, TaskStatus
+    from src.async_interface import AsyncMCPInterface, TaskPriority, TaskStatus
     
     print('🔧 Simple Async Test')
     print('='*30)

@@ -12,10 +12,10 @@ import sys
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from file_manager import FileManager
-from komposteur_bridge_processor import KompositionProcessor
+from src.file_manager import FileManager
+from src.komposteur_bridge_processor import KompositionProcessor
 
 async def test_kompost_json_via_mcp():
     """Test kompost.json processing through MCP interface"""

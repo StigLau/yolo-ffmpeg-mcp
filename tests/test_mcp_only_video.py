@@ -11,10 +11,10 @@ from pathlib import Path
 import sys
 
 # Add src to path
-sys.path.insert(0, 'src')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from file_manager import FileManager
-from komposteur_bridge_processor import KomposteurBridgeProcessor
+from src.file_manager import FileManager
+from src.komposteur_bridge_processor import KomposteurBridgeProcessor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

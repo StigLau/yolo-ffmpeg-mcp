@@ -12,10 +12,10 @@ import os
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from haiku_subagent import HaikuSubagent, CostLimits, ProcessingStrategy
+    from src.haiku_subagent import HaikuSubagent, CostLimits, ProcessingStrategy
     HAIKU_AVAILABLE = True
 except ImportError as e:
     print(f"❌ Haiku subagent not available: {e}")

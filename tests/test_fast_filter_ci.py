@@ -17,7 +17,7 @@ import os
 # Add current directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from video_comparison_test_library import VideoComparisonTester
+from tools.video_comparison_test_library import VideoComparisonTester
 
 class FastFilterCITest:
     """Fast CI test with random filter selection and specific testing capability"""

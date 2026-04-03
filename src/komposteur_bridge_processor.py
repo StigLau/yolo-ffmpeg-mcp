@@ -24,7 +24,7 @@ sys.path.insert(0, str(project_root))
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class KompositionProcessor:
+class KomposteurBridgeProcessor:
     """
     Komposteur-compatible processor that bridges to our MCP video processing system
     Expected interface: async process_komposition(kompost_data) -> {"output_path": str}
@@ -104,6 +104,9 @@ class KompositionProcessor:
                 "exception_type": type(e).__name__
             }
 
+# Alias for Komposteur discovery mechanism compatibility
+KompositionProcessor = KomposteurBridgeProcessor
+
 # Entry point for Komposteur subprocess calls
 async def main():
     """Entry point for Komposteur subprocess calls"""
@@ -129,7 +132,7 @@ async def main():
             return
         
         # Process using our bridge
-        processor = KompositionProcessor()
+        processor = KomposteurBridgeProcessor()
         result = await processor.process_komposition(kompost_data)
         
         # Return result as JSON for Komposteur

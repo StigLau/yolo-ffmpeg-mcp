@@ -11,11 +11,11 @@ import time
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Try to import the Haiku subagent
 try:
-    from haiku_subagent import HaikuSubagent, CostLimits
+    from src.haiku_subagent import HaikuSubagent, CostLimits
     HAIKU_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Haiku subagent not available: {e}")

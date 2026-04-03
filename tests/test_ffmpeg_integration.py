@@ -4,10 +4,10 @@ import os
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from server import (
+from src.server import (
     list_files, 
     get_file_info, 
     get_available_operations,
@@ -16,6 +16,7 @@ from server import (
     file_manager,
     ffmpeg
 )
+
 
 
 class TestFFMPEGIntegration:

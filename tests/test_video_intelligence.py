@@ -14,9 +14,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from video_intelligence import (
+from src.video_intelligence import (
     VideoIntelligenceAnalyzer, 
     detect_optimal_cut_points,
     analyze_keyframes,

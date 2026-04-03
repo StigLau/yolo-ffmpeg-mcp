@@ -27,8 +27,8 @@ except ImportError:
 # Try to import the MCP server registry functions
 try:
     import sys
-    sys.path.insert(0, 'src')
-    from server import mcp
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from src.server import mcp
     MCP_AVAILABLE = True
 except ImportError:
     MCP_AVAILABLE = False

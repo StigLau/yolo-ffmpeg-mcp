@@ -14,9 +14,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from mcp_hybrid_bridge import MCPHybridBridge, BridgeMode, ToolResult
+from src.mcp_hybrid_bridge import MCPHybridBridge, BridgeMode, ToolResult
 
 class TestMCPHybridBridge:
     """Comprehensive test suite for MCP Hybrid Bridge"""
@@ -261,7 +261,7 @@ class TestHaikuIntegration:
         bridge = MCPHybridBridge(preferred_mode=BridgeMode.STANDALONE)
         
         try:
-            from haiku_subagent import HaikuSubagent
+            from src.haiku_subagent import HaikuSubagent
             haiku = HaikuSubagent(mcp_bridge=bridge)
             
             # Test video analysis through hybrid bridge

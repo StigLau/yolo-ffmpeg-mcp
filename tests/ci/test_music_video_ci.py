@@ -264,8 +264,8 @@ class TestMusicVideoCreation:
         """Test Haiku AI understands music video workflow context"""
         try:
             import sys
-            sys.path.insert(0, 'src')
-            from haiku_subagent import HaikuSubagent
+            sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+            from src.haiku_subagent import HaikuSubagent
             
             haiku = HaikuSubagent(fallback_enabled=True)
             

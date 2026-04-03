@@ -2,7 +2,8 @@
 """Quick test of trace logger functionality"""
 
 import sys
-sys.path.insert(0, 'src')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.trace_logger import get_trace_logger, trace_start, trace_step, trace_ffmpeg, trace_end
 import os

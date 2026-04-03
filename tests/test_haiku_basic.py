@@ -11,9 +11,9 @@ import sys
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from haiku_subagent import HaikuSubagent, CostLimits, ProcessingStrategy
+from src.haiku_subagent import HaikuSubagent, CostLimits, ProcessingStrategy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

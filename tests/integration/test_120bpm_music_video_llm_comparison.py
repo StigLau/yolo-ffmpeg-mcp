@@ -98,12 +98,12 @@ async def create_music_video_python_mcp(segments: List[Dict]) -> Dict[str, Any]:
     
     # Import MCP tools
     import sys
-    sys.path.insert(0, 'src')
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
     
     try:
         # Test direct komposition approach first
-        from komposition_processor_mcp import KompositionProcessorMCP
-        from models import VideoProcessingRequest, VideoProcessingResult
+        from src.komposition_processor_mcp import KompositionProcessorMCP
+        from src.models import VideoProcessingRequest, VideoProcessingResult
         
         processor = KompositionProcessorMCP()
         

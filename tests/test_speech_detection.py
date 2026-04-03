@@ -14,11 +14,11 @@ from unittest.mock import Mock, patch, MagicMock
 
 # Import modules to test
 import sys
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+sys.path.append(str(Path(__file__).parent.parent))
 
-from speech_detector import SpeechDetector, SileroVAD, SpeechDetectionError
-from server import detect_speech_segments, get_speech_insights
-import file_manager
+from src.speech_detector import SpeechDetector, SileroVAD, SpeechDetectionError
+from src.server import detect_speech_segments, get_speech_insights
+import src.file_manager as file_manager
 
 class TestSpeechDetector:
     """Test the SpeechDetector class"""

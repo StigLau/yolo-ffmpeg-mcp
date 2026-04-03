@@ -11,9 +11,9 @@ import sys
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from haiku_subagent import HaikuSubagent, CostLimits
+from src.haiku_subagent import HaikuSubagent, CostLimits
 
 async def test_quickcut_analysis():
     """Test QuickCut-AI analysis only"""

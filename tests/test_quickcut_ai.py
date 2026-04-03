@@ -12,10 +12,10 @@ import sys
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from haiku_subagent import HaikuSubagent, yolo_smart_concat, CostLimits
-from ffmpeg_wrapper import FFMPEGWrapper
+from src.haiku_subagent import HaikuSubagent, yolo_smart_concat, CostLimits
+from src.ffmpeg_wrapper import FFMPEGWrapper
 
 async def test_quickcut_ai():
     """Test QuickCut-AI (Haiku subagent) with generated test videos"""

@@ -10,10 +10,10 @@ import time
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from server import (
+    from src.server import (
         yolo_smart_video_concat,
         analyze_video_processing_strategy, 
         get_haiku_cost_status,
