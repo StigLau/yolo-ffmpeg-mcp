@@ -1,14 +1,8 @@
 name: Build Base Docker Images
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'Dockerfile.base'
-      - 'pyproject.toml'
-  schedule:
-    # Rebuild weekly to get security updates
-    - cron: '0 2 * * 1'
+  # Disabled: Docker base image approach not in use; neutered to stop weekly CI cost.
+  # Re-enable push/schedule triggers if Dockerfile.base is actively maintained.
   workflow_dispatch:
 
 env:
