@@ -1,7 +1,7 @@
 # Haiku LLM Integration Requirements
 # Core dependencies for API integration
 
-aiohttp>=3.9.0
+aiohttp>=3.14.1
 asyncio-throttle>=1.0.0
 python-dotenv>=1.0.0
 
