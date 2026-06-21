@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "title": "128-Beat Music Video Transition",
+    "description": "Simple transition video from JJVtt947FfI_136.mp4 to _wZ5Hof5tXY_136.mp4",
+    "bpm": 120,
+    "total_beats": 128,
+    "total_duration": 64.0,
+    "created_by": "Claude YOLO MCP Simple"
+  },
+  "source_videos": {
+    "video_1": {
+      "filename": "JJVtt947FfI_136.mp4",
+      "file_id": "file_4c22226d",
+      "segment_start": 8.0,
+      "segment_duration": 32.0
+    },
+    "video_2": {
+      "filename": "_wZ5Hof5tXY_136.mp4",
+      "file_id": "file_6af24242",
+      "segment_start": 12.0,
+      "segment_duration": 26.0
+    }
+  },
+  "output": {
+    "final_video_id": "file_65c3d16f",
+    "processing_steps": 3,
+    "composition_type": "simple_concatenation"
+  },
+  "next_steps": [
+    "Use final video for further editing",
+    "Add background music if desired",
+    "Apply transitions in external editor",
+    "Export in desired format for platform"
+  ]
+}
